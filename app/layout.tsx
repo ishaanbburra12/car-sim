@@ -21,6 +21,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/garage" className="hover:text-slate-100">
                 Garage
               </Link>
+              <Link href="/drive" className="hover:text-slate-100">
+                Rev test
+              </Link>
               <Link href="/methods" className="hover:text-slate-100">
                 Methods
               </Link>

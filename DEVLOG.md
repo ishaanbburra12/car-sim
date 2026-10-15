@@ -172,3 +172,69 @@ Rebased onto it rather than force-pushing, so that commit survives.
 
 1. Engine sound — Web Audio driven by the rpm the engine already computes.
 2. Then driving, then 3D.
+
+---
+
+## 2026-10-15 — Session 3: engine sound
+
+### What we did
+
+Added `/drive`, a rev-test page. Pick a car, press Start engine, and sweep a
+slider from idle to redline while a synthesised engine note follows it. Live
+readouts show power at that rpm (read from the real engine model via `hpAt`),
+share of peak power, and the firing rate in Hz.
+
+**How the synth works.** A four-stroke engine fires `cylinders / 2` times per
+revolution, so the fundamental is `rpm/60 * cylinders/2`. Six harmonics of that
+are stacked as detuned sawtooth oscillators and pushed through a low-pass
+filter whose cutoff opens as revs rise - that filter sweep is most of what
+makes an engine sound like it is working harder rather than just higher
+pitched. Band-passed white noise on top gives air rush. Naturally aspirated
+cars get a brighter harmonic mix than turbo cars, which are deliberately
+muffled up top.
+
+### What broke
+
+Nothing in the code. Two process notes: browsers refuse to play audio until
+the user clicks something, so the page needs an explicit "Start engine" button
+rather than making noise on load. And a `pkill` in the same shell command as
+the commit killed the shell before the commit ran - split them next time.
+
+### How we checked it
+
+Not just "it compiles". Drove it in a real browser with an analyser node
+spliced into the audio graph and measured the output:
+
+| rpm | predicted fundamental | measured dominant |
+|---|---|---|
+| 3,000 | 100 Hz | 108 Hz |
+| 6,400 | 213 Hz | 215 Hz |
+
+The pitch genuinely tracks the rev counter. Also confirmed the audio context
+reaches `running`, stops cleanly, and that switching cars updates cylinder
+count and redline.
+
+### What I decided
+
+- **Cylinder counts live in the sound module, not in the `Car` type.** The
+  engine knows nothing about audio and should stay that way. The cost is that
+  adding a car means editing two files; worth revisiting if that gets annoying.
+- **The page says plainly it is not a recording.** It is a synthesiser making a
+  plausible engine-ish noise, with no claim to sound like any real car. Same
+  honesty rule as the performance figures: never let something synthesised look
+  like something measured.
+- **Sound never touches the physics.** The power figure is read from the model;
+  the audio is downstream of everything and feeds back into nothing.
+
+### Who wrote what
+
+- **Me (Raju):** chose the slider-on-its-own-page design over a control
+  embedded in the Garage.
+- **Claude:** the synthesiser, the page, and the browser audio verification.
+
+### Next session
+
+1. Replay a real 0-60 run and hear the gear changes land - the simulation
+   already knows rpm at every 5 ms step.
+2. Then driving, then 3D.
+
