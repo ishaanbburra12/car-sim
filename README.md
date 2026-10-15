@@ -23,9 +23,11 @@ and how far the model lands from the real cars' published figures.
   downforce. Braking is integrated separately because downforce fades as a car
   slows.
 - **A rev test page** with a synthesised engine note built from each car's
-  cylinder count and rev range. It is a synthesiser, not a recording, and
-  makes no claim to sound like any real car.
-- **70 tests**, including checks that the three real cars land within 10% of
+  cylinder count and rev range, and a **launch replay** that plays a simulated
+  standing start back in real time so you can hear the gear changes land where
+  the physics put them. It is a synthesiser, not a recording, and makes no
+  claim to sound like any real car.
+- **81 tests**, including checks that the three real cars land within 10% of
   their published 0-60 and top speed.
 
 ## How accurate is it?
@@ -49,7 +51,7 @@ to. The other two use published drag coefficients and are honest checks.
 ```bash
 npm install
 npm run dev     # http://localhost:3000/garage  and  /drive
-npm test        # 70 tests
+npm test        # 81 tests
 npm run build
 ```
 

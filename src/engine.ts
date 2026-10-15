@@ -1,4 +1,4 @@
-import type { Car, Estimate, Part, Spec, Stats } from "./types";
+import type { Car, Estimate, Part, RunSample, RunTrace, Spec, Stats } from "./types";
 import { PARTS } from "./data";
 
 // ---- Constants and assumptions (list these on your Methods page) ----
@@ -14,6 +14,8 @@ const ROTATIONAL_MASS_FACTOR = 1.04; // spinning parts act like a little extra m
 const DT = 0.005; // simulation time step (seconds)
 const BRAKE_DT = 0.001; // finer step for the braking integration (seconds)
 const CORNERING_REF_MPH = 60; // speed at which cornering grip is reported
+const TRACE_INTERVAL_S = 0.02; // how often a recorded run stores a sample
+const TRACE_MAX_S = 30; // never record longer than this
 
 // Part prices were written for the Vantora Pulse, a $26,000 hatchback. The same
 // job costs more on an expensive car: more labour, rarer parts, and suppliers
@@ -181,7 +183,7 @@ function peakTorqueLbFt(spec: Spec): number {
 }
 
 // ---- Straight-line simulation (0-60, quarter mile, top speed) ----
-function simulate(spec: Spec) {
+function simulate(spec: Spec, trace?: RunSample[]) {
   const gearTotal = spec.gearRatios.map((g) => g * spec.finalDrive);
   const sixty = 60 * MPS_PER_MPH;
   const quarter = 402.336; // metres
@@ -194,6 +196,7 @@ function simulate(spec: Spec) {
   let zeroToSixty = NaN;
   let quarterMile = NaN;
   let rolloutT = NaN; // clock time when the car has travelled one foot
+  let nextSampleAt = 0;
 
   const rpmIn = (v: number, g: number) => (v / spec.wheelRadiusM) * gearTotal[g] * (60 / (2 * Math.PI));
 
@@ -244,6 +247,19 @@ function simulate(spec: Spec) {
     v = Math.max(0, v + a * DT);
     x += v * DT;
     t += DT;
+
+    // Recording is purely observational: it reads the loop's state and
+    // changes nothing about it.
+    if (trace && t >= nextSampleAt && t <= TRACE_MAX_S) {
+      trace.push({
+        t,
+        speedMph: v / MPS_PER_MPH,
+        rpm: Math.max(rpmIn(v, gear), spec.launchRpm),
+        gear: gear + 1,
+        shifting: shiftTimer > 0,
+      });
+      nextSampleAt += TRACE_INTERVAL_S;
+    }
 
     if (Number.isNaN(rolloutT) && x >= ROLLOUT_M) rolloutT = t;
     if (Number.isNaN(zeroToSixty) && v >= sixty) zeroToSixty = t;
@@ -298,6 +314,31 @@ export function computeStats(spec: Spec): Stats {
     lateralG: lateralG(spec),
     massKg: spec.massKg,
     totalCostUsd: spec.basePriceUsd + spec.addedCostUsd,
+  };
+}
+
+/**
+ * Run the simulation and keep a sample of every 20 ms, so the run can be
+ * played back (for sound, a graph, or a replay). Uses exactly the same
+ * simulation as the stats, just with recording switched on.
+ *
+ * Recording stops once the car passes the quarter mile, or after 30 seconds.
+ */
+export function traceRun(
+  car: Car,
+  partIds: string[] = [],
+  parts: Part[] = PARTS,
+): RunTrace {
+  const spec = applyParts(car, partIds, "pessimistic", parts);
+  const samples: RunSample[] = [];
+  const sim = simulate(spec, samples);
+  const endAt = Number.isNaN(sim.quarterMile) ? TRACE_MAX_S : sim.quarterMile;
+  const trimmed = samples.filter((s) => s.t <= endAt + 0.4);
+  return {
+    samples: trimmed,
+    zeroToSixtyS: sim.zeroToSixty,
+    quarterMileS: sim.quarterMile,
+    topGearUsed: trimmed.reduce((m, s) => Math.max(m, s.gear), 1),
   };
 }
 

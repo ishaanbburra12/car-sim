@@ -50,6 +50,8 @@ export class EngineSound {
   private idleRpm: number;
   private redlineRpm: number;
   private running = false;
+  /** 0 = off throttle (gearbox between gears), 1 = full. */
+  private throttle = 1;
 
   constructor(opts: {
     cylinders: number;
@@ -126,6 +128,14 @@ export class EngineSound {
     this.master.gain.setTargetAtTime(0.5, this.ctx.currentTime, 0.08);
   }
 
+  /**
+   * Off-throttle the engine goes quiet and dull rather than silent, which is
+   * what makes a gear change audible as a cut rather than a dropout.
+   */
+  setThrottle(value: number) {
+    this.throttle = Math.min(1, Math.max(0, value));
+  }
+
   setRpm(rpm: number) {
     if (!this.running) return;
     const now = this.ctx.currentTime;
@@ -146,11 +156,20 @@ export class EngineSound {
     );
 
     // Open the filter as revs rise so the sound gets harder, not just higher.
-    const cutoff = 450 + load * load * 5200 + fundamental * 2.5;
+    const openness = 0.35 + 0.65 * this.throttle;
+    const cutoff = (450 + load * load * 5200 + fundamental * 2.5) * openness;
     this.lowpass.frequency.setTargetAtTime(cutoff, now, smoothing);
 
-    this.noiseGain.gain.setTargetAtTime(0.012 + load * 0.055, now, smoothing);
-    this.master.gain.setTargetAtTime(0.32 + load * 0.3, now, smoothing);
+    this.noiseGain.gain.setTargetAtTime(
+      (0.012 + load * 0.055) * this.throttle,
+      now,
+      smoothing,
+    );
+    this.master.gain.setTargetAtTime(
+      (0.32 + load * 0.3) * (0.45 + 0.55 * this.throttle),
+      now,
+      smoothing,
+    );
   }
 
   async stop() {

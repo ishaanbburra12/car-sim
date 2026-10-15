@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CARS, carById } from "../../src/cars";
-import { hpAt } from "../../src/engine";
+import { hpAt, traceRun } from "../../src/engine";
 import { EngineSound, cylindersFor } from "../../src/ui/sound";
 import { fmt } from "../../src/ui/format";
+import type { RunSample } from "../../src/types";
 
 const IDLE_RPM = 800;
 
@@ -13,24 +14,89 @@ export default function DrivePage() {
   const [carId, setCarId] = useState(CARS[0].id);
   const [rpm, setRpm] = useState(IDLE_RPM);
   const [running, setRunning] = useState(false);
+  const [replaying, setReplaying] = useState(false);
+  const [live, setLive] = useState<RunSample | null>(null);
   const soundRef = useRef<EngineSound | null>(null);
+  const rafRef = useRef<number | null>(null);
 
   const car = carById(carId) ?? CARS[0];
   const cylinders = cylindersFor(car.id);
 
   // Power the engine model says this car makes at the rpm on the slider.
-  const hpNow = hpAt(rpm, car.stockHp, car.peakHpRpm, car.engineType);
-  const firingHz = (rpm / 60) * (cylinders / 2);
+  const hpNow = hpAt(
+    live ? live.rpm : rpm,
+    car.stockHp,
+    car.peakHpRpm,
+    car.engineType,
+  );
+  const firingHz = ((live ? live.rpm : rpm) / 60) * (cylinders / 2);
 
-  // Stop the audio if the page goes away or the car changes.
+  // The recorded run for this car, straight from the physics engine. Stock
+  // only: builds live in the Garage.
+  const trace = useMemo(() => traceRun(car), [car]);
+
+  // Stop the audio and any replay if the page goes away.
   useEffect(() => {
     return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
       void soundRef.current?.stop();
       soundRef.current = null;
     };
   }, []);
 
+  function stopReplay() {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    setReplaying(false);
+    setLive(null);
+    soundRef.current?.setThrottle(1);
+    soundRef.current?.setRpm(rpm);
+  }
+
+  /**
+   * Play the recorded run back in real time. Each frame we look up where the
+   * car was at that moment and feed its rpm to the synth, so the gear changes
+   * land exactly when the simulation says they did.
+   */
+  async function playLaunch() {
+    if (replaying) {
+      stopReplay();
+      return;
+    }
+    if (!soundRef.current) await startEngine();
+    const sound = soundRef.current;
+    if (!sound) return;
+
+    const samples = trace.samples;
+    if (samples.length === 0) return;
+
+    setReplaying(true);
+    const startedAt = performance.now();
+    let i = 0;
+
+    const step = () => {
+      const elapsed = (performance.now() - startedAt) / 1000;
+      while (i < samples.length - 1 && samples[i + 1].t <= elapsed) i++;
+      const s = samples[i];
+
+      sound.setThrottle(s.shifting ? 0.12 : 1);
+      sound.setRpm(s.rpm);
+      setLive(s);
+
+      if (elapsed >= samples[samples.length - 1].t) {
+        stopReplay();
+        return;
+      }
+      rafRef.current = requestAnimationFrame(step);
+    };
+    rafRef.current = requestAnimationFrame(step);
+  }
+
   async function stopEngine() {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    setReplaying(false);
+    setLive(null);
     await soundRef.current?.stop();
     soundRef.current = null;
     setRunning(false);
@@ -76,8 +142,9 @@ export default function DrivePage() {
     }
   }
 
-  const revFraction = (rpm - IDLE_RPM) / (car.redlineRpm - IDLE_RPM);
-  const nearRedline = rpm > car.redlineRpm * 0.92;
+  const shownRpm = live ? Math.round(live.rpm) : rpm;
+  const revFraction = (shownRpm - IDLE_RPM) / (car.redlineRpm - IDLE_RPM);
+  const nearRedline = shownRpm > car.redlineRpm * 0.92;
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-8">
@@ -150,7 +217,7 @@ export default function DrivePage() {
                 nearRedline ? "text-red-400" : "text-slate-100",
               ].join(" ")}
             >
-              {rpm.toLocaleString("en-US")}{" "}
+              {shownRpm.toLocaleString("en-US")}{" "}
               <span className="text-xs font-normal text-slate-500">rpm</span>
             </span>
           </div>
@@ -161,7 +228,8 @@ export default function DrivePage() {
             min={IDLE_RPM}
             max={car.redlineRpm}
             step={25}
-            value={rpm}
+            value={shownRpm}
+            disabled={replaying}
             onChange={(e) => changeRpm(Number(e.target.value))}
             className="w-full accent-amber-500"
             aria-valuetext={`${rpm} rpm`}
@@ -222,11 +290,134 @@ export default function DrivePage() {
         </dl>
       </div>
 
+
+      {/* ---- Launch replay ---- */}
+      <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            Launch replay
+          </h2>
+          <span className="text-xs text-slate-500">
+            stock car &middot; {trace.samples.length} samples &middot; gears 1&ndash;
+            {trace.topGearUsed}
+          </span>
+        </div>
+        <p className="mt-1 text-xs leading-relaxed text-slate-500">
+          Plays the simulated standing start back in real time and feeds its
+          rpm to the synthesiser, so the gear changes land exactly where the
+          physics put them. The revs you hear are the ones the model computed,
+          not an animation.
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void playLaunch()}
+            className={[
+              "rounded-md border px-4 py-2 text-sm font-medium transition",
+              replaying
+                ? "border-red-400/50 bg-red-500/10 text-red-100 hover:bg-red-500/20"
+                : "border-amber-400/60 bg-amber-400/10 text-amber-100 hover:bg-amber-400/20",
+            ].join(" ")}
+          >
+            {replaying ? "Stop replay" : "Play launch"}
+          </button>
+          <span className="text-xs text-slate-500">
+            0&ndash;60 in{" "}
+            <span className="text-slate-300">
+              {fmt(trace.zeroToSixtyS, 2)}s
+            </span>
+            , quarter mile in{" "}
+            <span className="text-slate-300">{fmt(trace.quarterMileS, 2)}s</span>{" "}
+            <span className="text-[10px] uppercase tracking-wide text-amber-400/80">
+              est.
+            </span>
+          </span>
+        </div>
+
+        {/* Live run readout */}
+        <dl className="mt-4 grid grid-cols-4 gap-4 border-t border-white/10 pt-4 text-sm">
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500">Time</dt>
+            <dd className="mt-0.5 tabular-nums font-semibold text-slate-100">
+              {fmt(live?.t ?? 0, 2)}
+              <span className="text-xs font-normal text-slate-500">s</span>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500">Speed</dt>
+            <dd className="mt-0.5 tabular-nums font-semibold text-slate-100">
+              {fmt(live?.speedMph ?? 0, 0)}
+              <span className="text-xs font-normal text-slate-500"> mph</span>
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500">Gear</dt>
+            <dd
+              className={[
+                "mt-0.5 tabular-nums font-semibold",
+                live?.shifting ? "text-amber-400" : "text-slate-100",
+              ].join(" ")}
+            >
+              {live?.shifting ? "\u2014" : (live?.gear ?? 1)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase tracking-wide text-slate-500">
+              Gear changes
+            </dt>
+            <dd className="mt-0.5 tabular-nums font-semibold text-slate-100">
+              {trace.topGearUsed - 1}
+            </dd>
+          </div>
+        </dl>
+
+        {/* Gear map: where each change happens across the run */}
+        <div className="mt-4">
+          <div className="relative h-7 w-full overflow-hidden rounded-md bg-white/[0.04]">
+            {trace.samples.map((s, idx) =>
+              idx > 0 && s.gear !== trace.samples[idx - 1].gear ? (
+                <div
+                  key={s.t}
+                  className="absolute top-0 h-full w-px bg-amber-400/70"
+                  style={{
+                    left: `${(s.t / trace.quarterMileS) * 100}%`,
+                  }}
+                  title={`Shift into gear ${s.gear} at ${s.t.toFixed(2)}s`}
+                />
+              ) : null,
+            )}
+            {live && (
+              <div
+                className="absolute top-0 h-full w-0.5 bg-slate-100"
+                style={{ left: `${(live.t / trace.quarterMileS) * 100}%` }}
+              />
+            )}
+            <div
+              className="absolute top-0 h-full border-l border-dashed border-slate-500/60"
+              style={{
+                left: `${(trace.zeroToSixtyS / trace.quarterMileS) * 100}%`,
+              }}
+              title={`60 mph at ${trace.zeroToSixtyS.toFixed(2)}s`}
+            />
+          </div>
+          <div className="mt-1 flex justify-between text-[10px] uppercase tracking-wide text-slate-600">
+            <span>launch</span>
+            <span>
+              <span className="text-amber-400/70">|</span> shifts &middot;{" "}
+              <span className="text-slate-500">¦</span> 60 mph
+            </span>
+            <span>quarter mile</span>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-4 text-xs leading-relaxed text-slate-500">
         <p>
           <span className="text-slate-400">How the sound is made.</span> A
           four-stroke engine fires {cylinders} / 2 = {cylinders / 2} times per
-          revolution, so at {rpm.toLocaleString("en-US")} rpm the fundamental is{" "}
+          revolution, so at {shownRpm.toLocaleString("en-US")} rpm the
+          fundamental is{" "}
           {fmt(firingHz, 0)} Hz. Six harmonics of that are stacked and pushed
           through a low-pass filter that opens as the revs rise, with filtered
           noise on top for air rush.

@@ -120,6 +120,23 @@ export type Stats = {
   totalCostUsd: number;
 };
 
+/** One moment of a simulated run, recorded for playback. */
+export type RunSample = {
+  t: number; // seconds since the start
+  speedMph: number;
+  rpm: number;
+  gear: number; // 1-based, as a driver would count
+  shifting: boolean; // true while the gearbox is between gears
+};
+
+/** A recorded standing-start run. */
+export type RunTrace = {
+  samples: RunSample[];
+  zeroToSixtyS: number;
+  quarterMileS: number;
+  topGearUsed: number;
+};
+
 export type Estimate = {
   stock: Stats;
   pessimistic: Stats;

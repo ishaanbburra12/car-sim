@@ -238,3 +238,78 @@ count and redline.
    already knows rpm at every 5 ms step.
 2. Then driving, then 3D.
 
+---
+
+## 2026-10-15 — Session 4: hear the launch
+
+### What we did
+
+The rev test can now **replay a real standing start**. Press Play launch and
+the simulated run is played back in real time, feeding its rpm to the
+synthesiser, so the gear changes land exactly where the physics put them.
+Live readouts show time, speed, current gear (a dash while mid-shift) and the
+number of gear changes, with a strip showing where each shift falls between
+launch and the quarter mile.
+
+**New in the engine:** `traceRun()`, which runs the same simulation as the
+stats but records a sample every 20 ms. It is additive - nothing that already
+worked changed, and a test asserts that tracing produces the identical 0-60
+and quarter-mile times as the untraced run.
+
+**New in the synth:** `setThrottle()`. Off-throttle the engine goes quiet and
+dull rather than silent, which is what makes a gear change sound like a cut
+instead of a dropout.
+
+Tests 70 -> 81.
+
+### What broke
+
+**A test said speed should only ever increase on a standing start. It failed,
+and the engine was right again.** Mid-shift there is no drive, so drag and
+rolling resistance genuinely slow the car slightly. Replaced it with three
+tests: speed rises while driving, the car *does* dip during a shift, and the
+dip is never more than 2 mph. That dip is audible in the replay.
+
+### Something that looked like a bug and was not
+
+During the first ~1.2 seconds the engine note is flat, pinned at the launch
+rpm, while the car accelerates from 0 to about 25 mph. That looked wrong until
+we checked the trace: it is the `max(wheelRpm, launchRpm)` clamp, which models
+the clutch slipping. A real launch does exactly this - the engine holds near
+constant while the clutch slips, then rpm follows the wheels once the
+drivetrain locks up. Correct, and it sounds right.
+
+### How we checked it
+
+Drove the GT-R replay in a real browser with an analyser node in the audio
+graph, sampling the readouts and the dominant frequency together:
+
+```
+1.62s  36mph gear 1   audio rising
+1.86s  39mph gear —   (mid-shift)
+3.70s  67mph gear 2   334 Hz
+4.14s  71mph gear 3   248 Hz   <- revs drop into the next gear
+```
+
+That frequency drop at the gear change is the whole feature working.
+
+### What I decided
+
+- **`traceRun` is additive, not a rewrite.** The recording reads the
+  simulation loop's state and changes nothing about it, and a test pins that
+  the traced and untraced runs agree exactly.
+- **The replay is stock-only.** Builds belong in the Garage; mixing the two
+  would make it unclear which car you are hearing.
+
+### Who wrote what
+
+- **Me (Raju):** asked for the launch replay.
+- **Claude:** `traceRun`, the throttle control, the replay panel, 11 new tests,
+  and the browser verification.
+
+### Next session
+
+1. Driving: a real-time loop reusing the same per-step maths, keyboard
+   controlled.
+2. Then 3D, if it still seems worth it.
+

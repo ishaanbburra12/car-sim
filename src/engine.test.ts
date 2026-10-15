@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { estimate, validateBuild, hpAt, partFitsCar, partsForCar, partCostMultiplier } from "./engine";
+import { estimate, validateBuild, hpAt, partFitsCar, partsForCar, partCostMultiplier, traceRun } from "./engine";
 import { PULSE, PARTS } from "./data";
 import { CARS } from "./cars";
 import type { Car, Part } from "./types";
@@ -458,6 +458,102 @@ describe("part prices scale with the car", () => {
     for (const car of CARS) {
       const e = estimate(car, ["exhaust-sport"]);
       expect(e.pessimistic.totalCostUsd).toBe(e.optimistic.totalCostUsd);
+    }
+  });
+});
+
+// ---- Run tracing (for playback) ----
+
+describe("traceRun records a playable run", () => {
+  it("records samples for every car", () => {
+    for (const car of CARS) {
+      expect(traceRun(car).samples.length).toBeGreaterThan(50);
+    }
+  });
+
+  it("time only moves forward", () => {
+    for (const s of [traceRun(PULSE), traceRun(CARS[2])]) {
+      for (let i = 1; i < s.samples.length; i++) {
+        expect(s.samples[i].t).toBeGreaterThan(s.samples[i - 1].t);
+      }
+    }
+  });
+
+  it("speed only increases while the car is driving", () => {
+    const { samples } = traceRun(PULSE);
+    for (let i = 1; i < samples.length; i++) {
+      // Mid-shift there is no drive, so drag and rolling resistance slow the
+      // car slightly. That is correct, and it is audible in the replay.
+      if (samples[i].shifting || samples[i - 1].shifting) continue;
+      expect(samples[i].speedMph).toBeGreaterThanOrEqual(
+        samples[i - 1].speedMph - 1e-6,
+      );
+    }
+  });
+
+  it("the car loses a little speed during a gear change", () => {
+    const { samples } = traceRun(PULSE);
+    const dips = samples.filter(
+      (s, i) => i > 0 && s.shifting && s.speedMph < samples[i - 1].speedMph,
+    );
+    expect(dips.length).toBeGreaterThan(0);
+  });
+
+  it("but never loses more than a couple of mph in one shift", () => {
+    for (const car of CARS) {
+      const { samples } = traceRun(car);
+      for (let i = 1; i < samples.length; i++) {
+        const drop = samples[i - 1].speedMph - samples[i].speedMph;
+        expect(drop).toBeLessThan(2);
+      }
+    }
+  });
+
+  it("never exceeds the redline", () => {
+    for (const car of CARS) {
+      for (const s of traceRun(car).samples) {
+        expect(s.rpm).toBeLessThanOrEqual(car.redlineRpm + 1);
+      }
+    }
+  });
+
+  it("shifts up, never down, on a standing start", () => {
+    for (const car of CARS) {
+      const { samples } = traceRun(car);
+      for (let i = 1; i < samples.length; i++) {
+        expect(samples[i].gear).toBeGreaterThanOrEqual(samples[i - 1].gear);
+      }
+    }
+  });
+
+  it("records at least one gear change and flags it as shifting", () => {
+    const { samples } = traceRun(PULSE);
+    const changes = samples.filter((s, i) => i > 0 && s.gear !== samples[i - 1].gear);
+    expect(changes.length).toBeGreaterThan(0);
+    expect(samples.some((s) => s.shifting)).toBe(true);
+  });
+
+  it("agrees with the stats the Garage shows", () => {
+    for (const car of CARS) {
+      const t = traceRun(car);
+      const stats = estimate(car, []).stock;
+      expect(t.zeroToSixtyS).toBeCloseTo(stats.zeroToSixtyS, 6);
+      expect(t.quarterMileS).toBeCloseTo(stats.quarterMileS, 6);
+    }
+  });
+
+  it("recording does not change the simulation", () => {
+    // The stats are computed without recording; tracing must agree exactly.
+    const withTrace = traceRun(PULSE).zeroToSixtyS;
+    const without = estimate(PULSE, []).stock.zeroToSixtyS;
+    expect(withTrace).toBe(without);
+  });
+
+  it("reaches 60 mph within the recorded samples", () => {
+    for (const car of CARS) {
+      const t = traceRun(car);
+      const top = t.samples[t.samples.length - 1];
+      expect(top.speedMph).toBeGreaterThan(60);
     }
   });
 });
