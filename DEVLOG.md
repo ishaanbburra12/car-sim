@@ -122,3 +122,53 @@ for weight shifting rearward under acceleration.
 1. Decide whether part costs should scale per car.
 2. Car-specific parts so the GT3 RS has more than four options.
 3. Then: 3D, sound, or driving — none started yet, deliberately.
+
+---
+
+## 2026-10-15 — Session 2: saved to GitHub, part prices scale
+
+### What we did
+
+- **Got the project into git and onto GitHub** at
+  `ishaanbburra12/car-sim`. It had been living only in an ephemeral container
+  all session, one timeout away from gone.
+- **Part prices now scale with the car.** Prices were written for the $26,000
+  Pulse and applied unchanged to a $241,300 Porsche. Added a multiplier:
+  `max(1, (base price / 26000) ^ 0.5)`. The GT-R's turbo kit goes from $3,200
+  to about $6,600, and a full build from $13,950 to $28,900.
+- **Wrote the README**, including the accuracy table and the circular GT3 RS
+  caveat, so the first thing a visitor reads is honest about what the numbers
+  are.
+
+Tests 65 -> 70.
+
+### What broke
+
+**The first push was refused with a 403** — the Claude GitHub App was not
+installed on the account. After installing it the push was rejected again,
+this time because GitHub had auto-created a README when the repo was made.
+Rebased onto it rather than force-pushing, so that commit survives.
+
+### What I decided
+
+- **Square root, not linear.** A car costing 9x more pays about 3x for parts,
+  which matches the rough shape of real tuning prices. Linear scaling would
+  have put a $29,000 exhaust on the Porsche.
+- **The multiplier is labelled an assumption.** The Price card names the exact
+  factor on screen and says it is a guess with a formula attached, not a
+  surveyed price list. Totals stay exact arithmetic, so they still carry no
+  "est." tag.
+- **Reference car keeps a multiplier of exactly 1**, so the Pulse's prices and
+  all its existing tests are untouched.
+
+### Who wrote what
+
+- **Me (Raju):** created the GitHub repo, installed the app, decided to keep
+  going after the push.
+- **Claude:** the cost multiplier and its five tests, the README, the Methods
+  pricing section, the git setup and the rebase.
+
+### Next session
+
+1. Engine sound — Web Audio driven by the rpm the engine already computes.
+2. Then driving, then 3D.

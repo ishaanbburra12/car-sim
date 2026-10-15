@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { estimate, validateBuild, hpAt, partFitsCar, partsForCar } from "./engine";
+import { estimate, validateBuild, hpAt, partFitsCar, partsForCar, partCostMultiplier } from "./engine";
 import { PULSE, PARTS } from "./data";
 import { CARS } from "./cars";
 import type { Car, Part } from "./types";
@@ -420,6 +420,44 @@ describe("the expanded parts list stays consistent", () => {
     for (const car of CARS) {
       const cats = new Set(partsForCar(car).map((p) => p.category));
       expect(cats.size).toBeGreaterThan(1);
+    }
+  });
+});
+
+// ---- Part cost scaling ----
+
+describe("part prices scale with the car", () => {
+  const gtr = CARS.find((c) => c.id === "gtr-r35")!;
+  const gt3 = CARS.find((c) => c.id === "gt3rs-992")!;
+
+  it("the reference car's prices are untouched", () => {
+    expect(partCostMultiplier(PULSE)).toBe(1);
+    const cost = estimate(PULSE, ["turbo-upgrade"]).pessimistic.totalCostUsd;
+    expect(cost).toBe(PULSE.basePriceUsd + 3200);
+  });
+
+  it("a dearer car pays more for the same part", () => {
+    const pulse = estimate(PULSE, ["exhaust-sport"]).pessimistic.totalCostUsd - PULSE.basePriceUsd;
+    const gtrCost = estimate(gtr, ["exhaust-sport"]).pessimistic.totalCostUsd - gtr.basePriceUsd;
+    expect(gtrCost).toBeGreaterThan(pulse);
+  });
+
+  it("scales by the square root, not linearly", () => {
+    // The GT3 RS costs ~9.3x the Pulse, so parts should be ~3x, not ~9x.
+    const m = partCostMultiplier(gt3);
+    expect(m).toBeGreaterThan(2.5);
+    expect(m).toBeLessThan(3.5);
+  });
+
+  it("never discounts a cheap car below list price", () => {
+    const cheap: Car = { ...PULSE, basePriceUsd: 5000 };
+    expect(partCostMultiplier(cheap)).toBe(1);
+  });
+
+  it("is still exact arithmetic, not a range", () => {
+    for (const car of CARS) {
+      const e = estimate(car, ["exhaust-sport"]);
+      expect(e.pessimistic.totalCostUsd).toBe(e.optimistic.totalCostUsd);
     }
   });
 });

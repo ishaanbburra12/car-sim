@@ -15,7 +15,25 @@ const DT = 0.005; // simulation time step (seconds)
 const BRAKE_DT = 0.001; // finer step for the braking integration (seconds)
 const CORNERING_REF_MPH = 60; // speed at which cornering grip is reported
 
+// Part prices were written for the Vantora Pulse, a $26,000 hatchback. The same
+// job costs more on an expensive car: more labour, rarer parts, and suppliers
+// who price to the market. We scale with the SQUARE ROOT of how much dearer the
+// car is, so a car that costs 9x more pays about 3x for parts rather than 9x.
+// This is an assumption, not a surveyed price list. See the Methods page.
+const PART_COST_REFERENCE_USD = 26000;
+const PART_COST_EXPONENT = 0.5;
+
 type Scenario = "pessimistic" | "optimistic";
+
+// ---- Part pricing ----
+/**
+ * How much dearer parts are for this car than for the reference hatchback.
+ * Exactly 1 for a car at the reference price, so its prices are untouched.
+ */
+export function partCostMultiplier(car: Car): number {
+  const ratio = car.basePriceUsd / PART_COST_REFERENCE_USD;
+  return Math.max(1, Math.pow(ratio, PART_COST_EXPONENT));
+}
 
 // ---- Fitment ----
 // Whether a part can go on a given car, and why not if it cannot. Rules live
@@ -97,7 +115,7 @@ export function applyParts(
     cd: car.cd + sum((p) => pick(p.cdAdd)),
     clA: car.clA + sum((p) => pick(p.clAAdd)),
     brakeLimitG: car.brakeLimitG + sum((p) => pick(p.brakeLimitAddG)),
-    addedCostUsd: sum((p) => p.costUsd),
+    addedCostUsd: scaledPartCost(car, sum((p) => p.costUsd)),
   };
 }
 
@@ -112,6 +130,12 @@ function downforceN(spec: Spec, vMps: number): number {
 /** Weight plus downforce: the force pressing the tires into the road. */
 function normalForceN(spec: Spec, vMps: number): number {
   return spec.massKg * G + downforceN(spec, vMps);
+}
+
+/** Part cost for a given car, rounded to a sensible figure once scaled. */
+function scaledPartCost(car: Car, listPrice: number): number {
+  const m = partCostMultiplier(car);
+  return m === 1 ? listPrice : Math.round((listPrice * m) / 10) * 10;
 }
 
 // ---- Engine model ----

@@ -73,9 +73,8 @@ export default function MethodsPage() {
         <p>
           Prices are the one exception. A total is just the base price plus the
           part costs, so it is exact arithmetic and carries no &ldquo;est.&rdquo;
-          tag. The underlying part prices are invented, though, and were written
-          for a mainstream hatchback, so they are almost certainly too low for
-          an exotic.
+          tag &mdash; but see the pricing section below for why the part prices
+          themselves are still an assumption.
         </p>
       </Section>
 
@@ -248,6 +247,31 @@ export default function MethodsPage() {
             </div>
           ))}
         </div>
+      </Section>
+
+      <Section title="How part prices are scaled">
+        <p>
+          Every part price was written for the Vantora Pulse, a $26,000
+          hatchback. The same work costs more on an expensive car: more labour,
+          rarer parts, and suppliers who price to the market. So part prices are
+          multiplied by
+        </p>
+        <p className="rounded-md border border-white/10 bg-white/[0.03] p-3 font-mono text-xs text-slate-300">
+          multiplier = max(1, (base price / $26,000) ^ 0.5)
+        </p>
+        <p>
+          The square root matters. A car costing nine times as much pays about
+          three times as much for parts, not nine times, which matches the rough
+          shape of real tuning prices better than scaling straight up. The
+          reference car has a multiplier of exactly 1, so its prices are
+          untouched.
+        </p>
+        <p className="rounded-md border border-amber-400/20 bg-amber-400/5 p-3 text-amber-100/80">
+          This is an assumption, not a surveyed price list. Nobody checked what
+          a turbo kit actually costs for each of these cars. The multiplier
+          makes the numbers less wrong than charging hatchback prices for
+          supercar parts, but it is still a guess with a formula attached.
+        </p>
       </Section>
 
       <Section title="Constants">

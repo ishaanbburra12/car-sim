@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { PARTS } from "../../src/data";
 import { CARS, carById } from "../../src/cars";
-import { estimate, partFitsCar } from "../../src/engine";
+import { estimate, partFitsCar, partCostMultiplier } from "../../src/engine";
 import type { Part, PartCategory } from "../../src/types";
 import { STAT_ROWS, band, fmt, fmtBand, fmtUsd } from "../../src/ui/format";
 import StatChart from "./StatChart";
@@ -60,10 +60,14 @@ export default function GaragePage() {
 
   const result = useMemo(() => estimate(car, selected), [car, selected]);
 
-  const partsCost = PARTS.filter((p) => selected.includes(p.id)).reduce(
+  const costMultiplier = partCostMultiplier(car);
+  const listCost = PARTS.filter((p) => selected.includes(p.id)).reduce(
     (sum, p) => sum + p.costUsd,
     0,
   );
+  const partsCost = result.stock.totalCostUsd
+    ? result.pessimistic.totalCostUsd - car.basePriceUsd
+    : listCost;
 
   return (
     <main className="mx-auto max-w-6xl px-6 py-8">
@@ -339,10 +343,22 @@ export default function GaragePage() {
                 </dd>
               </div>
             </dl>
-            <p className="mt-3 text-xs text-slate-500">
-              Part prices are fixed figures, not estimates, but they were
-              written for a mainstream hatchback and are almost certainly too
-              low for an exotic.
+            <p className="mt-3 text-xs leading-relaxed text-slate-500">
+              {costMultiplier > 1 ? (
+                <>
+                  Part prices are written for a $26,000 hatchback and scaled
+                  &times;{costMultiplier.toFixed(2)} for this car, because the
+                  same job costs more on an expensive one. The scaling is our
+                  assumption, not a real price list, so treat the parts figure
+                  as indicative.
+                </>
+              ) : (
+                <>
+                  Part prices are fixed figures, not estimates. They are
+                  invented, but they are the reference prices the other cars
+                  are scaled from.
+                </>
+              )}
             </p>
           </div>
 
