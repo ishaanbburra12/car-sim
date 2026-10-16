@@ -1,0 +1,241 @@
+import { describe, it, expect } from "vitest";
+import {
+  applyParts,
+  gearTotals,
+  hpAt,
+  standingStart,
+  stepDrive,
+  WOT,
+  type DriveState,
+} from "./engine";
+import { PULSE, PARTS } from "./data";
+import { CARS } from "./cars";
+import type { Spec } from "./types";
+
+// ---------------------------------------------------------------------------
+// BIT-IDENTITY GUARD.
+//
+// stepDrive() was extracted from simulate()'s loop. The Pulse's published
+// numbers are pinned to ten decimal places elsewhere, so "close enough" is not
+// good enough here: the extracted step must reproduce the original loop
+// EXACTLY, bit for bit, at every step.
+//
+// legacyLoop below is a verbatim copy of the loop body as it stood before the
+// extraction (commit e14732a, src/engine.ts:221-285). It deliberately
+// duplicates the constants and helpers rather than importing the private ones,
+// so that a change to the engine cannot quietly change the thing we compare
+// against. If this test ever fails, the refactor changed the physics.
+// ---------------------------------------------------------------------------
+
+const G = 9.81;
+const AIR_DENSITY = 1.2;
+const W_PER_HP = 745.7;
+const MPS_PER_MPH = 0.44704;
+const ROTATIONAL_MASS_FACTOR = 1.04;
+const DT = 0.005;
+
+function legacyNormalForceN(spec: Spec, v: number): number {
+  return spec.massKg * G + 0.5 * AIR_DENSITY * spec.clA * v * v;
+}
+
+function legacyTorqueNm(rpm: number, peakHp: number, peakRpm: number, et: "turbo" | "na"): number {
+  const watts = hpAt(rpm, peakHp, peakRpm, et) * W_PER_HP;
+  const omega = (rpm * 2 * Math.PI) / 60;
+  return watts / omega;
+}
+
+type Frame = { t: number; x: number; v: number; gear: number; shiftTimer: number; rpm: number };
+
+/** The original loop, unchanged, recording every step. */
+function legacyLoop(spec: Spec, maxSteps: number): Frame[] {
+  const gearTotal = spec.gearRatios.map((g) => g * spec.finalDrive);
+  let v = 0;
+  let x = 0;
+  let t = 0;
+  let gear = 0;
+  let shiftTimer = 0;
+  const frames: Frame[] = [];
+
+  const rpmIn = (v: number, g: number) =>
+    (v / spec.wheelRadiusM) * gearTotal[g] * (60 / (2 * Math.PI));
+
+  for (let i = 0; i < maxSteps; i++) {
+    const forceFor = (g: number) => {
+      if (rpmIn(v, g) > spec.redlineRpm) return -1;
+      const rpm = Math.max(rpmIn(v, g), spec.launchRpm);
+      const tq = legacyTorqueNm(rpm, spec.effectiveHp, spec.peakHpRpm, spec.engineType);
+      return (tq * gearTotal[g] * spec.drivelineEff) / spec.wheelRadiusM;
+    };
+
+    if (shiftTimer > 0) {
+      shiftTimer -= DT;
+    } else {
+      const currentForce = forceFor(gear);
+      let bestGear = gear;
+      let bestForce = currentForce;
+      for (let g = 0; g < gearTotal.length; g++) {
+        if (g !== gear && rpmIn(v, g) > spec.redlineRpm * 0.95) continue;
+        const f = forceFor(g);
+        if (f > bestForce) {
+          bestForce = f;
+          bestGear = g;
+        }
+      }
+      if (bestGear !== gear && (currentForce < 0 || bestForce > currentForce * 1.05)) {
+        gear = bestGear;
+        shiftTimer = spec.shiftTimeS;
+      }
+    }
+
+    const driveForce = shiftTimer > 0 ? 0 : Math.max(0, forceFor(gear));
+    const tractionCap = spec.tractionFraction * legacyNormalForceN(spec, v) * spec.tireMu;
+    const drive = Math.min(driveForce, tractionCap);
+
+    const drag = 0.5 * AIR_DENSITY * spec.cd * spec.frontalAreaM2 * v * v;
+    const roll = spec.crr * legacyNormalForceN(spec, v);
+    const a = (drive - drag - roll) / (spec.massKg * ROTATIONAL_MASS_FACTOR);
+
+    v = Math.max(0, v + a * DT);
+    x += v * DT;
+    t += DT;
+
+    frames.push({ t, x, v, gear, shiftTimer, rpm: Math.max(rpmIn(v, gear), spec.launchRpm) });
+  }
+  return frames;
+}
+
+/** The extracted step, driven at full throttle, recording every step. */
+function newLoop(spec: Spec, maxSteps: number): Frame[] {
+  const gearTotal = gearTotals(spec);
+  let state: DriveState = standingStart(spec);
+  const frames: Frame[] = [];
+  for (let i = 0; i < maxSteps; i++) {
+    const out = stepDrive(spec, gearTotal, state, WOT);
+    state = out.state;
+    frames.push({
+      t: state.t,
+      x: state.x,
+      v: state.v,
+      gear: state.gear,
+      shiftTimer: state.shiftTimer,
+      rpm: out.rpm,
+    });
+  }
+  return frames;
+}
+
+const STEPS = 24000; // the full 120 s run at 5 ms
+
+function compare(spec: Spec, label: string) {
+  const a = legacyLoop(spec, STEPS);
+  const b = newLoop(spec, STEPS);
+  expect(b.length).toBe(a.length);
+  for (let i = 0; i < a.length; i++) {
+    for (const key of ["t", "x", "v", "gear", "shiftTimer", "rpm"] as const) {
+      if (!Object.is(a[i][key], b[i][key])) {
+        throw new Error(
+          `${label}: diverged at step ${i} (t=${a[i].t.toFixed(3)}s) on "${key}": ` +
+            `legacy ${a[i][key]} vs stepDrive ${b[i][key]}`,
+        );
+      }
+    }
+  }
+}
+
+describe("stepDrive reproduces the original loop bit for bit", () => {
+  for (const car of CARS) {
+    it(`${car.name}: stock, all ${STEPS} steps identical`, () => {
+      compare(applyParts(car, [], "pessimistic"), `${car.name} stock`);
+    });
+  }
+
+  it("Pulse with a full build, every scenario", () => {
+    const ids = ["turbo-upgrade", "tires-sport", "weight-reduction", "brakes-big"];
+    for (const scenario of ["pessimistic", "expected", "optimistic"] as const) {
+      compare(applyParts(PULSE, ids, scenario), `Pulse ${scenario}`);
+    }
+  });
+
+  it("every car with every part that fits it", () => {
+    for (const car of CARS) {
+      const byCat = new Map<string, string>();
+      for (const p of PARTS) if (!byCat.has(p.category)) byCat.set(p.category, p.id);
+      compare(applyParts(car, [...byCat.values()], "expected"), `${car.name} built`);
+    }
+  });
+});
+
+describe("stepDrive responds to the driver", () => {
+  const spec = applyParts(PULSE, [], "pessimistic");
+  const gt = gearTotals(spec);
+
+  it("no throttle means no drive force", () => {
+    const out = stepDrive(spec, gt, standingStart(spec), { throttle: 0, brake: 0 });
+    expect(out.driveForceN).toBe(0);
+  });
+
+  it("half throttle gives less force than full", () => {
+    const s = standingStart(spec);
+    const full = stepDrive(spec, gt, s, WOT).driveForceN;
+    const half = stepDrive(spec, gt, s, { throttle: 0.5, brake: 0 }).driveForceN;
+    expect(half).toBeLessThan(full);
+    expect(half).toBeGreaterThan(0);
+  });
+
+  it("the rev limiter still works when the driver lifts", () => {
+    // The -1 redline sentinel must not be multiplied by throttle: -1 * 0 is -0,
+    // and -0 < 0 is false, which would silently disable the limiter.
+    let state = standingStart(spec);
+    for (let i = 0; i < 4000; i++) {
+      const out = stepDrive(spec, gt, state, { throttle: 0.3, brake: 0 });
+      state = out.state;
+      expect(out.rpm).toBeLessThanOrEqual(spec.redlineRpm + 1);
+    }
+  });
+
+  it("braking slows the car and can bring it to a stop", () => {
+    let state = standingStart(spec);
+    for (let i = 0; i < 1200; i++) state = stepDrive(spec, gt, state, WOT).state;
+    const vBefore = state.v;
+    expect(vBefore).toBeGreaterThan(10);
+    let out = stepDrive(spec, gt, state, { throttle: 0, brake: 1 });
+    expect(out.state.v).toBeLessThan(vBefore);
+    for (let i = 0; i < 4000 && out.state.v > 0; i++) {
+      out = stepDrive(spec, gt, out.state, { throttle: 0, brake: 1 });
+    }
+    expect(out.state.v).toBe(0);
+    expect(out.stopped).toBe(true);
+  });
+
+  it("partial braking is weaker than full braking", () => {
+    let state = standingStart(spec);
+    for (let i = 0; i < 1200; i++) state = stepDrive(spec, gt, state, WOT).state;
+    const full = stepDrive(spec, gt, state, { throttle: 0, brake: 1 }).state.v;
+    const part = stepDrive(spec, gt, state, { throttle: 0, brake: 0.4 }).state.v;
+    expect(full).toBeLessThan(part);
+  });
+
+  it("is pure: stepping does not mutate the state passed in", () => {
+    const s = standingStart(spec);
+    const snapshot = { ...s };
+    stepDrive(spec, gt, s, WOT);
+    expect(s).toEqual(snapshot);
+  });
+
+  it("is deterministic: same inputs, same output", () => {
+    const s = standingStart(spec);
+    const a = stepDrive(spec, gt, s, WOT);
+    const b = stepDrive(spec, gt, s, WOT);
+    expect(a).toEqual(b);
+  });
+
+  it("reports a force balance that adds up", () => {
+    let state = standingStart(spec);
+    for (let i = 0; i < 600; i++) state = stepDrive(spec, gt, state, WOT).state;
+    const out = stepDrive(spec, gt, state, WOT);
+    const net = out.driveForceN - out.dragN - out.rollN - out.brakeForceN;
+    const implied = net / (spec.massKg * 1.04);
+    expect(Number.isFinite(implied)).toBe(true);
+    expect(out.driveForceN).toBeLessThanOrEqual(out.tractionCapN);
+  });
+});

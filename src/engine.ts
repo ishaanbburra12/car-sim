@@ -200,94 +200,229 @@ function peakTorqueLbFt(spec: Spec): number {
   return best * NM_TO_LBFT;
 }
 
+// ---- The driving core ----
+// ONE timestep of the car, as a pure function: no clock, no rendering, no audio.
+// The whole-run simulation below is built on it, and the driving UI steps it
+// directly, so there is exactly one copy of the physics in the project.
+//
+// The body is the old simulate() loop, moved unchanged. The order of the
+// arithmetic is load-bearing: the Pulse's published numbers are pinned to ten
+// decimal places, so reordering even one expression moves them.
+
+export type LaunchPolicy = "legacy" | "clutch";
+
+/** Everything that changes from one timestep to the next. */
+export type DriveState = {
+  t: number; // seconds since the run began
+  x: number; // metres travelled
+  v: number; // metres per second
+  gear: number; // 0-based internally; reported 1-based
+  shiftTimer: number; // seconds of drive still interrupted by a gear change
+  /** Lowest rpm the engine is allowed to show: models the clutch slipping. */
+  rpmFloor: number;
+  launchArmed: boolean; // unused until the clutch policy arrives
+};
+
+export type DriverInputs = {
+  throttle: number; // 0..1
+  brake: number; // 0..1
+};
+
+export type StepOpts = {
+  /** "legacy" reproduces the whole-run simulation exactly. Default. */
+  policy?: LaunchPolicy;
+  dt?: number;
+};
+
+/** What one step produced, including the force balance for an inspector view. */
+export type StepOutput = {
+  state: DriveState;
+  rpm: number;
+  gear: number; // 1-based, as a driver counts
+  shifting: boolean;
+  onLimiter: boolean;
+  tractionLimited: boolean;
+  stopped: boolean;
+  speedMph: number;
+  driveForceN: number;
+  tractionCapN: number;
+  dragN: number;
+  rollN: number;
+  brakeForceN: number;
+};
+
+/** Wide open throttle, no brake: what the whole-run simulation always does. */
+export const WOT: DriverInputs = Object.freeze({ throttle: 1, brake: 0 });
+
+export function gearTotals(spec: Spec): number[] {
+  return spec.gearRatios.map((g) => g * spec.finalDrive);
+}
+
+export function rpmInGear(
+  spec: Spec,
+  gearTotal: number[],
+  v: number,
+  g: number,
+): number {
+  return (v / spec.wheelRadiusM) * gearTotal[g] * (60 / (2 * Math.PI));
+}
+
+export function standingStart(spec: Spec): DriveState {
+  return {
+    t: 0,
+    x: 0,
+    v: 0,
+    gear: 0,
+    shiftTimer: 0,
+    rpmFloor: spec.launchRpm,
+    launchArmed: true,
+  };
+}
+
+/**
+ * Deceleration the car can actually achieve: whichever is smaller, what the
+ * tires can hold or what the brakes can produce. Lifted out of
+ * brakeDistanceFt so the braking model has one definition, not two.
+ */
+function brakeDecelMps2(spec: Spec, vMps: number): number {
+  const tireLimitMps2 = (spec.tireMu * normalForceN(spec, vMps)) / spec.massKg;
+  const brakeLimitMps2 = spec.brakeLimitG * G;
+  return Math.min(tireLimitMps2, brakeLimitMps2);
+}
+
+export function stepDrive(
+  spec: Spec,
+  gearTotal: number[],
+  state: DriveState,
+  inputs: DriverInputs,
+  opts?: StepOpts,
+): StepOutput {
+  const dt = opts?.dt ?? DT;
+  const v = state.v;
+  let gear = state.gear;
+  let shiftTimer = state.shiftTimer;
+
+  // Force at the wheels in gear g at FULL throttle, or -1 if that gear would
+  // pass redline (rev limiter). The sentinel is returned before any throttle
+  // multiply on purpose: -1 * 0 is -0, and -0 < 0 is false, which would
+  // silently disable the rev limiter whenever the driver lifted.
+  const wotForceFor = (g: number) => {
+    if (rpmInGear(spec, gearTotal, v, g) > spec.redlineRpm) return -1;
+    const rpm = Math.max(rpmInGear(spec, gearTotal, v, g), state.rpmFloor);
+    const tq = torqueNm(rpm, spec.effectiveHp, spec.peakHpRpm, spec.engineType);
+    return (tq * gearTotal[g] * spec.drivelineEff) / spec.wheelRadiusM;
+  };
+
+  if (shiftTimer > 0) {
+    shiftTimer -= dt;
+  } else {
+    // Only shift if the current gear is at redline, or another gear pulls >5%
+    // harder. The 5% margin stops the car bouncing between two gears (which
+    // wastes shift time). The comparison uses full-throttle force in every
+    // gear: it is a ratio, so the driver's throttle cancels out of it.
+    const currentForce = wotForceFor(gear);
+    let bestGear = gear;
+    let bestForce = currentForce;
+    for (let g = 0; g < gearTotal.length; g++) {
+      // Never shift into a gear that would land right at redline.
+      if (g !== gear && rpmInGear(spec, gearTotal, v, g) > spec.redlineRpm * 0.95) continue;
+      const f = wotForceFor(g);
+      if (f > bestForce) {
+        bestForce = f;
+        bestGear = g;
+      }
+    }
+    if (bestGear !== gear && (currentForce < 0 || bestForce > currentForce * 1.05)) {
+      gear = bestGear;
+      shiftTimer = spec.shiftTimeS;
+    }
+  }
+
+  const wotForce = shiftTimer > 0 ? 0 : Math.max(0, wotForceFor(gear));
+  const driveForce = wotForce * inputs.throttle;
+  // Downforce presses the driven wheels down too, so the car can put more
+  // power down as it speeds up.
+  const tractionCap = spec.tractionFraction * normalForceN(spec, v) * spec.tireMu;
+  const drive = Math.min(driveForce, tractionCap);
+
+  const drag = 0.5 * AIR_DENSITY * spec.cd * spec.frontalAreaM2 * v * v;
+  // Downforce also presses the tires down harder, which costs a little
+  // rolling resistance.
+  const roll = spec.crr * normalForceN(spec, v);
+  // Guarded so that with no brake applied the term is a literal 0 and the sum
+  // is bit-identical to the original three-term expression.
+  const brakeForceN =
+    inputs.brake > 0 ? inputs.brake * brakeDecelMps2(spec, v) * spec.massKg : 0;
+  const a = (drive - drag - roll - brakeForceN) / (spec.massKg * ROTATIONAL_MASS_FACTOR);
+
+  const vNext = Math.max(0, v + a * dt);
+  const xNext = state.x + vNext * dt;
+  const tNext = state.t + dt;
+
+  return {
+    state: {
+      t: tNext,
+      x: xNext,
+      v: vNext,
+      gear,
+      shiftTimer,
+      rpmFloor: state.rpmFloor,
+      launchArmed: state.launchArmed,
+    },
+    rpm: Math.max(rpmInGear(spec, gearTotal, vNext, gear), state.rpmFloor),
+    gear: gear + 1,
+    shifting: shiftTimer > 0,
+    onLimiter: rpmInGear(spec, gearTotal, v, gear) > spec.redlineRpm,
+    tractionLimited: driveForce > tractionCap,
+    stopped: vNext === 0,
+    speedMph: vNext / MPS_PER_MPH,
+    driveForceN: drive,
+    tractionCapN: tractionCap,
+    dragN: drag,
+    rollN: roll,
+    brakeForceN,
+  };
+}
+
 // ---- Straight-line simulation (0-60, quarter mile, top speed) ----
+// Now just a driver that holds the throttle flat and steps stepDrive().
 function simulate(spec: Spec, trace?: RunSample[]) {
-  const gearTotal = spec.gearRatios.map((g) => g * spec.finalDrive);
+  const gearTotal = gearTotals(spec);
   const sixty = 60 * MPS_PER_MPH;
   const quarter = 402.336; // metres
 
-  let v = 0;
-  let x = 0;
-  let t = 0;
-  let gear = 0;
-  let shiftTimer = 0;
+  let state = standingStart(spec);
   let zeroToSixty = NaN;
   let quarterMile = NaN;
   let rolloutT = NaN; // clock time when the car has travelled one foot
   let nextSampleAt = 0;
 
-  const rpmIn = (v: number, g: number) => (v / spec.wheelRadiusM) * gearTotal[g] * (60 / (2 * Math.PI));
-
-  while (t < 120) {
-    // Force at the wheels in gear g, or -1 if that gear would pass redline (rev limiter).
-    const forceFor = (g: number) => {
-      if (rpmIn(v, g) > spec.redlineRpm) return -1;
-      const rpm = Math.max(rpmIn(v, g), spec.launchRpm);
-      const tq = torqueNm(rpm, spec.effectiveHp, spec.peakHpRpm, spec.engineType);
-      return (tq * gearTotal[g] * spec.drivelineEff) / spec.wheelRadiusM;
-    };
-
-    if (shiftTimer > 0) {
-      shiftTimer -= DT;
-    } else {
-      // Only shift if the current gear is at redline, or another gear pulls >5% harder.
-      // The 5% margin stops the car bouncing between two gears (which wastes shift time).
-      const currentForce = forceFor(gear);
-      let bestGear = gear;
-      let bestForce = currentForce;
-      for (let g = 0; g < gearTotal.length; g++) {
-        // Never shift into a gear that would land right at redline (it would just shift back).
-        if (g !== gear && rpmIn(v, g) > spec.redlineRpm * 0.95) continue;
-        const f = forceFor(g);
-        if (f > bestForce) {
-          bestForce = f;
-          bestGear = g;
-        }
-      }
-      if (bestGear !== gear && (currentForce < 0 || bestForce > currentForce * 1.05)) {
-        gear = bestGear;
-        shiftTimer = spec.shiftTimeS;
-      }
-    }
-
-    const driveForce = shiftTimer > 0 ? 0 : Math.max(0, forceFor(gear));
-    // Downforce presses the driven wheels down too, so the car can put more
-    // power down as it speeds up.
-    const tractionCap = spec.tractionFraction * normalForceN(spec, v) * spec.tireMu;
-    const drive = Math.min(driveForce, tractionCap);
-
-    const drag = 0.5 * AIR_DENSITY * spec.cd * spec.frontalAreaM2 * v * v;
-    // Downforce also presses the tires down harder, which costs a little
-    // rolling resistance.
-    const roll = spec.crr * normalForceN(spec, v);
-    const a = (drive - drag - roll) / (spec.massKg * ROTATIONAL_MASS_FACTOR);
-
-    v = Math.max(0, v + a * DT);
-    x += v * DT;
-    t += DT;
+  while (state.t < 120) {
+    const out = stepDrive(spec, gearTotal, state, WOT);
+    state = out.state;
 
     // Recording is purely observational: it reads the loop's state and
     // changes nothing about it.
-    if (trace && t >= nextSampleAt && t <= TRACE_MAX_S) {
+    if (trace && state.t >= nextSampleAt && state.t <= TRACE_MAX_S) {
       trace.push({
-        t,
-        speedMph: v / MPS_PER_MPH,
-        rpm: Math.max(rpmIn(v, gear), spec.launchRpm),
-        gear: gear + 1,
-        shifting: shiftTimer > 0,
+        t: state.t,
+        speedMph: out.speedMph,
+        rpm: out.rpm,
+        gear: out.gear,
+        shifting: out.shifting,
       });
       nextSampleAt += TRACE_INTERVAL_S;
     }
 
-    if (Number.isNaN(rolloutT) && x >= ROLLOUT_M) rolloutT = t;
-    if (Number.isNaN(zeroToSixty) && v >= sixty) zeroToSixty = t;
-    if (Number.isNaN(quarterMile) && x >= quarter) quarterMile = t;
+    if (Number.isNaN(rolloutT) && state.x >= ROLLOUT_M) rolloutT = state.t;
+    if (Number.isNaN(zeroToSixty) && state.v >= sixty) zeroToSixty = state.t;
+    if (Number.isNaN(quarterMile) && state.x >= quarter) quarterMile = state.t;
   }
   return {
     zeroToSixty,
     zeroToSixtyRollout: zeroToSixty - rolloutT,
     quarterMile,
-    topSpeedMph: v / MPS_PER_MPH,
+    topSpeedMph: state.v / MPS_PER_MPH,
   };
 }
 
@@ -300,9 +435,7 @@ function brakeDistanceFt(spec: Spec): number {
   let distanceM = 0;
   let t = 0;
   while (v > 0 && t < 30) {
-    const tireLimitMps2 = (spec.tireMu * normalForceN(spec, v)) / spec.massKg;
-    const brakeLimitMps2 = spec.brakeLimitG * G;
-    const decel = Math.min(tireLimitMps2, brakeLimitMps2);
+    const decel = brakeDecelMps2(spec, v);
     const step = Math.min(BRAKE_DT, v / decel); // last step lands exactly on v = 0
     distanceM += v * step - 0.5 * decel * step * step;
     v -= decel * step;

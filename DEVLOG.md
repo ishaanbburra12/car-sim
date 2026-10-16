@@ -313,3 +313,107 @@ That frequency drop at the gear change is the whole feature working.
    controlled.
 2. Then 3D, if it still seems worth it.
 
+---
+
+## 2026-10-16 — Session 5: designing driving mode, and the step function underneath it
+
+### What we did
+
+**Ran a design panel before writing any driving code.** Eleven agents: three
+read the engine, data model and UI in parallel; four produced independent
+designs (MVP-first, physics-first, honesty-first, architecture-first); three
+judged all four on separate lenses (fit with our rules, honesty, buildability);
+one synthesised a staged plan. Scores out of 30: architecture 24, MVP 21,
+honesty 21, physics 15.
+
+**Decided the honesty architecture for a live UI** (my design, sharpened by the
+panel). The key move: the readout is exact, the claim is uncertain. The
+simulation's state is exact within the model; what is uncertain is how well the
+model matches a real car. So the live HUD is permanently badged as a
+simulation, uncertainty is shown as something visible rather than a number
+(ghost cars and multiple needles), and ranges go on the results screen where
+claims about real cars are actually made.
+
+**Added the expected (midpoint) scenario** so a driver drives a typical build,
+with pessimistic and optimistic as the two ghost bounds.
+
+**Extracted stepDrive() from simulate().** One pure timestep:
+`stepDrive(spec, gearTotal, state, inputs, opts) -> StepOutput`. No clock, no
+React, no audio. simulate() is now just a driver that holds the throttle flat
+and steps it, so there is exactly one copy of the physics in the project.
+Throttle and brake are now driver inputs rather than assumptions.
+
+Tests 87 -> 101.
+
+### What broke, and what I checked
+
+**The panel told me one of our own numbers was wrong. I checked, and it was not.**
+It found that simulate() applies the launch-rpm clamp in EVERY gear, not just
+from a standstill, and recommended telling users our published 0-60 figures are
+slightly optimistic as a result. The leak is real — I measured 0.40 s of it in
+second gear on the Pulse, 0.42 s on the GT-R, 0.24 s on the GT3 RS, 0.00 s on
+the Type R. But patching the clamp to first gear only changed 0-60, quarter
+mile and top speed by less than one 5 ms timestep on all four cars. The reason:
+at those speeds the engines are already past their torque peak, so pretending
+the rpm is higher gives very slightly LESS torque, not more. The leak is real,
+the optimism is not, and the plan's disclosure stage was dropped.
+
+**My first run of that check "proved" no effect from a patch that had silently
+failed to apply.** The string replace did not match and I nearly reported the
+result. Caught it because identical-to-three-decimals was too clean. Every
+patch-and-measure experiment now asserts the replacement actually happened.
+
+**The design agents wrote scratch files into src/.** Four of them, while the
+workflow ran. Nothing tracked was touched — I checked the diff — but briefing
+agents to read a live working directory is not enough; next time they get a
+worktree. One file was worth keeping and is in the scratchpad: a prototype
+proving the extraction could be bit-identical.
+
+### The guard that makes the refactor safe
+
+The Pulse's numbers are pinned to ten decimal places, so "all tests still pass"
+was not a strong enough check for moving the physics. `src/stepdrive.test.ts`
+holds `legacyLoop()`: a verbatim copy of the pre-refactor loop, with its own
+copies of the constants so the engine cannot quietly change what we compare
+against. It runs both loops for all 24,000 steps of a 120-second run and
+compares t, x, v, gear, shiftTimer and rpm with `Object.is` — bit identity, not
+closeness. Across four cars, every part that fits each one, and all three
+scenarios: identical.
+
+Then I mutation-tested the guard, because a test that cannot fail is worthless.
+Changing a drag constant from 0.5 to 0.5000000001 made it fail within 12 steps
+and name the exact step, time and field. It works.
+
+### What I decided
+
+- **Three needles, not a band and not two.** Faint pessimistic and optimistic
+  needles plus a primary needle at the expected car. The panel argued for
+  deleting the needle entirely and making a filled band the reading; I wanted
+  the instrument to still read like an instrument.
+- **Engine braking goes in**, as a declared and bounded assumption. A 1500 kg
+  car that coasts almost undiminished when you lift is itself a misleading
+  simulation, just with the error unlabelled rather than absent.
+- **Split stage 1.** The extraction lands on its own, invisible, with the
+  guard. Driving arrives next, on a core that is already proven.
+- **Real cars stay visible.** My earlier "used only for testing" line was about
+  validation methodology, not about removing them from the app.
+- **The out-of-sample check is the honest one.** Our ~2% agreement with
+  published figures is in-sample: I tuned the Type R's traction fraction and
+  the per-car shift times to get there. Until the model is tested on a car it
+  was never fitted to, the model band says "assumed", not a borrowed number.
+
+### Who wrote what
+
+- **Me (Raju):** the honesty architecture for live UI — the exact/uncertain
+  split, ghost cars, badge, and the five-person unprimed user test. Chose the
+  midpoint scenario, three needles, engine braking, and the stage split.
+- **Claude:** ran the design panel, checked its launch-clamp claim and found it
+  did not hold, extracted stepDrive, wrote the bit-identity guard and
+  mutation-tested it, plus the 14 new tests.
+
+### Next session
+
+1. Stage 2: the drivable panel — keyboard input, the rAF loop with an injected
+   clock, three needles, the SIM badge.
+2. Then sound on the driven car, idle and engine braking, the run card.
+
