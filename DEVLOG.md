@@ -670,3 +670,73 @@ number drive mode invents.
 The post-run card: your driven 0-60 against the model's range, with the model
 band shown separately from the parts band.
 
+---
+
+## 2026-10-16 — Session 9: the run card
+
+### What we did
+
+After a run, drive mode now reports what you actually achieved beside what the
+model says the build should do. Three rows: 0-60 from the start of the run,
+the quarter mile, and the fastest you reached. Each shows the driven figure,
+the parts band marked "est.", and a second band widened by the assumed model
+error. Tests 167 -> 179.
+
+This is the last piece of the honesty architecture I set out in session 5. The
+split is finally visible end to end: the live gauges show exact simulator state
+badged as a simulation, and the claims about how a real car would behave live
+here, as ranges, with the thing we do not know labelled as not known.
+
+### Two bands, and why they are separate
+
+The first band is how much the PARTS data varies — every part at its worst
+against every part at its best. The second widens it by an assumed plus or
+minus 10% for how wrong the MODEL might be, because tire grip, drag, driveline
+losses and shift times are all numbers we chose.
+
+**The 10% is a placeholder and the card says so.** This model agrees with
+published figures for three real cars to about 2%, but it was tuned to do
+that — the Type R's traction fraction and the per-car shift times were adjusted
+until those cars lined up. Using an in-sample fit as an error bar would be
+laundering a fitted result into a prediction. Earning a real number means
+testing against a car the model was never fitted to. That refusal is in the
+assumption ledger, on the Methods page, and on the card itself.
+
+### The component that makes the rule structural
+
+`DrivenVsModel` takes `modelLo` and `modelHi` as REQUIRED props. It is a type
+error to render what you achieved without what the model says. A future
+session cannot put a bare driven number on screen by forgetting the
+convention; the compiler stops it.
+
+### A framing bug the browser caught
+
+The first version read "Fastest you went: 86 mph" under the heading "Modelled
+for this build, launched perfectly — 152-160 mph". That phrase describes a
+standing start, not a top speed run, so the row implied you had underperformed
+when you had simply run out of road. Each row now carries its own description
+of what the modelled figure means, and the top speed row adds a line saying
+that falling well short just means you stopped accelerating.
+
+### Worth noticing in the numbers
+
+A flat-out driven run came out at 5.4 s against a modelled 4.8-5.4 s: right at
+the slow edge. That is the pedal ramp doing exactly what it should — a key is a
+switch, a throttle is not, and the quarter second it takes to reach full
+throttle is time the model's perfect launch never spends. The card explains
+this rather than leaving it as a mystery.
+
+### Who wrote what
+
+- **Me (Raju):** designed the two-band split and the rule that the model band
+  must say "assumed" until the check is earned.
+- **Claude:** the milestone tracking, the card, the required-props component,
+  12 new tests, and the browser run that caught the top speed framing.
+
+### Next
+
+Nothing is required. The project is complete and defensible as it stands:
+configure, estimate, hear, drive, and a Methods page that admits what it does
+not know. Open options are the out-of-sample validation against a fourth real
+car, the five-person unprimed user test, a manual gearbox, and 3D.
+

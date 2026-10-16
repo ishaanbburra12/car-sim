@@ -569,3 +569,119 @@ describe("the loop separates audio updates from readout updates", () => {
     expect(shiftFrames).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Run milestones: what the driven car actually achieved.
+// ---------------------------------------------------------------------------
+
+describe("the run card's numbers", () => {
+  it("records nothing before the car has moved", () => {
+    const m = createSession(PULSE, BUILD).milestones;
+    expect(m.zeroToSixtyS).toBeNull();
+    expect(m.quarterMileS).toBeNull();
+    expect(m.topSpeedMph).toBe(0);
+    expect(m.distanceM).toBe(0);
+  });
+
+  it("records 0-60 when the driven car crosses 60 mph", () => {
+    let s = createSession(PULSE, BUILD);
+    while (s.elapsedS < 20 && s.milestones.zeroToSixtyS === null) {
+      s = advance(s, WOT, 1 / 60).session;
+    }
+    expect(s.milestones.zeroToSixtyS).not.toBeNull();
+    expect(s.milestones.zeroToSixtyS!).toBeGreaterThan(2);
+    expect(s.milestones.zeroToSixtyS!).toBeLessThan(10);
+  });
+
+  it("matches the Garage's modelled figure for a flat-out run", () => {
+    // Driving the expected build flat out should land on the expected
+    // scenario's modelled 0-60, because it is the same physics.
+    for (const car of CARS) {
+      let s = createSession(car, []);
+      while (s.elapsedS < 20 && s.milestones.zeroToSixtyS === null) {
+        s = advance(s, WOT, 1 / 60).session;
+      }
+      const modelled = estimate(car, []).expected.zeroToSixtyS;
+      expect(Math.abs(s.milestones.zeroToSixtyS! - modelled)).toBeLessThan(0.02);
+    }
+  });
+
+  it("a slower driver records a slower time than the model", () => {
+    let s = createSession(PULSE, BUILD);
+    const half = { throttle: 0.5, brake: 0 };
+    while (s.elapsedS < 40 && s.milestones.zeroToSixtyS === null) {
+      s = advance(s, half, 1 / 60).session;
+    }
+    const modelled = estimate(PULSE, BUILD).expected.zeroToSixtyS;
+    expect(s.milestones.zeroToSixtyS!).toBeGreaterThan(modelled);
+  });
+
+  it("0-60 is recorded once and never revised", () => {
+    let s = createSession(PULSE, BUILD);
+    while (s.elapsedS < 20 && s.milestones.zeroToSixtyS === null) {
+      s = advance(s, WOT, 1 / 60).session;
+    }
+    const first = s.milestones.zeroToSixtyS;
+    // Brake to a stop and accelerate again: the recorded time must not move.
+    for (let i = 0; i < 600; i++) s = advance(s, { throttle: 0, brake: 1 }, 1 / 60).session;
+    for (let i = 0; i < 600; i++) s = advance(s, WOT, 1 / 60).session;
+    expect(s.milestones.zeroToSixtyS).toBe(first);
+  });
+
+  it("top speed only ever rises", () => {
+    let s = createSession(PULSE, BUILD);
+    let highest = 0;
+    for (let i = 0; i < 1500; i++) {
+      s = advance(s, i < 900 ? WOT : { throttle: 0, brake: 1 }, 1 / 60).session;
+      expect(s.milestones.topSpeedMph).toBeGreaterThanOrEqual(highest);
+      highest = s.milestones.topSpeedMph;
+    }
+    expect(highest).toBeGreaterThan(40);
+  });
+
+  it("records the quarter mile, and after 0-60", () => {
+    let s = createSession(PULSE, BUILD);
+    while (s.elapsedS < 40 && s.milestones.quarterMileS === null) {
+      s = advance(s, WOT, 1 / 60).session;
+    }
+    expect(s.milestones.quarterMileS).not.toBeNull();
+    expect(s.milestones.quarterMileS!).toBeGreaterThan(s.milestones.zeroToSixtyS!);
+  });
+
+  it("resetting clears the run", () => {
+    let s = createSession(PULSE, BUILD);
+    for (let i = 0; i < 600; i++) s = advance(s, WOT, 1 / 60).session;
+    expect(s.milestones.zeroToSixtyS).not.toBeNull();
+    const fresh = resetSession(s);
+    expect(fresh.milestones.zeroToSixtyS).toBeNull();
+    expect(fresh.milestones.topSpeedMph).toBe(0);
+  });
+
+  it("the frame carries the milestones, so the card needs no other source", () => {
+    let s = createSession(PULSE, BUILD);
+    for (let i = 0; i < 600; i++) s = advance(s, WOT, 1 / 60).session;
+    expect(frameOf(s).milestones).toBe(s.milestones);
+  });
+});
+
+describe("the model uncertainty band is declared, not borrowed", () => {
+  it("is disclosed in the ledger like every other invented number", () => {
+    const entry = DRIVE_ASSUMPTIONS.find((a) => a.key === "modelUncertaintyPct");
+    expect(entry).toBeDefined();
+    expect(entry!.value.toLowerCase()).toContain("assumed");
+  });
+
+  it("says plainly that it is not measured", () => {
+    const entry = DRIVE_ASSUMPTIONS.find((a) => a.key === "modelUncertaintyPct")!;
+    expect(entry.why.toLowerCase()).toContain("tuned");
+  });
+
+  it("widens the parts band rather than replacing it", () => {
+    const e = estimate(PULSE, BUILD);
+    const lo = Math.min(e.pessimistic.zeroToSixtyS, e.optimistic.zeroToSixtyS);
+    const hi = Math.max(e.pessimistic.zeroToSixtyS, e.optimistic.zeroToSixtyS);
+    const pct = DRIVE_TUNABLES.modelUncertaintyPct;
+    expect(lo * (1 - pct)).toBeLessThan(lo);
+    expect(hi * (1 + pct)).toBeGreaterThan(hi);
+  });
+});

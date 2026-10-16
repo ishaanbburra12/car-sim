@@ -23,6 +23,13 @@ export const DRIVE_TUNABLES = Object.freeze({
   /** How often the on-screen numbers are rewritten, Hz. Not the physics rate. */
   displayHz: 10,
   /**
+   * How far the MODEL itself might be off, as a fraction. This is a declared
+   * placeholder, not a measurement: it has not been earned yet. See the
+   * assumption entry for why we refuse to reuse the agreement with published
+   * figures as an error estimate.
+   */
+  modelUncertaintyPct: 0.1,
+  /**
    * Shape of the overrun (engine braking) curve. Engine braking is scaled by
    * (floor + (1 - floor) * rpm / redline), so at this fraction of its peak at
    * idle and full at the limiter.

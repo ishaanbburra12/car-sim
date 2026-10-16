@@ -17,6 +17,7 @@ import { DRIVE_TUNABLES } from "../../src/drive/tunables";
 import { fmt } from "../../src/ui/format";
 import { EngineSound, cylindersFor } from "../../src/ui/sound";
 import Gauge from "./Gauge";
+import RunCard from "./RunCard";
 
 /** Engine note while the gearbox is between gears: quiet and dull, not silent. */
 const SHIFT_THROTTLE = 0.1;
@@ -363,6 +364,10 @@ export default function DrivePanel({
           </p>
         )}
       </div>
+
+      {frame && (
+        <RunCard car={car} partIds={partIds} milestones={frame.milestones} />
+      )}
 
       {/* ---- Controls ---- */}
       <div className="mt-4 flex flex-wrap items-center gap-3">

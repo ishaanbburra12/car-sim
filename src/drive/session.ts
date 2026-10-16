@@ -30,6 +30,19 @@ export const GHOSTS: Scenario[] = ["pessimistic", "expected", "optimistic"];
 /** The car the person is actually driving. */
 export const DRIVEN: Scenario = "expected";
 
+/**
+ * What the driven car achieved this run. Exact within the model; what is
+ * uncertain is how well the model matches a real car, which is why the run
+ * card never shows one of these without the modelled range beside it.
+ */
+export type Milestones = {
+  /** Seconds from the start of the run to 60 mph, or null if not reached. */
+  zeroToSixtyS: number | null;
+  quarterMileS: number | null;
+  topSpeedMph: number;
+  distanceM: number;
+};
+
 export type DriveSession = {
   car: Car;
   partIds: string[];
@@ -45,11 +58,14 @@ export type DriveSession = {
   /** Wall-clock time thrown away by the catch-up clamp, seconds. */
   droppedS: number;
   last: Record<Scenario, StepOutput>;
+  milestones: Milestones;
 };
 
 export type DriveFrame = {
   elapsedS: number;
   steps: number;
+  /** What the driven car has achieved so far this run. */
+  milestones: Milestones;
   /** Metres covered by the car the person is driving. */
   distanceM: number;
   outputs: Record<Scenario, StepOutput>;
@@ -111,8 +127,12 @@ export function createSession(
     steps: 0,
     droppedS: 0,
     last: peek(specs, totals, states),
+    milestones: { zeroToSixtyS: null, quarterMileS: null, topSpeedMph: 0, distanceM: 0 },
   };
 }
+
+const SIXTY_MPS = 60 * 0.44704;
+const QUARTER_MILE_M = 402.336;
 
 /** Back to the start line with the same car and build. */
 export function resetSession(session: DriveSession): DriveSession {
@@ -161,6 +181,8 @@ export function advance(
   const states = { ...session.states };
   let outputs = session.last;
   let steps = 0;
+  const milestones = { ...session.milestones };
+  let elapsed = session.elapsedS;
 
   while (acc >= dt) {
     const next = {} as Record<Scenario, StepOutput>;
@@ -171,6 +193,21 @@ export function advance(
     outputs = next;
     acc -= dt;
     steps++;
+    elapsed += dt;
+
+    // Milestones are recorded for the car the person is driving, at the step
+    // it crossed, not at the end of the frame.
+    const driven = states[DRIVEN];
+    if (milestones.zeroToSixtyS === null && driven.v >= SIXTY_MPS) {
+      milestones.zeroToSixtyS = elapsed;
+    }
+    if (milestones.quarterMileS === null && driven.x >= QUARTER_MILE_M) {
+      milestones.quarterMileS = elapsed;
+    }
+    if (driven.v > milestones.topSpeedMph * 0.44704) {
+      milestones.topSpeedMph = driven.v / 0.44704;
+    }
+    milestones.distanceM = driven.x;
   }
 
   const nextSession: DriveSession = {
@@ -181,6 +218,7 @@ export function advance(
     steps: session.steps + steps,
     droppedS: session.droppedS + dropped,
     last: outputs,
+    milestones,
   };
 
   return { session: nextSession, frame: frameOf(nextSession) };
@@ -191,6 +229,7 @@ export function frameOf(session: DriveSession): DriveFrame {
   return {
     elapsedS: session.elapsedS,
     steps: session.steps,
+    milestones: session.milestones,
     distanceM: session.states[DRIVEN].x,
     outputs: session.last,
     gapM: Math.abs(

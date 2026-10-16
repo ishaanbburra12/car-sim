@@ -40,6 +40,13 @@ export const DRIVE_ASSUMPTIONS: DriveAssumption[] = [
     why: "The numbers on screen are rewritten 10 times a second while the physics runs at 200. A figure flickering through every intermediate value is unreadable and implies a precision the model does not have. The gauges move smoothly; only the digits are slowed.",
   },
   {
+    key: "modelUncertaintyPct",
+    label: "Assumed model uncertainty",
+    value: "plus or minus 10% (assumed, NOT measured)",
+    kind: "physics-choice",
+    why: "How far the whole model might be from reality, as distinct from how far the parts data varies. It is a placeholder we picked, and it is deliberately not derived from how closely this model matches the three real cars' published figures. That agreement is around 2%, but the model was TUNED to achieve it: the Type R's traction fraction and the per-car shift times were adjusted until those cars lined up. Reusing an in-sample fit as an error estimate would be laundering a fitted result into a prediction. Replacing this with a real number requires testing the model against a car it was never fitted to and reporting whatever error falls out.",
+  },
+  {
     key: "overrunRpmScaleFloor",
     label: "Engine braking at idle, as a share of its peak",
     value: "0.5 (half at idle, full at the rev limiter)",
