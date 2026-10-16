@@ -42,9 +42,9 @@ export const DRIVE_ASSUMPTIONS: DriveAssumption[] = [
   {
     key: "modelUncertaintyPct",
     label: "Assumed model uncertainty",
-    value: "plus or minus 10% (assumed, NOT measured)",
+    value: "plus or minus 10% (assumed, supported by one out-of-sample test)",
     kind: "physics-choice",
-    why: "How far the whole model might be from reality, as distinct from how far the parts data varies. It is a placeholder we picked, and it is deliberately not derived from how closely this model matches the three real cars' published figures. That agreement is around 2%, but the model was TUNED to achieve it: the Type R's traction fraction and the per-car shift times were adjusted until those cars lined up. Reusing an in-sample fit as an error estimate would be laundering a fitted result into a prediction. Replacing this with a real number requires testing the model against a car it was never fitted to and reporting whatever error falls out.",
+    why: "How far the whole model might be from reality, as distinct from how far the parts data varies. It is deliberately NOT derived from how closely the model matches the three cars in the app: that agreement is around 2%, but the model was TUNED to achieve it, so reusing it would be laundering a fit into a prediction. It has since been checked once properly, against a Mazda MX-5 the model was never fitted to and whose assumed values were all copied from the Civic Type R before the result was seen. The model predicted 5.43 s to 60 mph against a tested 5.70 s, an error of -4.6%. One car is not a sample, so the band stays at the wider plus or minus 10% rather than tightening to the single measurement.",
   },
   {
     key: "overrunRpmScaleFloor",

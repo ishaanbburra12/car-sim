@@ -170,11 +170,13 @@ export default function RunCard({
           and shift times are all numbers we chose.
         </p>
         <p>
-          <span className="text-slate-400">That &plusmn;10% is not measured.</span>{" "}
-          It is a placeholder. This model agrees with published figures for
-          three real cars to about 2%, but it was tuned to do that, so using
-          that agreement as an error bar would be circular. Earning a real
-          number means testing against a car the model was never fitted to.{" "}
+          <span className="text-slate-400">Where that &plusmn;10% comes from.</span>{" "}
+          Not from the three cars in this app: the model agrees with their
+          published figures to about 2%, but it was tuned to do that, so using
+          that as an error bar would be circular. It was instead checked once
+          against a car the model was never fitted to, where it predicted 0-60
+          within 4.6%. One car is not a sample, so the band stays wider than
+          that single result.{" "}
           <Link href="/methods" className="text-amber-400 underline underline-offset-2">
             Methods
           </Link>{" "}

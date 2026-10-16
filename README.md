@@ -37,10 +37,29 @@ and how far the model lands from the real cars' published figures.
   standing start back in real time so you can hear the gear changes land where
   the physics put them. It is a synthesiser, not a recording, and makes no
   claim to sound like any real car.
-- **179 tests**, including checks that the three real cars land within 10% of
+- **184 tests**, including checks that the three real cars land within 10% of
   their published 0-60 and top speed.
 
 ## How accurate is it?
+
+The honest answer is **one measurement: &minus;4.6%**, on a car the model had
+never seen.
+
+The three cars below cannot tell you how good the model is, because the model
+was tuned to match them &mdash; when they first came out 14&ndash;15% slow to
+60, the Civic's traction fraction and every car's shift time were adjusted
+until they lined up. So the model was tested once on a holdout, a 2019 Mazda
+MX-5 chosen for being as unlike the fitted three as possible, with every
+assumed value copied from an existing car *before* the result was seen and
+nothing adjusted afterwards. It predicted 5.43 s to 60 mph against a tested
+5.70 s.
+
+That same test found a real failure: the model gives the MX-5 a 158 mph top
+speed and the real car does about 135, because road cars are often
+electronically limited and the model only knows the physical limit. Treat top
+speed as the least trustworthy figure here.
+
+### The three fitted cars (in-sample, so not evidence)
 
 | Car | 0-60 model | published | Top speed model | published |
 |---|---|---|---|---|
@@ -49,7 +68,8 @@ and how far the model lands from the real cars' published figures.
 | 911 GT3 RS | 2.99s | 3.0s | 184 | 184 |
 
 0-60 is compared using the one-foot rollout convention that published US
-figures use.
+figures use. These agree closely because they were tuned to; see the holdout
+result above for the number that actually means something.
 
 One caveat stated up front, and repeated on the Methods page: **the GT3 RS top
 speed match is circular.** Porsche publishes no drag coefficient for that car,
@@ -61,7 +81,7 @@ to. The other two use published drag coefficients and are honest checks.
 ```bash
 npm install
 npm run dev     # http://localhost:3000/garage  and  /drive
-npm test        # 179 tests
+npm test        # 184 tests
 npm run build
 ```
 
@@ -71,6 +91,7 @@ npm run build
 src/types.ts      the vocabulary: Car, Part, Spec, Stats, Estimate
 src/data.ts       the fictional Pulse and all ten parts
 src/cars.ts       the three real cars, with sources cited per value
+src/validation.ts the holdout car, used only to measure error, never shown
 src/engine.ts     all the physics; knows nothing about React
 src/ui/format.ts  display helpers; does no arithmetic of its own
 src/drive/        the real-time driving core: fixed timestep, three cars,
@@ -100,6 +121,12 @@ comes back.
 - The real cars are named as factual references. This project is not affiliated
   with or endorsed by any manufacturer, and uses no logos, photos or brand
   colours.
+
+## Does the honesty labelling actually work?
+
+Unknown. [USER-TEST.md](USER-TEST.md) is a five-person protocol for finding
+out whether people read the simulated speedometer as a measurement. It has not
+been run yet, and the results section is deliberately blank until it is.
 
 ## Status
 

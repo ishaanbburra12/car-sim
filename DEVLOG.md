@@ -740,3 +740,81 @@ configure, estimate, hear, drive, and a Methods page that admits what it does
 not know. Open options are the out-of-sample validation against a fourth real
 car, the five-person unprimed user test, a manual gearbox, and 3D.
 
+---
+
+## 2026-10-16 — Session 10: an accuracy number we actually earned, and a test I cannot run
+
+### The out-of-sample result: minus 4.6%
+
+The three cars in the app were never evidence. The model was tuned to match
+them — when they came out 14-15% slow to 60 in session 2, I changed the Civic's
+traction fraction and every car's shift time until they lined up. Their ~2%
+agreement measures nothing.
+
+So the model was tested once on a car it had never seen: a 2019 Mazda MX-5,
+picked for being as unlike the fitted three as a petrol manual car gets. Half
+the GT-R's weight, a third of the GT3 RS's power, naturally aspirated, rear
+drive, no aero, very short gearing.
+
+**The protocol was fixed before the answer was known**, and this is the part
+that makes it worth anything: published values entered as published, derived
+values by the same formulas, and every assumed value — tire grip, brake limit,
+driveline efficiency, rolling resistance, shift time, launch rpm, idle, overrun
+torque — COPIED from the Civic Type R rather than chosen. There is a test
+asserting that copying, so a later session cannot quietly tune the holdout. One
+run, no adjustments.
+
+**Model 5.43 s to 60. Published 5.70 s. Error minus 4.6%.**
+
+That is now the only accuracy claim the project makes, and it is why the drive
+mode's model band still says "assumed plus or minus 10%" rather than tightening
+to 4.6%. One car is not a sample.
+
+### The same test found a genuine failure
+
+The model gives the MX-5 a 158 mph top speed. The real car does about 135.
+
+Our figure is what the engine and the drag allow, and the real car is almost
+certainly electronically limited below that — something the model knows nothing
+about. I had already excluded top speed from the validation because no
+well-sourced tested figure existed for it, so this is not a failed assertion;
+it is an observation I could have quietly dropped and did not. It is on the
+Methods page, in the README, and "speed limiters" is now in the list of things
+the model ignores.
+
+Worth noticing: the holdout flattered the model on the number I tested and
+embarrassed it on the one I did not. That is roughly what an honest first
+holdout looks like.
+
+### The user test: built, not run
+
+I cannot run this one. It needs five real people, and a five-person study with
+invented participants would be worth less than no study at all.
+
+`USER-TEST.md` is the method: who to recruit and who to exclude, the exact
+unprimed script, the five questions in the order that stops each one teaching
+the answer to the next, a three-way scoring scheme, a pass bar, the likely
+fixes if it fails and the rule to change only one at a time, and a blank
+results table.
+
+Two things in it I want to hold myself to. The results section stays blank
+until real people have sat down with it — anyone reading the file can tell at a
+glance whether the test happened. And a failure gets written up in the DEVLOG
+and the README next to the accuracy number, because a test that only gets
+reported when it passes is advertising.
+
+### Who wrote what
+
+- **Me (Raju):** designed the five-person test in session 5 — the unprimed
+  questions, the badge staying visible, the commitment to report failures.
+  Chose to do the validation before anything else got built.
+- **Claude:** picked the holdout and justified the choice, fixed the protocol
+  in advance, ran it, reported minus 4.6% and the top speed failure, and wrote
+  up the test kit.
+
+### Next
+
+Run the five-person test. Until it is run, nobody knows whether any of the
+honesty work actually reaches a reader — which makes it the most valuable
+unfinished thing in the project.
+

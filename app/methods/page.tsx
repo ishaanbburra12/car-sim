@@ -132,6 +132,49 @@ export default function MethodsPage() {
         </p>
       </Section>
 
+      <Section title="Testing the model on a car it had never seen">
+        <p>
+          The three cars above cannot tell you how good this model is, because
+          the model was tuned to match them. When they first came out 14&ndash;15%
+          slow to 60, the Civic&rsquo;s traction fraction and every car&rsquo;s
+          shift time were adjusted until they lined up. Their agreement is an
+          in-sample fit. It measures nothing.
+        </p>
+        <p>
+          So the model was tested once, properly, on a holdout: a 2019 Mazda
+          MX-5, chosen for being as unlike the fitted three as a petrol manual
+          car gets &mdash; half the weight of the GT-R, a third of the power of
+          the GT3 RS, naturally aspirated, rear drive, no aero, very short
+          gearing. The protocol was fixed before the result was seen: published
+          values entered as published, derived values by the same formulas,
+          and every assumed value copied from the most similar existing car
+          rather than chosen. Nothing was adjusted afterwards.
+        </p>
+        <p className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+          <span className="text-slate-300">Result: &minus;4.6%.</span> The model
+          predicted 5.43 s to 60 mph; the published tested figure is 5.70 s.
+          That is the only honest accuracy number this project has, and it is
+          the reason the drive mode&rsquo;s model band says &ldquo;assumed
+          &plusmn;10%&rdquo; rather than &plusmn;2%.
+        </p>
+        <p className="rounded-md border border-amber-400/20 bg-amber-400/5 p-3 text-amber-100/80">
+          <strong className="font-medium">The same test found a real failure.</strong>{" "}
+          The model gives that car a 158 mph top speed; the real one does about
+          135. Our figure is what the engine and the drag would allow, and the
+          real car is almost certainly electronically limited below it &mdash;
+          something this model knows nothing about. Top speed was left out of
+          the validation because no well-sourced tested figure could be found
+          for it, but the gap is reported here rather than quietly dropped.
+          Treat top speed for any road car as the least trustworthy number on
+          the site.
+        </p>
+        <p>
+          One car is not a sample. A second and third holdout would say much
+          more, and an EV or an automatic would probably break something
+          interesting.
+        </p>
+      </Section>
+
       <Section title="What the model ignores">
         <ul className="list-inside list-disc space-y-1.5">
           <li>
@@ -162,6 +205,12 @@ export default function MethodsPage() {
             <strong className="font-medium text-slate-300">Launch control detail.</strong>{" "}
             A single launch rpm per car stands in for the whole clutch and
             traction strategy.
+          </li>
+          <li>
+            <strong className="font-medium text-slate-300">Speed limiters.</strong>{" "}
+            Many road cars are electronically limited below what their engine
+            and drag would allow. The model always reports the physical limit,
+            which is why its top speeds can read high.
           </li>
           <li>
             <strong className="font-medium text-slate-300">Everything about driving.</strong>{" "}
