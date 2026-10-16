@@ -341,6 +341,16 @@ export default function MethodsPage() {
         </p>
 
         <p>
+          <span className="text-slate-300">Who changes gear.</span> Each car
+          declares its real gearbox, which is published for all of them, so this
+          is one of the few fields that is a fact rather than a guess. Manual
+          cars hand the gears to you in drive mode; the dual-clutch cars shift
+          themselves, as the real ones do. Choosing badly has consequences the
+          model already had: a gear that would pass redline makes no power at
+          all, and one that is too tall leaves the engine below its torque. The
+          gearbox never overrides you.
+        </p>
+        <p>
           <span className="text-slate-300">Two more per-car assumptions.</span>{" "}
           Driving needs an idle speed and an overrun torque, and neither is
           printed in any spec sheet. Idle speeds are set at 800 rpm for the two

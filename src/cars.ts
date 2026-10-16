@@ -58,7 +58,8 @@ export const GT3_RS: Car = {
   crr: 0.013, // [assumed] stiff track tires
   drivelineEff: 0.9, // [assumed] PDK, rear drive only
   wheelRadiusM: 0.367, // [derived] 335/30 R21 rear
-  gearRatios: [3.75, 2.38, 1.72, 1.34, 1.11, 0.96, 0.84], // [published] 7-sp PDK
+  gearboxType: "dual-clutch", // [published] 7-speed PDK
+  gearRatios: [3.75, 2.38, 1.72, 1.34, 1.11, 0.96, 0.84], // [published]
   finalDrive: 4.27, // [published]
   tireMu: 1.25, // [assumed] Cup 2 R track tires
   brakeLimitG: 1.3, // [assumed] carbon ceramic, strong enough that tires limit
@@ -101,7 +102,8 @@ export const GTR: Car = {
   crr: 0.012, // [assumed]
   drivelineEff: 0.85, // [assumed] AWD costs more than a rear-drive car
   wheelRadiusM: 0.354, // [derived] 285/35 R20 rear
-  gearRatios: [4.056, 2.301, 1.595, 1.248, 1.001, 0.796], // [published] 6-sp DCT
+  gearboxType: "dual-clutch", // [published] 6-speed DCT
+  gearRatios: [4.056, 2.301, 1.595, 1.248, 1.001, 0.796], // [published]
   finalDrive: 3.7, // [published] rear axle
   tireMu: 1.05, // [assumed] sticky road tires
   brakeLimitG: 1.1, // [assumed]
@@ -142,7 +144,8 @@ export const TYPE_R: Car = {
   crr: 0.011, // [assumed]
   drivelineEff: 0.9, // [assumed] 6-speed manual, front drive
   wheelRadiusM: 0.321, // [derived] 265/30 R19
-  gearRatios: [3.625, 2.115, 1.529, 1.125, 0.912, 0.738], // [published] 6-sp manual
+  gearboxType: "manual", // [published] 6-speed manual
+  gearRatios: [3.625, 2.115, 1.529, 1.125, 0.912, 0.738], // [published]
   finalDrive: 3.842, // [published] FL5 changed from the FK8's 4.111
   tireMu: 1.05, // [assumed] Michelin Pilot Sport 4S
   brakeLimitG: 1.05, // [assumed]

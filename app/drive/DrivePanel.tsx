@@ -52,6 +52,7 @@ export default function DrivePanel({
   const [soundOn, setSoundOn] = useState(true);
   const [frame, setFrame] = useState<DriveFrame | null>(null);
   const [pedals, setPedals] = useState({ throttle: 0, brake: 0 });
+  const manual = car.gearboxType === "manual";
 
   const loopRef = useRef<DriveLoop | null>(null);
   const soundRef = useRef<EngineSound | null>(null);
@@ -59,6 +60,8 @@ export default function DrivePanel({
   const targetRef = useRef({ throttle: 0, brake: 0 });
   const pedalRef = useRef({ throttle: 0, brake: 0 });
   const lastInputMsRef = useRef(0);
+  /** 0-based gear the driver has selected. Only used on a manual car. */
+  const gearRef = useRef(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // A new array identity every render would restart the session constantly, so
@@ -86,8 +89,8 @@ export default function DrivePanel({
       throttle: rampInput(pedalRef.current.throttle, targetRef.current.throttle, clamped),
       brake: rampInput(pedalRef.current.brake, targetRef.current.brake, clamped),
     };
-    return pedalRef.current;
-  }, []);
+    return manual ? { ...pedalRef.current, gear: gearRef.current } : pedalRef.current;
+  }, [manual]);
 
   const stopSound = useCallback(() => {
     const sound = soundRef.current;
@@ -102,6 +105,7 @@ export default function DrivePanel({
     targetRef.current = { throttle: 0, brake: 0 };
     pedalRef.current = { throttle: 0, brake: 0 };
     lastInputMsRef.current = 0;
+    gearRef.current = 0;
     setPedals({ throttle: 0, brake: 0 });
     setDriving(false);
   }, [stopSound]);
@@ -154,6 +158,7 @@ export default function DrivePanel({
     const loop = loopRef.current;
     if (!loop) return;
     const fresh = resetSession(loop.getSession());
+    gearRef.current = 0;
     loop.setSession(fresh);
     setFrame(frameOf(fresh));
   }, []);
@@ -203,6 +208,12 @@ export default function DrivePanel({
       } else if (k === "s" || k === "arrowdown") {
         targetRef.current.brake = 1;
         e.preventDefault();
+      } else if (manual && (k === "e" || k === "arrowright")) {
+        gearRef.current = Math.min(gearRef.current + 1, car.gearRatios.length - 1);
+        e.preventDefault();
+      } else if (manual && (k === "q" || k === "arrowleft")) {
+        gearRef.current = Math.max(gearRef.current - 1, 0);
+        e.preventDefault();
       } else if (k === "r") {
         reset();
         e.preventDefault();
@@ -230,7 +241,7 @@ export default function DrivePanel({
       window.removeEventListener("blur", release);
       document.removeEventListener("visibilitychange", release);
     };
-  }, [driving, reset, stop]);
+  }, [driving, reset, stop, manual, car.gearRatios.length]);
 
   const out = frame?.outputs;
   const driven = out?.expected;
@@ -258,7 +269,10 @@ export default function DrivePanel({
         You drive the typical build. The two faint needles are the pessimistic
         and optimistic ends of the same model, driven from your inputs at the
         same moment &mdash; the spread between them is how much the parts data
-        is unsure of itself.
+        is unsure of itself.{" "}
+        {manual
+          ? "This car has a manual gearbox, so the gears are yours to get wrong."
+          : "This car shifts for itself, as the real one does."}
       </p>
 
       {/* ---- Cluster ---- */}
@@ -303,7 +317,9 @@ export default function DrivePanel({
 
         <dl className="mt-3 grid grid-cols-4 gap-3 border-t border-white/10 pt-3 text-sm">
           <div>
-            <dt className="text-[10px] uppercase tracking-wide text-slate-500">Gear</dt>
+            <dt className="text-[10px] uppercase tracking-wide text-slate-500">
+              Gear{manual ? " (yours)" : " (auto)"}
+            </dt>
             <dd
               className={[
                 "mt-0.5 tabular-nums font-semibold",
@@ -408,12 +424,47 @@ export default function DrivePanel({
               &middot; <kbd className="rounded border border-white/15 px-1">S</kbd>{" "}
               brake &middot;{" "}
               <kbd className="rounded border border-white/15 px-1">R</kbd> restart
+              {manual && (
+                <>
+                  {" "}
+                  &middot; <kbd className="rounded border border-white/15 px-1">Q</kbd>
+                  /<kbd className="rounded border border-white/15 px-1">E</kbd> gears
+                </>
+              )}
             </>
           ) : (
             "Keyboard, or the pedals below."
           )}
         </span>
       </div>
+
+      {manual && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-slate-500">
+            This car has a manual gearbox, so you change gear yourself:
+          </span>
+          <button
+            type="button"
+            disabled={!driving}
+            onClick={() => {
+              gearRef.current = Math.max(gearRef.current - 1, 0);
+            }}
+            className="rounded-md border border-white/15 px-3 py-1 text-sm text-slate-200 disabled:cursor-not-allowed disabled:border-white/5 disabled:text-slate-600"
+          >
+            Down
+          </button>
+          <button
+            type="button"
+            disabled={!driving}
+            onClick={() => {
+              gearRef.current = Math.min(gearRef.current + 1, car.gearRatios.length - 1);
+            }}
+            className="rounded-md border border-white/15 px-3 py-1 text-sm text-slate-200 disabled:cursor-not-allowed disabled:border-white/5 disabled:text-slate-600"
+          >
+            Up
+          </button>
+        </div>
+      )}
 
       {/* On-screen pedals: keyboard is not the only way in. */}
       <div className="mt-3 grid grid-cols-2 gap-3">

@@ -521,3 +521,123 @@ describe("engine braking", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// The manual gearbox. gearboxType is published for every car, so this is the
+// rare addition that SHRINKS the assumed bucket instead of growing it.
+// ---------------------------------------------------------------------------
+
+describe("manual gear selection", () => {
+  const spec = applyParts(PULSE, [], "pessimistic");
+  const gt = gearTotals(spec);
+
+  it("omitting a gear leaves the automatic chooser in charge", () => {
+    // Which is what keeps the whole-run simulation bit-identical.
+    let a = standingStart(spec);
+    let b = standingStart(spec);
+    for (let i = 0; i < 1500; i++) {
+      const x = stepDrive(spec, gt, a, WOT);
+      const y = stepDrive(spec, gt, b, { throttle: 1, brake: 0 });
+      expect(Object.is(x.state.gear, y.state.gear)).toBe(true);
+      expect(Object.is(x.state.v, y.state.v)).toBe(true);
+      a = x.state;
+      b = y.state;
+    }
+  });
+
+  it("the driver's choice is obeyed", () => {
+    const out = stepDrive(spec, gt, standingStart(spec), { throttle: 1, brake: 0, gear: 2 });
+    expect(out.gear).toBe(3); // reported 1-based
+  });
+
+  it("changing gear costs the car its shift time", () => {
+    const out = stepDrive(spec, gt, standingStart(spec), { throttle: 1, brake: 0, gear: 1 });
+    expect(out.shifting).toBe(true);
+    expect(out.state.shiftTimer).toBeCloseTo(spec.shiftTimeS, 9);
+    expect(out.driveForceN).toBe(0);
+  });
+
+  it("holding the same gear costs nothing", () => {
+    let state = standingStart(spec);
+    for (let i = 0; i < 300; i++) {
+      const out = stepDrive(spec, gt, state, { throttle: 1, brake: 0, gear: 0 });
+      expect(out.shifting).toBe(false);
+      state = out.state;
+    }
+  });
+
+  it("the chooser never overrides the driver, even when it would be faster", () => {
+    // Crawling along in top gear is a bad idea, and the car must let you.
+    let state = standingStart(spec);
+    const top = spec.gearRatios.length - 1;
+    for (let i = 0; i < 2000; i++) {
+      state = stepDrive(spec, gt, state, { throttle: 1, brake: 0, gear: top }).state;
+    }
+    expect(state.gear).toBe(top);
+    // And it is genuinely slower than letting the gearbox decide.
+    let auto = standingStart(spec);
+    for (let i = 0; i < 2000; i++) auto = stepDrive(spec, gt, auto, WOT).state;
+    expect(state.v).toBeLessThan(auto.v);
+  });
+
+  it("a gear that would pass redline makes no power at all", () => {
+    // Money shift: drop to first at speed and the engine simply stops pulling.
+    let state = standingStart(spec);
+    for (let i = 0; i < 1600; i++) state = stepDrive(spec, gt, state, WOT).state;
+    let out = stepDrive(spec, gt, state, { throttle: 1, brake: 0, gear: 0 });
+    for (let i = 0; i < 60; i++) out = stepDrive(spec, gt, out.state, { throttle: 1, brake: 0, gear: 0 });
+    expect(out.onLimiter).toBe(true);
+    expect(out.driveForceN).toBe(0);
+  });
+
+  it("an out-of-range gear is clamped rather than crashing", () => {
+    for (const g of [-5, 99, 1.7]) {
+      const out = stepDrive(spec, gt, standingStart(spec), { throttle: 1, brake: 0, gear: g });
+      expect(out.gear).toBeGreaterThanOrEqual(1);
+      expect(out.gear).toBeLessThanOrEqual(spec.gearRatios.length);
+      expect(Number.isNaN(out.state.v)).toBe(false);
+    }
+  });
+
+  it("a well-driven manual run is close to what the automatic chooser manages", () => {
+    // Shift at redline in every gear and you should be within a few percent.
+    let state = standingStart(spec);
+    let gear = 0;
+    const sixty = 60 * 0.44704;
+    let manualT = NaN;
+    for (let i = 0; i < 4000 && Number.isNaN(manualT); i++) {
+      const out = stepDrive(spec, gt, state, { throttle: 1, brake: 0, gear }, { policy: "clutch" });
+      if (out.rpm > spec.redlineRpm * 0.985 && gear < spec.gearRatios.length - 1 && !out.shifting) {
+        gear++;
+      }
+      state = out.state;
+      if (state.v >= sixty) manualT = state.t;
+    }
+    let auto = standingStart(spec);
+    let autoT = NaN;
+    for (let i = 0; i < 4000 && Number.isNaN(autoT); i++) {
+      auto = stepDrive(spec, gt, auto, WOT, { policy: "clutch" }).state;
+      if (auto.v >= sixty) autoT = auto.t;
+    }
+    expect(Number.isNaN(manualT)).toBe(false);
+    expect(Math.abs(manualT - autoT) / autoT).toBeLessThan(0.15);
+  });
+});
+
+describe("gearbox type is published, not assumed", () => {
+  it("every car declares one", () => {
+    for (const car of CARS) {
+      expect(["manual", "dual-clutch"]).toContain(car.gearboxType);
+    }
+  });
+
+  it("the two dual-clutch cars shift faster than the manuals", () => {
+    const manuals = CARS.filter((c) => c.gearboxType === "manual");
+    const autos = CARS.filter((c) => c.gearboxType === "dual-clutch");
+    expect(manuals.length).toBeGreaterThan(0);
+    expect(autos.length).toBeGreaterThan(0);
+    const slowestAuto = Math.max(...autos.map((c) => c.shiftTimeS));
+    const fastestManual = Math.min(...manuals.map((c) => c.shiftTimeS));
+    expect(slowestAuto).toBeLessThan(fastestManual);
+  });
+});

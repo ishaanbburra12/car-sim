@@ -226,6 +226,16 @@ export type DriveState = {
 export type DriverInputs = {
   throttle: number; // 0..1
   brake: number; // 0..1
+  /**
+   * Which gear the driver has selected, 0-based. Omit it and the gearbox
+   * chooses for itself, which is what the whole-run simulation always does
+   * and what a dual-clutch car does in drive mode.
+   *
+   * Choosing badly has consequences, as it should: a gear that would pass
+   * redline makes no power at all, and one that is too tall leaves the engine
+   * bogging below its torque.
+   */
+  gear?: number;
 };
 
 export type StepOpts = {
@@ -355,6 +365,13 @@ export function stepDrive(
 
   if (shiftTimer > 0) {
     shiftTimer -= dt;
+  } else if (inputs.gear !== undefined) {
+    // Manual: the driver picked, so the chooser does not run at all.
+    const wanted = Math.min(Math.max(Math.round(inputs.gear), 0), gearTotal.length - 1);
+    if (wanted !== gear) {
+      gear = wanted;
+      shiftTimer = spec.shiftTimeS;
+    }
   } else {
     // Only shift if the current gear is at redline, or another gear pulls >5%
     // harder. The 5% margin stops the car bouncing between two gears (which

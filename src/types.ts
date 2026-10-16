@@ -38,6 +38,12 @@ export type Car = {
   crr: number; // rolling resistance coefficient
   drivelineEff: number; // fraction of engine power that reaches the wheels
   wheelRadiusM: number;
+  /**
+   * How gears are changed. Published for every car, so unlike almost every
+   * other field added lately this one SHRINKS the assumed bucket. Drive mode
+   * hands manual cars to the driver and lets the other two shift themselves.
+   */
+  gearboxType: "manual" | "dual-clutch";
   gearRatios: number[];
   finalDrive: number;
   tireMu: number; // tire grip coefficient (1.0 = 1 g of grip)

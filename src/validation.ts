@@ -49,6 +49,7 @@ export const HOLDOUT_MX5: Car = {
   crr: 0.011, // [assumed] copied from the Civic Type R
   drivelineEff: 0.9, // [assumed] copied from the Type R: manual gearbox, two driven wheels
   wheelRadiusM: 0.308, // [derived] 205/45 R17
+  gearboxType: "manual", // [published]
   gearRatios: [5.087, 2.991, 2.035, 1.594, 1.286, 1.0], // [published] 6-speed manual
   finalDrive: 2.866, // [published]
   tireMu: 1.05, // [assumed] copied from the Type R and GT-R: performance road tires

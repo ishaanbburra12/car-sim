@@ -23,6 +23,7 @@ export const PULSE: Car = {
   crr: 0.012,
   drivelineEff: 0.88,
   wheelRadiusM: 0.31,
+  gearboxType: "manual",
   gearRatios: [3.6, 2.1, 1.4, 1.05, 0.85, 0.7],
   finalDrive: 4.1,
   tireMu: 1.0,

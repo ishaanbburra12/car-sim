@@ -818,3 +818,42 @@ Run the five-person test. Until it is run, nobody knows whether any of the
 honesty work actually reaches a reader — which makes it the most valuable
 unfinished thing in the project.
 
+---
+
+## 2026-10-16 — Session 11: the manual gearbox
+
+### What we did
+
+Cars with a real manual gearbox now hand you the gears. Q and E, or the arrow
+keys, or on-screen buttons. The GT-R and the GT3 RS keep shifting themselves,
+because that is what they actually do. Tests 184 -> 194.
+
+`gearboxType` is the rare addition that SHRINKS the assumed bucket: it is
+published for every car and was already sitting in the code comments, waiting
+to be used instead of read.
+
+### The design that made it easy
+
+`DriverInputs` gained an optional `gear`. Omit it and the automatic chooser
+runs exactly as before, which is why the bit-identity guard and all 184
+existing tests passed on the first run. Supply it and the chooser does not run
+at all. The gearbox never second-guesses the driver.
+
+That meant the consequences of choosing badly needed no new code, because the
+model already had them: a gear that would pass redline returns the -1 sentinel
+and makes no power, and a gear that is too tall leaves the engine below its
+torque. Both are now tested. Dropping to first at 50 mph does exactly what it
+should, which is nothing at all.
+
+### Verified by driving it
+
+Holding first bounces the engine off the limiter at 6,505 rpm instead of
+shifting itself. Upshifting drops the revs to 4,764. Selecting the Nissan
+switches the readout to "Gear (auto)" and removes the shift buttons entirely.
+
+### Who wrote what
+
+- **Me (Raju):** asked for the manual gearbox.
+- **Claude:** the gear input, the UI, and 10 tests including the money shift
+  and the clamping of an out-of-range gear.
+
