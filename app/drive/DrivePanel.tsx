@@ -15,7 +15,14 @@ import {
 import { createDriveLoop, rampInput, type DriveLoop } from "../../src/drive/loop";
 import { DRIVE_TUNABLES } from "../../src/drive/tunables";
 import { fmt } from "../../src/ui/format";
+import { EngineSound, cylindersFor } from "../../src/ui/sound";
 import Gauge from "./Gauge";
+
+/** Engine note while the gearbox is between gears: quiet and dull, not silent. */
+const SHIFT_THROTTLE = 0.1;
+/** Floor under the engine note when coasting, so lifting off is not silence. */
+const COAST_THROTTLE = 0.12;
+const IDLE_RPM = 800;
 
 /**
  * Drive the configured car in real time.
@@ -33,15 +40,21 @@ import Gauge from "./Gauge";
 export default function DrivePanel({
   car,
   partIds,
+  onTakeControl,
 }: {
   car: Car;
   partIds: string[];
+  /** Lets the page silence anything else making noise before we start. */
+  onTakeControl?: () => void;
 }) {
   const [driving, setDriving] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
   const [frame, setFrame] = useState<DriveFrame | null>(null);
   const [pedals, setPedals] = useState({ throttle: 0, brake: 0 });
 
   const loopRef = useRef<DriveLoop | null>(null);
+  const soundRef = useRef<EngineSound | null>(null);
+  const soundOnRef = useRef(true);
   const targetRef = useRef({ throttle: 0, brake: 0 });
   const pedalRef = useRef({ throttle: 0, brake: 0 });
   const lastInputMsRef = useRef(0);
@@ -75,21 +88,56 @@ export default function DrivePanel({
     return pedalRef.current;
   }, []);
 
+  const stopSound = useCallback(() => {
+    const sound = soundRef.current;
+    soundRef.current = null;
+    void sound?.stop();
+  }, []);
+
   const stop = useCallback(() => {
     loopRef.current?.stop();
     loopRef.current = null;
+    stopSound();
     targetRef.current = { throttle: 0, brake: 0 };
     pedalRef.current = { throttle: 0, brake: 0 };
     lastInputMsRef.current = 0;
     setPedals({ throttle: 0, brake: 0 });
     setDriving(false);
-  }, []);
+  }, [stopSound]);
 
   const start = useCallback(() => {
     if (loopRef.current) return;
+    onTakeControl?.();
+
+    // The click that got us here is the user gesture browsers require before
+    // audio may start.
+    if (soundOnRef.current) {
+      const sound = new EngineSound({
+        cylinders: cylindersFor(car.id),
+        engineType: car.engineType,
+        idleRpm: IDLE_RPM,
+        redlineRpm: car.redlineRpm,
+      });
+      soundRef.current = sound;
+      void sound.start(IDLE_RPM);
+    }
+
     const loop = createDriveLoop({
       session: createSession(car, partIds),
       inputs: readInputs,
+      // Audio must move every frame; updating it at the display rate is
+      // audible as stepping.
+      onTick: (f) => {
+        const sound = soundRef.current;
+        if (!sound) return;
+        const driven = f.outputs.expected;
+        sound.setThrottle(
+          driven.shifting
+            ? SHIFT_THROTTLE
+            : Math.max(COAST_THROTTLE, pedalRef.current.throttle),
+        );
+        sound.setRpm(driven.rpm);
+      },
       onFrame: (f) => {
         setFrame(f);
         setPedals({ ...pedalRef.current });
@@ -99,7 +147,7 @@ export default function DrivePanel({
     loop.start();
     setDriving(true);
     containerRef.current?.focus();
-  }, [car, partKey, readInputs]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [car, partKey, readInputs, onTakeControl]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reset = useCallback(() => {
     const loop = loopRef.current;
@@ -115,8 +163,34 @@ export default function DrivePanel({
     setFrame(null);
   }, [car, partKey, stop]);
 
-  // Always tear the loop down when the component goes away.
-  useEffect(() => () => void loopRef.current?.stop(), []);
+  // Always tear the loop and the audio down when the component goes away.
+  useEffect(
+    () => () => {
+      loopRef.current?.stop();
+      void soundRef.current?.stop();
+    },
+    [],
+  );
+
+  // Toggling sound mid-drive starts or stops the note without ending the run.
+  useEffect(() => {
+    soundOnRef.current = soundOn;
+    if (!driving) return;
+    if (!soundOn) {
+      stopSound();
+      return;
+    }
+    if (!soundRef.current) {
+      const sound = new EngineSound({
+        cylinders: cylindersFor(car.id),
+        engineType: car.engineType,
+        idleRpm: IDLE_RPM,
+        redlineRpm: car.redlineRpm,
+      });
+      soundRef.current = sound;
+      void sound.start(frame?.outputs.expected.rpm ?? IDLE_RPM);
+    }
+  }, [soundOn, driving, car, stopSound]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!driving) return;
@@ -313,6 +387,15 @@ export default function DrivePanel({
             Back to the line
           </button>
         )}
+        <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-400">
+          <input
+            type="checkbox"
+            checked={soundOn}
+            onChange={(e) => setSoundOn(e.target.checked)}
+            className="accent-amber-500"
+          />
+          Engine sound
+        </label>
         <span className="text-xs text-slate-500">
           {driving ? (
             <>

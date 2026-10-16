@@ -290,6 +290,22 @@ export default function MethodsPage() {
           rather than between two, and always contains the needle.
         </p>
 
+        <p>
+          <span className="text-slate-300">
+            One place drive mode differs from the Garage on purpose.
+          </span>{" "}
+          The Garage&rsquo;s whole-run simulation holds the engine at launch rpm
+          for the entire run, which models a slipping clutch but never stops
+          applying. Drive mode releases that floor the moment the drivetrain
+          outruns it, as a real clutch does once it has finished slipping.
+          Without this the engine can never rev below launch rpm, so the note
+          lands on the same pitch after every early gear change and the car
+          sounds mechanical. The two differ in 0-60 by less than one simulation
+          step, because by then the engine is past its torque peak &mdash; the
+          change is audible rather than numerical, and the Garage&rsquo;s
+          published figures are untouched by it.
+        </p>
+
         <h3 className="pt-2 font-medium text-slate-300">
           Every number drive mode invents
         </h3>

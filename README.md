@@ -23,7 +23,8 @@ and how far the model lands from the real cars' published figures.
   downforce. Braking is integrated separately because downforce fades as a car
   slows.
 - **Drive mode.** Fit parts, take control, and drive the car in real time with
-  the keyboard. You drive the *typical* build while the pessimistic and
+  the keyboard, with a synthesised engine note that follows the revs and cuts
+  when you change gear. You drive the *typical* build while the pessimistic and
   optimistic builds run alongside from the same inputs — the gap between them
   on the road is the uncertainty in the parts data. Every gauge carries three
   needles and the cluster is permanently badged as a simulation.
@@ -32,7 +33,7 @@ and how far the model lands from the real cars' published figures.
   standing start back in real time so you can hear the gear changes land where
   the physics put them. It is a synthesiser, not a recording, and makes no
   claim to sound like any real car.
-- **141 tests**, including checks that the three real cars land within 10% of
+- **154 tests**, including checks that the three real cars land within 10% of
   their published 0-60 and top speed.
 
 ## How accurate is it?
@@ -56,7 +57,7 @@ to. The other two use published drag coefficients and are honest checks.
 ```bash
 npm install
 npm run dev     # http://localhost:3000/garage  and  /drive
-npm test        # 141 tests
+npm test        # 154 tests
 npm run build
 ```
 

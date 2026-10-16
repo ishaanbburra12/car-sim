@@ -172,6 +172,23 @@ export class EngineSound {
     );
   }
 
+  /**
+   * Point the running synth at a different car. Used when the driven car or
+   * its build changes mid-session, so the note follows without a gap.
+   */
+  retune(opts: { cylinders: number; engineType: EngineType; idleRpm: number; redlineRpm: number }) {
+    this.cylinders = opts.cylinders;
+    this.idleRpm = opts.idleRpm;
+    this.redlineRpm = opts.redlineRpm;
+    if (opts.engineType !== this.engineType) {
+      this.engineType = opts.engineType;
+      const weights = HARMONICS[this.engineType];
+      this.oscillators.forEach(({ gain }, i) => {
+        gain.gain.setTargetAtTime(weights[i] * 0.11, this.ctx.currentTime, 0.05);
+      });
+    }
+  }
+
   async stop() {
     if (!this.running) {
       await this.ctx.close();

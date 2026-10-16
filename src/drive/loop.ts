@@ -35,8 +35,17 @@ export function createDriveLoop(opts: {
   session: DriveSession;
   /** Read fresh each frame, so held keys are picked up without restarting. */
   inputs: () => DriverInputs;
-  /** Called every frame with the newest frame; also called on start. */
+  /**
+   * Called at the DISPLAY rate, for rewriting text on screen. Deliberately
+   * slower than the frame rate: a number flickering through every intermediate
+   * value is unreadable and implies precision the model does not have.
+   */
   onFrame: (frame: DriveFrame, session: DriveSession) => void;
+  /**
+   * Called EVERY frame, for things that must stay smooth. Audio lives here:
+   * updating an engine note ten times a second is audible as stepping.
+   */
+  onTick?: (frame: DriveFrame, session: DriveSession) => void;
   clock?: Clock;
 }): DriveLoop {
   const clock = opts.clock ?? browserClock;
@@ -52,6 +61,8 @@ export function createDriveLoop(opts: {
 
     const result = advance(session, opts.inputs(), wallDtS);
     session = result.session;
+
+    opts.onTick?.(result.frame, session);
 
     // Physics runs at 200 Hz, frames at whatever the screen does, but the
     // readouts are only rewritten displayHz times a second.

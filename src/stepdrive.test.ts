@@ -239,3 +239,141 @@ describe("stepDrive responds to the driver", () => {
     expect(out.driveForceN).toBeLessThanOrEqual(out.tractionCapN);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The launch policy. Found by listening, not by reading: with the legacy floor
+// the engine note cannot fall below launch rpm, so it flatlines after every
+// gear change.
+// ---------------------------------------------------------------------------
+
+describe("launch policy", () => {
+  const spec = applyParts(PULSE, [], "pessimistic");
+  const gt = gearTotals(spec);
+
+  function run(policy: "legacy" | "clutch", steps: number) {
+    let state = standingStart(spec);
+    const rpms: number[] = [];
+    for (let i = 0; i < steps; i++) {
+      const out = stepDrive(spec, gt, state, WOT, { policy });
+      state = out.state;
+      rpms.push(out.rpm);
+    }
+    return rpms;
+  }
+
+  it("defaults to legacy, so nothing that exists today changes", () => {
+    let a = standingStart(spec);
+    let b = standingStart(spec);
+    for (let i = 0; i < 2000; i++) {
+      const x = stepDrive(spec, gt, a, WOT);
+      const y = stepDrive(spec, gt, b, WOT, { policy: "legacy" });
+      expect(Object.is(x.rpm, y.rpm)).toBe(true);
+      expect(Object.is(x.state.v, y.state.v)).toBe(true);
+      a = x.state;
+      b = y.state;
+    }
+  });
+
+  it("legacy never lets the engine fall below launch rpm", () => {
+    for (const rpm of run("legacy", 2000)) {
+      expect(rpm).toBeGreaterThanOrEqual(spec.launchRpm - 1e-9);
+    }
+  });
+
+  it("clutch does, once the drivetrain has outrun the floor", () => {
+    const rpms = run("clutch", 2000);
+    expect(Math.min(...rpms)).toBeLessThan(spec.launchRpm);
+  });
+
+  it("clutch still holds the engine up at the very start", () => {
+    // Off the line the clutch is slipping, so the floor must still apply.
+    const rpms = run("clutch", 20);
+    for (const rpm of rpms) expect(rpm).toBeGreaterThanOrEqual(spec.launchRpm - 1e-9);
+  });
+
+  it("the floor is released exactly once and never re-arms", () => {
+    let state = standingStart(spec);
+    let releases = 0;
+    let wasArmed = state.launchArmed;
+    for (let i = 0; i < 4000; i++) {
+      const out = stepDrive(spec, gt, state, WOT, { policy: "clutch" });
+      state = out.state;
+      if (wasArmed && !state.launchArmed) releases++;
+      if (!wasArmed && state.launchArmed) throw new Error("the clutch re-armed");
+      wasArmed = state.launchArmed;
+    }
+    expect(releases).toBe(1);
+  });
+
+  it("the engine revs DOWN after a gear change, which is the audible point", () => {
+    let state = standingStart(spec);
+    let prev = 0;
+    let drops = 0;
+    for (let i = 0; i < 2000; i++) {
+      const out = stepDrive(spec, gt, state, WOT, { policy: "clutch" });
+      state = out.state;
+      if (prev > 0 && out.rpm < prev - 200) drops++;
+      prev = out.rpm;
+    }
+    expect(drops, "expected at least one sharp rev drop at a gear change").toBeGreaterThan(0);
+  });
+
+  it("legacy FLATTENS the rev drop at a shift, which is the defect", () => {
+    // Both policies drop at a shift; the difference is how FAR. Under legacy
+    // the engine cannot fall past the floor, so the drop is cut short and the
+    // note lands on the same pitch after every early shift. Under clutch it
+    // falls to wherever the gearing actually puts it.
+    const deepestDrop = (policy: "legacy" | "clutch") => {
+      let state = standingStart(spec);
+      let prev = 0;
+      let deepest = 0;
+      for (let i = 0; i < 2000; i++) {
+        const out = stepDrive(spec, gt, state, WOT, { policy });
+        state = out.state;
+        if (prev > 0) deepest = Math.max(deepest, prev - out.rpm);
+        prev = out.rpm;
+      }
+      return deepest;
+    };
+    expect(deepestDrop("clutch")).toBeGreaterThan(deepestDrop("legacy") + 200);
+  });
+
+  it("under legacy a shift can never land below launch rpm; under clutch it can", () => {
+    // The audible symptom, stated exactly. Legacy pins the bottom of every
+    // early rev drop to the same pitch — the floor — so the car always lands
+    // on the same note. Clutch lets it land wherever the gearing puts it.
+    const landings = (policy: "legacy" | "clutch") => {
+      let state = standingStart(spec);
+      let prev = 0;
+      const found: number[] = [];
+      for (let i = 0; i < 1300; i++) {
+        const out = stepDrive(spec, gt, state, WOT, { policy });
+        state = out.state;
+        if (prev > 0 && out.rpm < prev - 200) found.push(out.rpm);
+        prev = out.rpm;
+      }
+      return found;
+    };
+    const legacy = landings("legacy");
+    const clutch = landings("clutch");
+    expect(legacy.length).toBeGreaterThan(0);
+    expect(clutch.length).toBeGreaterThan(0);
+    for (const rpm of legacy) expect(rpm).toBeGreaterThanOrEqual(spec.launchRpm - 1e-9);
+    expect(Math.min(...clutch)).toBeLessThan(spec.launchRpm);
+    // And the first shift under legacy lands exactly ON the floor, which is
+    // what makes it sound mechanical.
+    expect(legacy[0]).toBeCloseTo(spec.launchRpm, 6);
+  });
+
+  it("the two policies still agree closely on how fast the car is", () => {
+    // The floor only ever ADDS torque at low rpm, and by then the engine is
+    // past its torque peak, so releasing it changes the car barely at all.
+    let a = standingStart(spec);
+    let b = standingStart(spec);
+    for (let i = 0; i < 1400; i++) {
+      a = stepDrive(spec, gt, a, WOT, { policy: "legacy" }).state;
+      b = stepDrive(spec, gt, b, WOT, { policy: "clutch" }).state;
+    }
+    expect(Math.abs(a.v - b.v) / a.v).toBeLessThan(0.02);
+  });
+});

@@ -508,3 +508,84 @@ cannot show uncertainty, rather than drawing two overlapping ghosts.
 2. Idle, a real standstill, and engine braking.
 3. The post-run card with the model band.
 
+---
+
+## 2026-10-16 — Session 7: the car you drive makes the noise
+
+### What we did
+
+Wired the engine synthesiser into drive mode. Hold W and the note climbs with
+the revs; lift and it goes quiet and dull rather than silent; change gear and
+you hear it. A checkbox turns sound off without ending the run, and taking
+control now stops the rev-test slider's engine so the two can never play at
+once.
+
+Tests 145 -> 154.
+
+### The bug I could only hear
+
+Sound exposed something the numbers had hidden. **The engine note kept
+flatlining at exactly 4,000 rpm after every gear change.**
+
+It was the launch-rpm floor — the same one the design panel flagged in session
+5 and I measured as harmless. It IS harmless to the numbers: patching it
+changed 0-60 by less than one 5 ms step, because by then the engine is past its
+torque peak. But the floor never stops applying, so the engine can never rev
+BELOW launch rpm, and every early shift lands on exactly the same pitch. On a
+chart, nothing. In your ears, broken.
+
+So the finding from session 5 was right and my conclusion was incomplete: the
+leak does not matter numerically and does matter audibly. Both halves are now
+written down.
+
+**The fix needed no new invented number.** `stepDrive` takes a launch policy.
+"legacy" keeps the floor forever and stays the default, so the whole-run
+simulation and the bit-identity guard are untouched. "clutch" releases the
+floor the first time the drivetrain outruns it — which is just what a clutch
+finishing its slip does — and drive mode uses that. Verified in the browser:
+revs now fall 5,729 -> 3,792 at a shift and climb again, and the measured audio
+frequency follows (3,792 rpm -> 129 Hz measured against 126 predicted).
+
+### Four test assertions I had to walk back
+
+Writing tests for the policy, I got the claim wrong four times, each time too
+strong:
+
+1. "legacy produces no rev drop" — false. Later shifts, where the car is
+   already above the floor, drop in both policies.
+2. "clutch produces more drops than legacy" — false. Same count; the
+   difference is how FAR each drop falls.
+3. "under legacy every shift lands on exactly launch rpm" — false. Only the
+   early ones; by the second shift wheel rpm is already above the floor.
+4. The one that survived: under legacy a drop can never land below launch rpm,
+   under clutch it can, and the first shift under legacy lands exactly on the
+   floor.
+
+Each failure taught me something true about the model that I had asserted
+without checking. Writing the assertion first and letting it fail is doing the
+work, not failing at it.
+
+### What I decided
+
+- **Audio updates every frame; text updates ten times a second.** The loop
+  grew a separate onTick hook for this. Updating an engine note at the display
+  rate is audible as stepping, and slowing the text is an honesty measure
+  before it is a performance one.
+- **Coasting is not silence.** Off throttle the note drops to a floor rather
+  than cutting out, because a real engine is still turning. Mid-shift it drops
+  further still, which is what makes a gear change sound like a cut.
+- **Taking control silences the rev test.** The page hands drive mode a
+  callback rather than the two panels knowing about each other.
+
+### Still not built
+
+No idle (the car still sits at launch rpm at a standstill), no engine braking,
+no post-run card. Those are next, and idle needs the four idleRpm values signed
+off because they go on the Methods page in my name.
+
+### Who wrote what
+
+- **Me (Raju):** asked for sound next.
+- **Claude:** the wiring, the launch policy, 9 new tests, and the browser runs
+  that found the flatlining note and proved the fix.
+

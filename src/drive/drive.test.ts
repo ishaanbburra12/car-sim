@@ -491,3 +491,81 @@ describe("the three cars can disagree in ways a naive band would misrepresent", 
     expect(f.distanceM).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The per-frame hook. Audio needs every frame; the readouts do not.
+// ---------------------------------------------------------------------------
+
+describe("the loop separates audio updates from readout updates", () => {
+  it("onTick fires every frame, onFrame only at the display rate", () => {
+    const fc = fakeClock();
+    let ticks = 0;
+    let displays = 0;
+    const loop = createDriveLoop({
+      session: createSession(PULSE, BUILD),
+      inputs: () => WOT,
+      onTick: () => ticks++,
+      onFrame: () => displays++,
+      clock: fc.clock,
+    });
+    loop.start();
+    for (let i = 0; i < 60; i++) fc.frame(16.7); // ~1 second at 60 fps
+    expect(ticks).toBe(60);
+    expect(displays).toBeGreaterThan(5);
+    expect(displays).toBeLessThan(20);
+    expect(ticks).toBeGreaterThan(displays * 2);
+  });
+
+  it("onTick is optional", () => {
+    const fc = fakeClock();
+    const loop = createDriveLoop({
+      session: createSession(PULSE, BUILD),
+      inputs: () => WOT,
+      onFrame: () => {},
+      clock: fc.clock,
+    });
+    loop.start();
+    expect(() => {
+      for (let i = 0; i < 10; i++) fc.frame(16.7);
+    }).not.toThrow();
+  });
+
+  it("onTick sees a frame whose rpm is usable for an engine note", () => {
+    const fc = fakeClock();
+    const seen: number[] = [];
+    const loop = createDriveLoop({
+      session: createSession(PULSE, BUILD),
+      inputs: () => WOT,
+      onTick: (f) => seen.push(f.outputs.expected.rpm),
+      onFrame: () => {},
+      clock: fc.clock,
+    });
+    loop.start();
+    for (let i = 0; i < 180; i++) fc.frame(16.7);
+    expect(seen.length).toBe(180);
+    for (const rpm of seen) {
+      expect(Number.isFinite(rpm)).toBe(true);
+      expect(rpm).toBeGreaterThan(0);
+      expect(rpm).toBeLessThanOrEqual(PULSE.redlineRpm + 1);
+    }
+    // The note must actually move, or there is nothing to hear.
+    expect(Math.max(...seen) - Math.min(...seen)).toBeGreaterThan(500);
+  });
+
+  it("the shifting flag the synth cuts on does occur during a drive", () => {
+    const fc = fakeClock();
+    let shiftFrames = 0;
+    const loop = createDriveLoop({
+      session: createSession(PULSE, BUILD),
+      inputs: () => WOT,
+      onTick: (f) => {
+        if (f.outputs.expected.shifting) shiftFrames++;
+      },
+      onFrame: () => {},
+      clock: fc.clock,
+    });
+    loop.start();
+    for (let i = 0; i < 400; i++) fc.frame(16.7);
+    expect(shiftFrames).toBeGreaterThan(0);
+  });
+});

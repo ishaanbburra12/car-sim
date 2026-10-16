@@ -338,7 +338,7 @@ export default function DrivePage() {
       </div>
 
       <div className="mt-4">
-        <DrivePanel car={car} partIds={buildIds} />
+        <DrivePanel car={car} partIds={buildIds} onTakeControl={() => void stopEngine()} />
       </div>
 
       {/* ---- Launch replay ---- */}

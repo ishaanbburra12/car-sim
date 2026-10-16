@@ -61,7 +61,15 @@ export type DriveFrame = {
   collapsed: boolean;
 };
 
-const ZERO_DT = { dt: 0 };
+const ZERO_DT = { dt: 0, policy: "clutch" as const };
+
+/**
+ * Driving uses the clutch policy: the launch rpm floor is released once the
+ * drivetrain outruns it, so the engine revs down after a gear change instead
+ * of sticking at launch rpm. The whole-run simulation keeps the legacy policy,
+ * so the Garage's published numbers are untouched.
+ */
+const DRIVE_OPTS = { policy: "clutch" as const };
 
 /** A readout taken without advancing time, for the first frame before any step. */
 function peek(
@@ -154,7 +162,7 @@ export function advance(
   while (acc >= dt) {
     const next = {} as Record<Scenario, StepOutput>;
     for (const g of GHOSTS) {
-      next[g] = stepDrive(session.specs[g], session.totals[g], states[g], inputs);
+      next[g] = stepDrive(session.specs[g], session.totals[g], states[g], inputs, DRIVE_OPTS);
       states[g] = next[g].state;
     }
     outputs = next;

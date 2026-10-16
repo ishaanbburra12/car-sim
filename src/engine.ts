@@ -298,9 +298,32 @@ export function stepDrive(
   opts?: StepOpts,
 ): StepOutput {
   const dt = opts?.dt ?? DT;
+  const policy = opts?.policy ?? "legacy";
   const v = state.v;
   let gear = state.gear;
   let shiftTimer = state.shiftTimer;
+  let rpmFloor = state.rpmFloor;
+  let launchArmed = state.launchArmed;
+
+  // The rpm floor models a slipping clutch holding the engine up off the line.
+  //
+  // "legacy" keeps it forever, which is what the whole-run simulation has
+  // always done. It barely affects 0-60 — measured at under one timestep,
+  // because the engines are past their torque peak by then — but it means the
+  // engine can never rev BELOW launch rpm, so the note flatlines after every
+  // gear change. Audible, and wrong.
+  //
+  // "clutch" releases the floor the first time the drivetrain outruns it,
+  // which is exactly what a clutch finishing its slip does. No new invented
+  // number: the floor simply stops applying.
+  if (
+    policy === "clutch" &&
+    launchArmed &&
+    rpmInGear(spec, gearTotal, v, gear) > spec.launchRpm
+  ) {
+    launchArmed = false;
+    rpmFloor = 0;
+  }
 
   // Force at the wheels in gear g at FULL throttle, or -1 if that gear would
   // pass redline (rev limiter). The sentinel is returned before any throttle
@@ -308,7 +331,7 @@ export function stepDrive(
   // silently disable the rev limiter whenever the driver lifted.
   const wotForceFor = (g: number) => {
     if (rpmInGear(spec, gearTotal, v, g) > spec.redlineRpm) return -1;
-    const rpm = Math.max(rpmInGear(spec, gearTotal, v, g), state.rpmFloor);
+    const rpm = Math.max(rpmInGear(spec, gearTotal, v, g), rpmFloor);
     const tq = torqueNm(rpm, spec.effectiveHp, spec.peakHpRpm, spec.engineType);
     return (tq * gearTotal[g] * spec.drivelineEff) / spec.wheelRadiusM;
   };
@@ -366,10 +389,10 @@ export function stepDrive(
       v: vNext,
       gear,
       shiftTimer,
-      rpmFloor: state.rpmFloor,
-      launchArmed: state.launchArmed,
+      rpmFloor,
+      launchArmed,
     },
-    rpm: Math.max(rpmInGear(spec, gearTotal, vNext, gear), state.rpmFloor),
+    rpm: Math.max(rpmInGear(spec, gearTotal, vNext, gear), rpmFloor),
     gear: gear + 1,
     shifting: shiftTimer > 0,
     onLimiter: rpmInGear(spec, gearTotal, v, gear) > spec.redlineRpm,
