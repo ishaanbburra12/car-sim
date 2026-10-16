@@ -25,7 +25,21 @@ const TRACE_MAX_S = 30; // never record longer than this
 const PART_COST_REFERENCE_USD = 26000;
 const PART_COST_EXPONENT = 0.5;
 
-type Scenario = "pessimistic" | "optimistic";
+/**
+ * Which end of every part's range to take.
+ *   pessimistic - every part underdelivers at once
+ *   optimistic  - every part overdelivers at once
+ *   expected    - the middle of each range: the build the driver actually gets
+ *
+ * "expected" is the one a person drives. The other two are the bounds, drawn as
+ * ghost cars so the spread is visible rather than numeric.
+ *
+ * Note: the expected build's RESULTS are not the midpoint of the pessimistic
+ * and optimistic results. The physics is nonlinear, so a mid-range power gain
+ * with a mid-range mass saving does not land halfway between the extremes.
+ * That is correct, and it belongs on the Methods page.
+ */
+export type Scenario = "pessimistic" | "optimistic" | "expected";
 
 // ---- Part pricing ----
 /**
@@ -97,7 +111,11 @@ export function applyParts(
   const chosen = partIds
     .map((id) => parts.find((p) => p.id === id))
     .filter((p): p is Part => Boolean(p));
-  const pick = (r: { low: number; high: number }) => (scenario === "pessimistic" ? r.low : r.high);
+  const pick = (r: { low: number; high: number }) => {
+    if (scenario === "pessimistic") return r.low;
+    if (scenario === "optimistic") return r.high;
+    return (r.low + r.high) / 2;
+  };
 
   // Power gains stack with diminishing returns. Sorted so the order you click doesn't matter.
   // Percentage gains are turned into horsepower against THIS car's stock power,
@@ -328,8 +346,9 @@ export function traceRun(
   car: Car,
   partIds: string[] = [],
   parts: Part[] = PARTS,
+  scenario: Scenario = "pessimistic",
 ): RunTrace {
-  const spec = applyParts(car, partIds, "pessimistic", parts);
+  const spec = applyParts(car, partIds, scenario, parts);
   const samples: RunSample[] = [];
   const sim = simulate(spec, samples);
   const endAt = Number.isNaN(sim.quarterMile) ? TRACE_MAX_S : sim.quarterMile;
@@ -348,6 +367,7 @@ export function estimate(car: Car, partIds: string[], parts: Part[] = PARTS): Es
   return {
     stock: computeStats(applyParts(car, [], "pessimistic", parts)),
     pessimistic: computeStats(applyParts(car, partIds, "pessimistic", parts)),
+    expected: computeStats(applyParts(car, partIds, "expected", parts)),
     optimistic: computeStats(applyParts(car, partIds, "optimistic", parts)),
     errors,
   };

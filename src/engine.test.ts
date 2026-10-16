@@ -557,3 +557,76 @@ describe("traceRun records a playable run", () => {
     }
   });
 });
+
+// ---- The expected (midpoint) scenario: the car a driver actually drives ----
+
+describe("the expected scenario", () => {
+  const BUILD = ["turbo-upgrade", "tires-sport", "weight-reduction"];
+
+  it("takes the middle of each part's range", () => {
+    // Turbo is +20% to +45% of stock power, so the midpoint is +32.5%.
+    const e = estimate(PULSE, ["turbo-upgrade"]);
+    expect(e.expected.peakHp).toBeCloseTo(PULSE.stockHp * 1.325, 6);
+    expect(e.pessimistic.peakHp).toBeCloseTo(240, 6);
+    expect(e.optimistic.peakHp).toBeCloseTo(290, 6);
+  });
+
+  it("sits between the two bounds on every stat", () => {
+    for (const car of CARS) {
+      const ids = BUILD.filter((id) => {
+        const p = PARTS.find((x) => x.id === id)!;
+        return partFitsCar(p, car);
+      });
+      if (ids.length === 0) continue;
+      const e = estimate(car, ids);
+      for (const key of [
+        "peakHp",
+        "zeroToSixtyS",
+        "topSpeedMph",
+        "brake60ToZeroFt",
+        "lateralG",
+        "massKg",
+      ] as const) {
+        const lo = Math.min(e.pessimistic[key], e.optimistic[key]);
+        const hi = Math.max(e.pessimistic[key], e.optimistic[key]);
+        expect(e.expected[key]).toBeGreaterThanOrEqual(lo - 1e-9);
+        expect(e.expected[key]).toBeLessThanOrEqual(hi + 1e-9);
+      }
+    }
+  });
+
+  it("is NOT the midpoint of the two results, because the physics is nonlinear", () => {
+    // This is the honest surprise: a mid-range build does not land halfway
+    // between the extreme outcomes. The ghosts will not be symmetric around
+    // the player's car, and the Methods page has to say so.
+    const e = estimate(PULSE, BUILD);
+    const naiveMid = (e.pessimistic.zeroToSixtyS + e.optimistic.zeroToSixtyS) / 2;
+    expect(e.expected.zeroToSixtyS).not.toBeCloseTo(naiveMid, 4);
+  });
+
+  it("equals the other scenarios when no parts are fitted", () => {
+    // With an empty build there is nothing to vary, so all three collapse.
+    // This is exactly why a stock run cannot show a ghost gap.
+    for (const car of CARS) {
+      const e = estimate(car, []);
+      expect(e.expected.zeroToSixtyS).toBeCloseTo(e.pessimistic.zeroToSixtyS, 10);
+      expect(e.optimistic.zeroToSixtyS).toBeCloseTo(e.pessimistic.zeroToSixtyS, 10);
+    }
+  });
+
+  it("does not disturb the existing scenarios", () => {
+    const e = estimate(PULSE, ["turbo-upgrade"]);
+    expect(e.pessimistic.peakHp).toBeCloseTo(240, 10);
+    expect(e.optimistic.peakHp).toBeCloseTo(290, 10);
+    expect(e.stock.zeroToSixtyS).toBeCloseTo(6.065, 3);
+  });
+
+  it("can be traced for playback like any other scenario", () => {
+    const pess = traceRun(PULSE, BUILD, PARTS, "pessimistic");
+    const exp = traceRun(PULSE, BUILD, PARTS, "expected");
+    const opt = traceRun(PULSE, BUILD, PARTS, "optimistic");
+    expect(exp.zeroToSixtyS).toBeLessThan(pess.zeroToSixtyS);
+    expect(exp.zeroToSixtyS).toBeGreaterThan(opt.zeroToSixtyS);
+    expect(exp.samples.length).toBeGreaterThan(50);
+  });
+});

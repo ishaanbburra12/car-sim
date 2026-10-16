@@ -139,7 +139,11 @@ export type RunTrace = {
 
 export type Estimate = {
   stock: Stats;
+  /** Every part underdelivers at once. The slow ghost. */
   pessimistic: Stats;
+  /** The middle of every part's range. This is the car a driver drives. */
+  expected: Stats;
+  /** Every part overdelivers at once. The fast ghost. */
   optimistic: Stats;
   errors: string[];
 };
