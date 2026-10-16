@@ -3,6 +3,7 @@ import { PARTS } from "../../src/data";
 import { CARS } from "../../src/cars";
 import { estimate } from "../../src/engine";
 import { fmt } from "../../src/ui/format";
+import { DRIVE_ASSUMPTIONS } from "../../src/drive/assumptions";
 
 export const metadata = {
   title: "Methods | Vantora Pulse Configurator",
@@ -244,6 +245,70 @@ export default function MethodsPage() {
                   Fitment: {part.fits.reason}
                 </p>
               )}
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="Drive mode: what the live numbers are, and are not">
+        <p>
+          Drive mode shows numbers that change sixty times a second, which looks
+          like a measurement. It is not one, and the distinction matters:
+        </p>
+        <p className="rounded-md border border-white/10 bg-white/[0.03] p-3">
+          <span className="text-slate-300">The readout is exact. The claim is uncertain.</span>{" "}
+          The speedometer shows the simulation&rsquo;s own state, which is exact
+          within the model. What is uncertain is how closely the model matches a
+          real car. So the live cluster is permanently badged as a simulation and
+          reads in &ldquo;sim mph&rdquo;, while claims about real cars stay on
+          this page.
+        </p>
+        <p>
+          You drive the <em>typical</em> build &mdash; the middle of every
+          part&rsquo;s range. The pessimistic and optimistic builds are driven
+          alongside from the same inputs, and the distance that opens between
+          them is the spread in the parts data, shown as a gap on the road rather
+          than claimed as a number.
+        </p>
+        <p className="rounded-md border border-amber-400/20 bg-amber-400/5 p-3 text-amber-100/80">
+          <strong className="font-medium">What that gap does NOT include.</strong>{" "}
+          It is the uncertainty in the <em>parts</em> only. It says nothing about
+          whether the model itself is right &mdash; tire grip, drag, driveline
+          losses, launch rpm and shift times are all numbers we picked. On a
+          stock car the three versions are identical and the gap is zero; that
+          means the parts range is empty, not that the figures are certain, and
+          drive mode says so on screen rather than drawing two overlapping
+          ghosts.
+        </p>
+        <p>
+          Two further honesty notes that fell out of building it. The three cars
+          shift at different moments, so they are sometimes in different gears:
+          when that happens the rev counter&rsquo;s spread is not a range, and
+          the gauge says so. And because a car that has just shifted is
+          momentarily not driving, the <em>faster</em> car can briefly be the
+          slower one &mdash; so the gauge band is drawn across all three cars
+          rather than between two, and always contains the needle.
+        </p>
+
+        <h3 className="pt-2 font-medium text-slate-300">
+          Every number drive mode invents
+        </h3>
+        <p>
+          This list is generated from the code, and a test fails the build if a
+          tunable exists without an entry here, or an entry here describes a
+          tunable that no longer exists.
+        </p>
+        <div className="space-y-3 pt-1">
+          {DRIVE_ASSUMPTIONS.map((a) => (
+            <div key={a.key}>
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="font-medium text-slate-300">{a.label}</span>
+                <span className="tabular-nums text-slate-400">{a.value}</span>
+                <span className="rounded border border-white/10 px-1 text-[10px] uppercase tracking-wide text-slate-500">
+                  {a.kind.replace("-", " ")}
+                </span>
+              </div>
+              <p className="text-slate-500">{a.why}</p>
             </div>
           ))}
         </div>

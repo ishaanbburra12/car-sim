@@ -22,12 +22,17 @@ and how far the model lands from the real cars' published figures.
   selection, a power curve, traction limits, drag, rolling resistance and
   downforce. Braking is integrated separately because downforce fades as a car
   slows.
+- **Drive mode.** Fit parts, take control, and drive the car in real time with
+  the keyboard. You drive the *typical* build while the pessimistic and
+  optimistic builds run alongside from the same inputs — the gap between them
+  on the road is the uncertainty in the parts data. Every gauge carries three
+  needles and the cluster is permanently badged as a simulation.
 - **A rev test page** with a synthesised engine note built from each car's
   cylinder count and rev range, and a **launch replay** that plays a simulated
   standing start back in real time so you can hear the gear changes land where
   the physics put them. It is a synthesiser, not a recording, and makes no
   claim to sound like any real car.
-- **81 tests**, including checks that the three real cars land within 10% of
+- **141 tests**, including checks that the three real cars land within 10% of
   their published 0-60 and top speed.
 
 ## How accurate is it?
@@ -51,7 +56,7 @@ to. The other two use published drag coefficients and are honest checks.
 ```bash
 npm install
 npm run dev     # http://localhost:3000/garage  and  /drive
-npm test        # 81 tests
+npm test        # 141 tests
 npm run build
 ```
 
@@ -63,6 +68,8 @@ src/data.ts       the fictional Pulse and all ten parts
 src/cars.ts       the three real cars, with sources cited per value
 src/engine.ts     all the physics; knows nothing about React
 src/ui/format.ts  display helpers; does no arithmetic of its own
+src/drive/        the real-time driving core: fixed timestep, three cars,
+                  injected clock, and the enforced assumption ledger
 src/ui/sound.ts   engine-note synthesiser; no physics, no feedback
 app/garage/       the configurator screen and its chart
 app/drive/        the rev test: slider, synthesised engine note
@@ -80,6 +87,9 @@ comes back.
   source. The assumed bucket is large: tire grip, brake limit, driveline
   efficiency and several others are required by the model and published by
   nobody.
+- Every number drive mode invents is in a frozen tunables object with a
+  matching plain-English entry that the Methods page renders, and a test fails
+  the build if the two ever disagree in either direction.
 - Validation tests use a loose 10% tolerance on purpose. Tuning the model until
   it matched three cars exactly would make it a lookup table, not a model.
 - The real cars are named as factual references. This project is not affiliated

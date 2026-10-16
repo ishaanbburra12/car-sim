@@ -417,3 +417,94 @@ and name the exact step, time and field. It works.
    clock, three needles, the SIM badge.
 2. Then sound on the driven car, idle and engine braking, the run card.
 
+---
+
+## 2026-10-16 — Session 6: the car moves
+
+### What we did
+
+**Drive mode works.** Fit some parts on /drive, press Take control, hold W. The
+car accelerates through its gears in real time, S brakes it, R puts it back on
+the line. Three cars run at once from the same inputs: the typical build you
+drive, plus the pessimistic and optimistic builds as ghosts. The gap that opens
+between them is the uncertainty in the parts data, shown as metres of road
+rather than claimed as a number.
+
+New files: `src/drive/tunables.ts` (the frozen numbers), `assumptions.ts` (the
+prose ledger), `session.ts` (three cars, one set of inputs, pure), `loop.ts`
+(the animation loop with its clock injected), plus `app/drive/DrivePanel.tsx`
+and `Gauge.tsx`.
+
+Tests 101 -> 141.
+
+### The honesty mechanism, now enforced rather than promised
+
+Every number drive mode invents lives in a frozen `DRIVE_TUNABLES` object, and
+every one has an entry in `DRIVE_ASSUMPTIONS` that the Methods page renders.
+A test asserts the two key sets match EXACTLY in both directions, so a tunable
+cannot be added without being disclosed, and a disclosure cannot go stale after
+a tunable is removed. The rule stopped being a habit and became a property.
+
+The split keeps the engine clean: `tunables.ts` holds bare numbers and may be
+imported by physics; `assumptions.ts` holds the prose and is imported only by
+the Methods page.
+
+### Three bugs the browser found that the tests did not
+
+I drove the car in a real browser rather than trusting a green suite.
+
+**1. The driven needle sat OUTSIDE its own band.** The tacho read 6,039 rpm with
+a "range" of 4,000 to 5,548. Not a rendering glitch: the three cars shift at
+different moments, so they can be in different gears, and rpm is then not a
+range at all. Fixed by drawing the band across all three cars rather than
+between two, so it always contains the needle, plus a note on the gauge when
+the cars are in different gears.
+
+**2. Then a test I wrote to pin that found something better.** I asserted speed
+must be ordered — optimistic never slower than pessimistic. It failed. The
+optimistic car reaches redline FIRST, and mid-shift it is not driving while the
+pessimistic car still is, so for a few hundredths of a second the faster car is
+the slower one. Correct physics. Distance stays ordered; speed does not. There
+are now tests pinning both, including one asserting that speed only ever
+inverts while a car is mid-shift.
+
+**3. Tick labels read 1167, 2333, 3500, 4667** because the gauge divided its
+maximum by six. The outermost one was also clipped by the viewBox. Both fixed.
+
+Also fixed: distance was read off a ref during render, which happened to work
+at 10 Hz but is not something React guarantees. It is part of the frame now.
+
+### What I decided
+
+- **Three needles**, not the panel's "delete the needle and let the band be the
+  reading". I want the instrument to still read like an instrument.
+- **The badge lives INSIDE the gauge cluster**, so a screenshot of the gauges
+  cannot travel without it.
+- **"sim mph", not "mph".** The unit itself says what the number is.
+- **Tenths on the live timer**, hedging on the results screen, as agreed.
+- **The readouts update 10 times a second while the physics runs 200 times.** A
+  figure flickering through every intermediate value implies precision the
+  model does not have.
+
+### What is deliberately NOT in drive mode yet
+
+No idle (the car sits at launch rpm), no engine braking (lifting off coasts on
+drag alone), no sound on the driven car, and no post-run card. Those are the
+next three stages. The stock-car case says plainly on screen that this view
+cannot show uncertainty, rather than drawing two overlapping ghosts.
+
+### Who wrote what
+
+- **Me (Raju):** chose three needles, engine braking, and splitting the
+  extraction from the drivable panel. The honesty architecture is mine from
+  session 5.
+- **Claude:** the session and loop, the gauges, the panel, the assumption
+  ledger and its bijection test, 40 drive tests, and the browser runs that
+  found the three bugs above.
+
+### Next session
+
+1. Sound on the car you are driving.
+2. Idle, a real standstill, and engine braking.
+3. The post-run card with the model band.
+

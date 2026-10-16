@@ -5,6 +5,9 @@ import Link from "next/link";
 import { CARS, carById } from "../../src/cars";
 import { hpAt, traceRun } from "../../src/engine";
 import { EngineSound, cylindersFor } from "../../src/ui/sound";
+import { PARTS } from "../../src/data";
+import { partFitsCar } from "../../src/engine";
+import DrivePanel from "./DrivePanel";
 import { fmt } from "../../src/ui/format";
 import type { RunSample } from "../../src/types";
 
@@ -13,6 +16,7 @@ const IDLE_RPM = 800;
 export default function DrivePage() {
   const [carId, setCarId] = useState(CARS[0].id);
   const [rpm, setRpm] = useState(IDLE_RPM);
+  const [buildIds, setBuildIds] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [replaying, setReplaying] = useState(false);
   const [live, setLive] = useState<RunSample | null>(null);
@@ -124,6 +128,7 @@ export default function DrivePage() {
     const wasRunning = running;
     await stopEngine();
     setCarId(nextId);
+    setBuildIds([]);
     const next = carById(nextId);
     if (next) {
       const clamped = Math.min(rpm, next.redlineRpm);
@@ -290,6 +295,51 @@ export default function DrivePage() {
         </dl>
       </div>
 
+
+      {/* ---- Build picker, so the ghosts have something to disagree about ---- */}
+      <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-4">
+        <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            Build
+          </h2>
+          <span className="text-xs text-slate-500">
+            One part per category. A stock car has no spread to show.
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {PARTS.filter((p) => partFitsCar(p, car)).map((part) => {
+            const on = buildIds.includes(part.id);
+            return (
+              <button
+                key={part.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() =>
+                  setBuildIds((prev) => {
+                    if (prev.includes(part.id)) return prev.filter((x) => x !== part.id);
+                    const sameCat = PARTS.filter((p) => p.category === part.category).map(
+                      (p) => p.id,
+                    );
+                    return [...prev.filter((x) => !sameCat.includes(x)), part.id];
+                  })
+                }
+                className={[
+                  "rounded-md border px-2.5 py-1.5 text-xs transition",
+                  on
+                    ? "border-amber-400/60 bg-amber-400/10 text-amber-100"
+                    : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/25",
+                ].join(" ")}
+              >
+                {part.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-4">
+        <DrivePanel car={car} partIds={buildIds} />
+      </div>
 
       {/* ---- Launch replay ---- */}
       <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-5">
