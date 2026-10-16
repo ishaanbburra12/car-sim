@@ -46,6 +46,10 @@ export type Milestones = {
 export type DriveSession = {
   car: Car;
   partIds: string[];
+  /** The catalogue the specs were built from, so a reset rebuilds the same car. */
+  parts: Part[];
+  /** Fixed for the session's lifetime: true when no parts vary the three cars. */
+  collapsed: boolean;
   specs: Record<Scenario, Spec>;
   totals: Record<Scenario, number[]>;
   states: Record<Scenario, DriveState>;
@@ -116,9 +120,19 @@ export function createSession(
     totals[g] = gearTotals(specs[g]);
     states[g] = standingStart(specs[g]);
   }
+  const collapsed =
+    specs.pessimistic.effectiveHp === specs.optimistic.effectiveHp &&
+    specs.pessimistic.massKg === specs.optimistic.massKg &&
+    specs.pessimistic.tireMu === specs.optimistic.tireMu &&
+    specs.pessimistic.brakeLimitG === specs.optimistic.brakeLimitG &&
+    specs.pessimistic.cd === specs.optimistic.cd &&
+    specs.pessimistic.clA === specs.optimistic.clA;
+
   return {
     car,
     partIds,
+    parts,
+    collapsed,
     specs,
     totals,
     states,
@@ -136,7 +150,7 @@ const QUARTER_MILE_M = 402.336;
 
 /** Back to the start line with the same car and build. */
 export function resetSession(session: DriveSession): DriveSession {
-  return createSession(session.car, session.partIds);
+  return createSession(session.car, session.partIds, session.parts);
 }
 
 /**
@@ -146,16 +160,9 @@ export function resetSession(session: DriveSession): DriveSession {
  * that looks like certainty.
  */
 export function isCollapsed(session: DriveSession): boolean {
-  const a = session.specs.pessimistic;
-  const b = session.specs.optimistic;
-  return (
-    a.effectiveHp === b.effectiveHp &&
-    a.massKg === b.massKg &&
-    a.tireMu === b.tireMu &&
-    a.brakeLimitG === b.brakeLimitG &&
-    a.cd === b.cd &&
-    a.clA === b.clA
-  );
+  // Decided once when the session is built: the specs never change afterwards,
+  // so recomputing it sixty times a second only invited it to drift.
+  return session.collapsed;
 }
 
 /**
@@ -214,7 +221,7 @@ export function advance(
     ...session,
     states,
     accumulatorS: acc,
-    elapsedS: session.elapsedS + steps * dt,
+    elapsedS: elapsed,
     steps: session.steps + steps,
     droppedS: session.droppedS + dropped,
     last: outputs,

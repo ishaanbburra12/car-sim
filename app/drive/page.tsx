@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { CARS, carById } from "../../src/cars";
-import { hpAt, traceRun } from "../../src/engine";
+import { hpAt, partsForCar, traceRun } from "../../src/engine";
 import { EngineSound, cylindersFor } from "../../src/ui/sound";
 import { PARTS } from "../../src/data";
-import { partFitsCar } from "../../src/engine";
 import DrivePanel from "./DrivePanel";
 import { fmt } from "../../src/ui/format";
 import type { RunSample } from "../../src/types";
@@ -21,6 +20,8 @@ export default function DrivePage() {
   const [replaying, setReplaying] = useState(false);
   const [live, setLive] = useState<RunSample | null>(null);
   const soundRef = useRef<EngineSound | null>(null);
+  /** Set by the drive panel so we can silence it before starting our own note. */
+  const silenceDriveRef = useRef<(() => void) | null>(null);
   const rafRef = useRef<number | null>(null);
 
   const car = carById(carId) ?? CARS[0];
@@ -107,6 +108,8 @@ export default function DrivePage() {
   }
 
   async function startEngine() {
+    // Only one engine note at a time, in either direction.
+    silenceDriveRef.current?.();
     await stopEngine();
     const sound = new EngineSound({
       cylinders,
@@ -307,7 +310,7 @@ export default function DrivePage() {
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {PARTS.filter((p) => partFitsCar(p, car)).map((part) => {
+          {partsForCar(car).map((part) => {
             const on = buildIds.includes(part.id);
             return (
               <button
@@ -338,7 +341,14 @@ export default function DrivePage() {
       </div>
 
       <div className="mt-4">
-        <DrivePanel car={car} partIds={buildIds} onTakeControl={() => void stopEngine()} />
+        <DrivePanel
+          car={car}
+          partIds={buildIds}
+          onTakeControl={() => void stopEngine()}
+          onRegisterSilence={(fn) => {
+            silenceDriveRef.current = fn;
+          }}
+        />
       </div>
 
       {/* ---- Launch replay ---- */}

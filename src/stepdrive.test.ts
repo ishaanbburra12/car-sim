@@ -641,3 +641,72 @@ describe("gearbox type is published, not assumed", () => {
     expect(slowestAuto).toBeLessThan(fastestManual);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Regressions found by a code review of everything built today. Each of these
+// was a real defect; the tests exist so none of them can come back quietly.
+// ---------------------------------------------------------------------------
+
+describe("code review regressions", () => {
+  const spec = applyParts(PULSE, [], "pessimistic");
+  const gt = gearTotals(spec);
+
+  it("braking never exceeds what the tires and brakes can hold", () => {
+    // Was 6% over: brakeForceN was set at the full limit and then drag,
+    // rolling resistance and engine braking were subtracted on top of it.
+    let state = standingStart(spec);
+    for (let i = 0; i < 1500; i++) {
+      state = stepDrive(spec, gt, state, WOT, { policy: "clutch" }).state;
+    }
+    let out = stepDrive(spec, gt, state, { throttle: 0, brake: 1 }, CLUTCH);
+    for (let i = 0; i < 2000 && out.state.v > 1; i++) {
+      const before = out.state.v;
+      out = stepDrive(spec, gt, out.state, { throttle: 0, brake: 1 }, CLUTCH);
+      const decel = (before - out.state.v) / 0.005;
+      // Aerodynamic drag acts on the body rather than through the tires, so
+      // it is allowed to add on top; everything else is capped.
+      const tireLimit = Math.min(spec.tireMu, spec.brakeLimitG) * 9.81;
+      const dragDecel =
+        (0.5 * 1.2 * spec.cd * spec.frontalAreaM2 * before * before) / spec.massKg;
+      expect(decel).toBeLessThanOrEqual(tireLimit + dragDecel + 1e-6);
+    }
+  });
+
+  it("a non-finite gear is ignored instead of poisoning the state", () => {
+    // Math.round(NaN) is NaN, clamping NaN is NaN, and gearTotal[NaN] then
+    // turned v, x and rpm into NaN about fifty steps later.
+    let state = standingStart(spec);
+    for (let i = 0; i < 200; i++) {
+      const out = stepDrive(spec, gt, state, { throttle: 1, brake: 0, gear: NaN });
+      state = out.state;
+      expect(Number.isNaN(state.v)).toBe(false);
+      expect(Number.isNaN(out.rpm)).toBe(false);
+      expect(Number.isNaN(out.gear)).toBe(false);
+    }
+    expect(state.v).toBeGreaterThan(0);
+  });
+
+  it("engine braking needs the clutch policy, and says so rather than silently doing nothing", () => {
+    // launchArmed is only ever cleared by the clutch policy, so gating on it
+    // meant supplying a curve shape under legacy quietly did nothing at all.
+    let state = standingStart(spec);
+    for (let i = 0; i < 1500; i++) {
+      state = stepDrive(spec, gt, state, WOT, { policy: "clutch" }).state;
+    }
+    const legacy = stepDrive(spec, gt, state, { throttle: 0, brake: 0 }, {
+      overrunRpmScaleFloor: 0.5,
+    });
+    const clutch = stepDrive(spec, gt, state, { throttle: 0, brake: 0 }, CLUTCH);
+    expect(legacy.engineBrakeN).toBe(0);
+    expect(clutch.engineBrakeN).toBeGreaterThan(0);
+  });
+
+  it("every car's rev counter has room to show a redline zone", () => {
+    // The dial rounded UP to exactly the redline, so the red arc was skipped
+    // on every car whose redline is a round thousand: three of the four.
+    for (const car of CARS) {
+      const rpmMax = Math.floor(car.redlineRpm / 1000) * 1000 + 1000;
+      expect(rpmMax, `${car.name} dial maximum`).toBeGreaterThan(car.redlineRpm);
+    }
+  });
+});

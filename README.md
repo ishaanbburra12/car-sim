@@ -38,7 +38,7 @@ and how far the model lands from the real cars' published figures.
   standing start back in real time so you can hear the gear changes land where
   the physics put them. It is a synthesiser, not a recording, and makes no
   claim to sound like any real car.
-- **194 tests**, including checks that the three real cars land within 10% of
+- **203 tests**, including checks that the three real cars land within 10% of
   their published 0-60 and top speed.
 
 ## How accurate is it?
@@ -82,7 +82,7 @@ to. The other two use published drag coefficients and are honest checks.
 ```bash
 npm install
 npm run dev     # http://localhost:3000/garage  and  /drive
-npm test        # 194 tests
+npm test        # 203 tests
 npm run build
 ```
 

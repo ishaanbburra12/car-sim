@@ -19,11 +19,7 @@ import { EngineSound, cylindersFor } from "../../src/ui/sound";
 import Gauge from "./Gauge";
 import RunCard from "./RunCard";
 
-/** Engine note while the gearbox is between gears: quiet and dull, not silent. */
-const SHIFT_THROTTLE = 0.1;
-/** Floor under the engine note when coasting, so lifting off is not silence. */
-const COAST_THROTTLE = 0.12;
-const IDLE_RPM = 800;
+
 
 /**
  * Drive the configured car in real time.
@@ -42,11 +38,18 @@ export default function DrivePanel({
   car,
   partIds,
   onTakeControl,
+  onRegisterSilence,
 }: {
   car: Car;
   partIds: string[];
   /** Lets the page silence anything else making noise before we start. */
   onTakeControl?: () => void;
+  /**
+   * Hands the page a way to silence US, so the mute works in both directions.
+   * Without it, starting the rev test while driving gave two engine notes at
+   * once with no way to stop this one except leaving drive mode.
+   */
+  onRegisterSilence?: (silence: () => void) => void;
 }) {
   const [driving, setDriving] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
@@ -75,7 +78,10 @@ export default function DrivePanel({
     const topMph = Math.max(e.optimistic.topSpeedMph, e.pessimistic.topSpeedMph);
     return {
       speedMax: Math.ceil((topMph * 1.05) / 20) * 20,
-      rpmMax: Math.ceil(car.redlineRpm / 1000) * 1000,
+      // Round the dial UP past the redline, not to it: rounding to exactly
+      // the redline left redlineFrom === max, and the red zone was skipped on
+      // every car whose redline is a round thousand.
+      rpmMax: Math.floor(car.redlineRpm / 1000) * 1000 + 1000,
     };
   }, [car, partKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -120,11 +126,11 @@ export default function DrivePanel({
       const sound = new EngineSound({
         cylinders: cylindersFor(car.id),
         engineType: car.engineType,
-        idleRpm: IDLE_RPM,
+        idleRpm: car.idleRpm,
         redlineRpm: car.redlineRpm,
       });
       soundRef.current = sound;
-      void sound.start(IDLE_RPM);
+      void sound.start(car.idleRpm);
     }
 
     const loop = createDriveLoop({
@@ -138,8 +144,8 @@ export default function DrivePanel({
         const driven = f.outputs.expected;
         sound.setThrottle(
           driven.shifting
-            ? SHIFT_THROTTLE
-            : Math.max(COAST_THROTTLE, pedalRef.current.throttle),
+            ? DRIVE_TUNABLES.shiftThrottle
+            : Math.max(DRIVE_TUNABLES.coastThrottle, pedalRef.current.throttle),
         );
         sound.setRpm(driven.rpm);
       },
@@ -169,6 +175,14 @@ export default function DrivePanel({
     setFrame(null);
   }, [car, partKey, stop]);
 
+  useEffect(() => {
+    onRegisterSilence?.(() => {
+      soundOnRef.current = false;
+      setSoundOn(false);
+      stopSound();
+    });
+  }, [onRegisterSilence, stopSound]);
+
   // Always tear the loop and the audio down when the component goes away.
   useEffect(
     () => () => {
@@ -181,7 +195,12 @@ export default function DrivePanel({
   // Toggling sound mid-drive starts or stops the note without ending the run.
   useEffect(() => {
     soundOnRef.current = soundOn;
-    if (!driving) return;
+    // Checking the loop rather than the `driving` state matters: on a car
+    // change React runs the teardown effect first, which stops the loop and
+    // only SCHEDULES setDriving(false), so `driving` is still true in this
+    // render's closure. Reading it here would start a synth that nothing ever
+    // stops, leaking one AudioContext per car change.
+    if (!loopRef.current) return;
     if (!soundOn) {
       stopSound();
       return;
@@ -190,11 +209,11 @@ export default function DrivePanel({
       const sound = new EngineSound({
         cylinders: cylindersFor(car.id),
         engineType: car.engineType,
-        idleRpm: IDLE_RPM,
+        idleRpm: car.idleRpm,
         redlineRpm: car.redlineRpm,
       });
       soundRef.current = sound;
-      void sound.start(frame?.outputs.expected.rpm ?? IDLE_RPM);
+      void sound.start(frame?.outputs.expected.rpm ?? car.idleRpm);
     }
   }, [soundOn, driving, car, stopSound]); // eslint-disable-line react-hooks/exhaustive-deps
 

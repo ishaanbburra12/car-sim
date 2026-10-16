@@ -54,6 +54,20 @@ export const DRIVE_ASSUMPTIONS: DriveAssumption[] = [
     why: "Lifting off in gear slows the car because turning the engine over without fuel costs torque. Those pumping and friction losses genuinely rise with engine speed, so we scale the effect from half its peak at idle to full at the limiter. The straight line between the two is a simplification, and the peak figure itself is a per-car assumption listed with that car. The clutch is open during a gear change and at a standstill, so engine braking stops entirely at both.",
   },
   {
+    key: "shiftThrottle",
+    label: "Engine note during a gear change",
+    value: "10% of full throttle",
+    kind: "ui-choice",
+    why: "While the gearbox is between gears the engine is not driving the wheels, so the note drops sharply. We take it down to a tenth rather than to silence, because an engine mid-shift is still running and a complete dropout sounds like a fault rather than a gear change. This is a choice about the sound, not a claim about any car.",
+  },
+  {
+    key: "coastThrottle",
+    label: "Engine note when coasting",
+    value: "12% of full throttle",
+    kind: "ui-choice",
+    why: "With the throttle shut the engine is still turning over, so the note goes quiet and dull rather than disappearing. The floor is a sound design choice; the actual slowing that happens when you lift is engine braking, which is modelled separately and has its own per-car figure.",
+  },
+  {
     key: "inputRampPerS",
     label: "Pedal ramp rate",
     value: "4 per second (about 0.25 s from nothing to full)",

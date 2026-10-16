@@ -36,6 +36,18 @@ export const DRIVE_TUNABLES = Object.freeze({
    */
   overrunRpmScaleFloor: 0.5,
   /**
+   * Engine note while the gearbox is between gears, as a share of full
+   * throttle. Quiet and dull rather than silent, which is what makes a gear
+   * change sound like a cut instead of a dropout.
+   */
+  shiftThrottle: 0.1,
+  /**
+   * Floor under the engine note when coasting, as a share of full throttle.
+   * A real engine is still turning with the throttle shut, so lifting off
+   * should not be silence.
+   */
+  coastThrottle: 0.12,
+  /**
    * How fast a key press ramps the pedal, units per second. A key is a switch
    * and a pedal is not; 4 means about a quarter second from nothing to full.
    * This is an input smoothing choice, not a claim about any car.

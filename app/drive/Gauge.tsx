@@ -97,15 +97,17 @@ export default function Gauge({
   const ticks: number[] = [];
   for (let t = 0; t <= max + 1e-9; t += step) ticks.push(t);
 
-  // The band spans ALL THREE cars, not just the two ghosts. On the tacho the
-  // three can be in different gears, so the driven car's rpm is not
+  // bandLo/bandHi span ALL THREE cars, not just the two ghosts. On the tacho
+  // the three can be in different gears, so the driven car's rpm is not
   // necessarily between the ghosts' — and a band that does not contain its own
-  // needle reads as a bug and misleads about what the spread means.
+  // needle reads as a bug and misleads about what the spread means. The
+  // spoken description above uses the same two values, so what is drawn and
+  // what is read out cannot drift apart.
   const bandLo = Math.min(low, high, expected);
   const bandHi = Math.max(low, high, expected);
   const describe = collapsed
     ? `${label}: ${fmt(expected, decimals)} ${unit}. No range shown: with no parts fitted the three cars are identical.`
-    : `${label}: ${fmt(expected, decimals)} ${unit}, model range ${fmt(Math.min(low, high, expected), decimals)} to ${fmt(Math.max(low, high, expected), decimals)}.${note ? " " + note : ""}`;
+    : `${label}: ${fmt(expected, decimals)} ${unit}, model range ${fmt(bandLo, decimals)} to ${fmt(bandHi, decimals)}.${note ? " " + note : ""}`;
 
   return (
     <figure className="m-0">

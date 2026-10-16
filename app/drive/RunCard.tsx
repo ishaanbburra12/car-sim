@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import type { Car } from "../../src/types";
 import { estimate } from "../../src/engine";
@@ -101,7 +102,15 @@ export default function RunCard({
   partIds: string[];
   milestones: Milestones;
 }) {
-  const e = estimate(car, partIds);
+  // estimate() runs four 24,000-step simulations, about 30 ms. This component
+  // re-renders at the display rate, so calling it unmemoized burned roughly a
+  // third of the main thread while driving. It depends only on the build.
+  const partKey = partIds.join(",");
+  const e = useMemo(
+    () => estimate(car, partIds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [car, partKey],
+  );
   const nothingYet =
     milestones.zeroToSixtyS === null &&
     milestones.quarterMileS === null &&

@@ -857,3 +857,93 @@ switches the readout to "Gear (auto)" and removes the shift buttons entirely.
 - **Claude:** the gear input, the UI, and 10 tests including the money shift
   and the clamping of an out-of-range gear.
 
+---
+
+## 2026-10-16 — Session 12: a code review of everything, and fifteen real bugs
+
+### What we did
+
+Ran a proper review over every commit since the expected scenario landed, then
+fixed all fifteen findings and wrote a test for each. Tests 194 -> 203.
+
+Not one of them was a build break. The suite was green and the types were
+clean the whole time, which is the point: these are the bugs tests do not
+catch on their own.
+
+### The four that mattered most
+
+**The car braked 6% harder than its tires allow.** `brakeDecelMps2` returns
+the deceleration the car can ACHIEVE — the smaller of what the tires hold and
+what the brakes make — and drive mode turned that back into a force and then
+subtracted drag, rolling resistance and engine braking on top of it. Measured
+9.902 m/s² against a limit of 9.319. Braking, rolling resistance and engine
+braking all reach the road through the same contact patches and are now capped
+together. Aerodynamic drag is deliberately NOT capped with them, because it
+pushes on the body rather than through the tires, so it genuinely adds.
+
+**The run card ran the whole estimator ten times a second.** `estimate()`
+executes four 24,000-step simulations, about 30 ms, and it was called
+unmemoized on every render at the display rate — roughly a third of the main
+thread, starving the frame budget the physics and the engine note both depend
+on. Memoized on the build. Measured afterwards at a sustained 60 fps while
+driving.
+
+**Changing car mid-drive leaked a droning AudioContext.** React runs the
+teardown effect first, which stops the loop and only SCHEDULES
+`setDriving(false)`, so the sound effect still saw `driving === true` in that
+render's closure, found a null ref, and built a synth nothing would ever stop.
+One live context leaked per car change. It now keys off the live loop rather
+than the state flag. Verified in the browser: contexts go 1, 0, 0 across two
+car changes instead of accumulating.
+
+**A NaN gear poisoned the entire simulation.** `Math.round(NaN)` is NaN,
+clamping NaN is NaN, and `gearTotal[NaN]` turned v, x and rpm to NaN about
+fifty steps later, with nothing visible until then. The existing
+"out-of-range gear is clamped" test only tried -5, 99 and 1.7 for one step.
+
+### The one that was a broken promise
+
+Three invented numbers — the shift-cut throttle, the coasting floor, and an
+idle speed — were defined as constants inside `DrivePanel.tsx`, where the
+assumption ledger could not see them. The README says a test fails the build
+if any invented number is undisclosed. That guarantee was simply false for the
+feature it was built for.
+
+Worse, the hardcoded 800 rpm idle was added in the same session as `Car.idleRpm`,
+which exists precisely so that number would stop being guessed. The GT3 RS
+idles at 1000 in the physics and the synth was told 800.
+
+Both now come from the ledger and from the car. The fix was to make the claim
+true, not to soften the claim.
+
+### Smaller but real
+
+Engine braking was gated on `launchArmed`, a flag only the clutch policy ever
+clears, so supplying a curve shape under the legacy policy silently did
+nothing. The redline zone was never drawn on three of the four cars, because
+the dial rounded up to exactly the redline and the arc only renders when the
+redline is below the maximum. `resetSession` dropped a custom parts catalogue
+and could rebuild a different car. The audio mute worked in one direction only,
+so starting the rev test while driving gave two engine notes at once. Plus a
+duplicated fitment filter, a dead `retune()` method, two expressions computing
+elapsed time separately, and a gauge whose spoken description recomputed the
+band instead of reusing the one it drew.
+
+### What I take from it
+
+Every one of these shipped with a green suite and passing types. Several
+shipped in sessions where I had driven the feature in a browser and watched it
+work. Tests catch what you thought to ask; a review catches what you did not
+think to ask at all.
+
+The two worth remembering: a helper whose NAME says "deceleration" being used
+as one more additive force, and a documented guarantee quietly becoming false
+because the new numbers went somewhere the checker could not see.
+
+### Who wrote what
+
+- **Me (Raju):** asked for the project to be finished properly.
+- **Claude:** ran the review, fixed all fifteen, wrote nine regression tests,
+  and verified the braking cap, the leak, the redline zone, the reciprocal
+  mute and the frame rate in a browser.
+

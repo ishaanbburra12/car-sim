@@ -220,7 +220,12 @@ export type DriveState = {
   shiftTimer: number; // seconds of drive still interrupted by a gear change
   /** Lowest rpm the engine is allowed to show: models the clutch slipping. */
   rpmFloor: number;
-  launchArmed: boolean; // unused until the clutch policy arrives
+  /**
+   * True while the clutch is slipping or open: off the line, and again once
+   * the car has slowed to a stop. The engine is not solidly connected to the
+   * wheels, so it can neither be driven by them nor brake them.
+   */
+  launchArmed: boolean;
 };
 
 export type DriverInputs = {
@@ -246,8 +251,11 @@ export type StepOpts = {
    * Shape of the overrun torque curve: engine braking is scaled by
    * (floor + (1 - floor) * rpm / redline), so it is weakest at idle and
    * strongest near the limiter. Omit it and engine braking is OFF entirely,
-   * which is what keeps the whole-run simulation untouched. The drive layer
-   * passes its own disclosed value.
+   * which is what keeps the whole-run simulation untouched.
+   *
+   * It also requires policy "clutch", because engine braking needs a clutch
+   * that can be closed, and only that policy tracks one. Supplying this with
+   * the legacy policy does nothing.
    */
   overrunRpmScaleFloor?: number;
 };
@@ -365,8 +373,11 @@ export function stepDrive(
 
   if (shiftTimer > 0) {
     shiftTimer -= dt;
-  } else if (inputs.gear !== undefined) {
-    // Manual: the driver picked, so the chooser does not run at all.
+  } else if (inputs.gear !== undefined && Number.isFinite(inputs.gear)) {
+    // Manual: the driver picked, so the chooser does not run at all. A
+    // non-finite gear is ignored rather than clamped, because Math.round(NaN)
+    // is NaN and clamping it produces NaN, which then poisons every later
+    // step through gearTotal[NaN].
     const wanted = Math.min(Math.max(Math.round(inputs.gear), 0), gearTotal.length - 1);
     if (wanted !== gear) {
       gear = wanted;
@@ -418,8 +429,13 @@ export function stepDrive(
   // The clutch is open during a gear change and at a standstill, so the engine
   // is not connected to the wheels and cannot slow them.
   const lift = 1 - inputs.throttle;
+  // The clutch has to be closed for the engine to drag on the wheels at all.
+  // Under the legacy policy launchArmed is never cleared, so engine braking
+  // is reported as unavailable rather than silently computing zero: the
+  // whole-run simulation does not model a clutch, so it cannot model this.
+  const clutchClosed = policy === "clutch" && !launchArmed;
   const engineBrakeN =
-    opts?.overrunRpmScaleFloor !== undefined && lift > 0 && shiftTimer <= 0 && !launchArmed
+    opts?.overrunRpmScaleFloor !== undefined && lift > 0 && shiftTimer <= 0 && clutchClosed
       ? (spec.engineBrakeTorqueNm *
           (opts.overrunRpmScaleFloor +
             (1 - opts.overrunRpmScaleFloor) *
@@ -430,9 +446,18 @@ export function stepDrive(
         spec.wheelRadiusM
       : 0;
 
-  const a =
-    (drive - drag - roll - brakeForceN - engineBrakeN) /
-    (spec.massKg * ROTATIONAL_MASS_FACTOR);
+  // Braking, rolling resistance and engine braking all reach the road through
+  // the same contact patches, so together they cannot exceed what the tires
+  // (or the brakes) can hold. Aerodynamic drag is NOT clamped with them: it
+  // pushes on the body, not through the tires, so it genuinely adds on top.
+  //
+  // Without this clamp the car braked about 6% harder than its own grip limit,
+  // because brakeForceN was already set at the full limit and the other two
+  // terms were then subtracted as well.
+  const throughTires = brakeForceN + engineBrakeN + roll;
+  const tireRetardLimitN = brakeDecelMps2(spec, v) * spec.massKg;
+  const retard = Math.min(throughTires, tireRetardLimitN);
+  const a = (drive - drag - retard) / (spec.massKg * ROTATIONAL_MASS_FACTOR);
 
   const vNext = Math.max(0, v + a * dt);
   const xNext = state.x + vNext * dt;

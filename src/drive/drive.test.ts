@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { PULSE } from "../data";
+import { PULSE, PARTS } from "../data";
 import { CARS } from "../cars";
 import { estimate, WOT } from "../engine";
 import { DRIVE_TUNABLES } from "./tunables";
@@ -683,5 +683,54 @@ describe("the model uncertainty band is declared, not borrowed", () => {
     const pct = DRIVE_TUNABLES.modelUncertaintyPct;
     expect(lo * (1 - pct)).toBeLessThan(lo);
     expect(hi * (1 + pct)).toBeGreaterThan(hi);
+  });
+});
+
+describe("code review regressions in the drive layer", () => {
+  it("resetting keeps the parts catalogue the session was built with", () => {
+    // resetSession rebuilt from the global PARTS, so a session created with a
+    // custom catalogue came back as a different car after pressing R.
+    const onlyTurbo = PARTS.filter((p) => p.id === "turbo-upgrade");
+    const s = createSession(PULSE, ["turbo-upgrade"], onlyTurbo);
+    expect(s.parts).toBe(onlyTurbo);
+    const fresh = resetSession(s);
+    expect(fresh.parts).toBe(onlyTurbo);
+    expect(fresh.specs.optimistic.effectiveHp).toBe(s.specs.optimistic.effectiveHp);
+  });
+
+  it("the elapsed clock and the milestone clock cannot disagree", () => {
+    // They were computed by two separate expressions that happened to match.
+    let s = createSession(PULSE, BUILD);
+    while (s.elapsedS < 20 && s.milestones.zeroToSixtyS === null) {
+      s = advance(s, WOT, 1 / 60).session;
+    }
+    expect(s.milestones.zeroToSixtyS!).toBeLessThanOrEqual(s.elapsedS + 1e-12);
+    const steps = Math.round(s.elapsedS / DRIVE_TUNABLES.physicsDtS);
+    expect(s.steps).toBe(steps);
+  });
+
+  it("collapse is decided once, not recomputed every frame", () => {
+    const s = createSession(PULSE, []);
+    expect(s.collapsed).toBe(true);
+    expect(isCollapsed(s)).toBe(true);
+    const built = createSession(PULSE, BUILD);
+    expect(built.collapsed).toBe(false);
+  });
+
+  it("the sound constants are in the ledger, not hidden in a component", () => {
+    // The README claims a test fails the build if an invented number is not
+    // disclosed. Three of them were defined in DrivePanel and invisible to it.
+    for (const key of ["shiftThrottle", "coastThrottle"] as const) {
+      expect(Object.prototype.hasOwnProperty.call(DRIVE_TUNABLES, key)).toBe(true);
+      expect(DRIVE_ASSUMPTIONS.find((a) => a.key === key)).toBeDefined();
+    }
+  });
+
+  it("idle comes from the car, so every car has one to give", () => {
+    // The synth hardcoded 800 rpm even after Car.idleRpm was added for it.
+    for (const car of CARS) {
+      expect(car.idleRpm).toBeGreaterThan(400);
+      expect(car.idleRpm).toBeLessThan(1500);
+    }
   });
 });
