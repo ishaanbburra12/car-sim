@@ -18,6 +18,14 @@ export type Car = {
   stockHp: number; // peak power at the crank
   peakHpRpm: number;
   redlineRpm: number;
+  /** Rpm the engine settles at with the car stopped and the clutch out. */
+  idleRpm: number;
+  /**
+   * Peak overrun torque, Nm: what it costs to turn the engine over with no
+   * fuel, from pumping losses and internal friction. This is what slows a car
+   * when you lift off in gear. Nobody publishes it.
+   */
+  engineBrakeTorqueNm: number;
   massKg: number; // curb weight + driver
   cd: number; // drag coefficient
   frontalAreaM2: number;

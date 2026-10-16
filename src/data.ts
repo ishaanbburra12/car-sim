@@ -13,6 +13,9 @@ export const PULSE: Car = {
   stockHp: 200,
   peakHpRpm: 5500,
   redlineRpm: 6500,
+  idleRpm: 800, // [assumed] conventional idle for a modern four-cylinder petrol engine
+  engineBrakeTorqueNm: 50, // [assumed] ~25 Nm per litre of displacement
+
   massKg: 1375, // ~1300 kg curb + 75 kg driver
   cd: 0.34,
   frontalAreaM2: 2.25,

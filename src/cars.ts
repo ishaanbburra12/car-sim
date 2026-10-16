@@ -36,6 +36,12 @@ export const GT3_RS: Car = {
   stockHp: 518, // [published] 4.0 L flat-six
   peakHpRpm: 8500, // [published]
   redlineRpm: 9000, // [published]
+  idleRpm: 1000, // [assumed] a race-derived flat-six with aggressive cam timing
+  // idles noticeably higher than a road engine.
+  engineBrakeTorqueNm: 100, // [assumed] 4.0 L, at the ~25 Nm/litre rule of thumb.
+  // Works out to roughly 0.07 g of engine-only braking at 30 mph in third: the
+  // strongest of the four, which matches a high-compression naturally
+  // aspirated engine on short gearing.
   massKg: 1525, // [published] 1450 kg DIN curb + 75 kg driver
   cd: 0.48, // [derived, circular] Porsche publishes no Cd for the 992 RS. We
   // worked backwards from the published 184 mph top speed: the drag needed to
@@ -83,6 +89,11 @@ export const GTR: Car = {
   stockHp: 565, // [published] VR38DETT twin-turbo V6, US rating
   peakHpRpm: 6800, // [published]
   redlineRpm: 7000, // [assumed] close to the published power peak
+  idleRpm: 750, // [assumed] a 3.8 L V6 idles lower than a small four, because
+  // more cylinders firing per revolution means it runs smoothly slower.
+  engineBrakeTorqueNm: 95, // [assumed] 3.8 L at ~25 Nm/litre. About 0.05 g at
+  // 30 mph in third - less than the Porsche despite similar torque, because
+  // this car is 300 kg heavier and longer geared.
   massKg: 1827, // [published] 1752 kg curb + 75 kg driver
   cd: 0.26, // [published]
   frontalAreaM2: 2.08, // [derived] 0.8 x 1.895 m width x 1.370 m height
@@ -121,6 +132,9 @@ export const TYPE_R: Car = {
   stockHp: 315, // [published] US rating; JDM is quoted higher (~330 PS)
   peakHpRpm: 6500, // [published]
   redlineRpm: 7000, // [published]
+  idleRpm: 800, // [assumed] conventional idle for a 2.0 L turbocharged four.
+  engineBrakeTorqueNm: 50, // [assumed] 2.0 L at ~25 Nm/litre. About 0.036 g at
+  // 30 mph in third.
   massKg: 1505, // [published] 1430 kg curb + 75 kg driver
   cd: 0.34, // [assumed] Honda has not published one for the FL5
   frontalAreaM2: 2.13, // [derived] 0.8 x 1.890 m width x 1.407 m height

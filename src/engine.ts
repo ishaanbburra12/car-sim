@@ -232,6 +232,14 @@ export type StepOpts = {
   /** "legacy" reproduces the whole-run simulation exactly. Default. */
   policy?: LaunchPolicy;
   dt?: number;
+  /**
+   * Shape of the overrun torque curve: engine braking is scaled by
+   * (floor + (1 - floor) * rpm / redline), so it is weakest at idle and
+   * strongest near the limiter. Omit it and engine braking is OFF entirely,
+   * which is what keeps the whole-run simulation untouched. The drive layer
+   * passes its own disclosed value.
+   */
+  overrunRpmScaleFloor?: number;
 };
 
 /** What one step produced, including the force balance for an inspector view. */
@@ -243,12 +251,16 @@ export type StepOutput = {
   onLimiter: boolean;
   tractionLimited: boolean;
   stopped: boolean;
+  /** True while the car is stopped and the clutch is ready for a launch. */
+  idling: boolean;
   speedMph: number;
   driveForceN: number;
   tractionCapN: number;
   dragN: number;
   rollN: number;
   brakeForceN: number;
+  /** Retardation from the engine itself when the driver is off the throttle. */
+  engineBrakeN: number;
 };
 
 /** Wide open throttle, no brake: what the whole-run simulation always does. */
@@ -316,13 +328,18 @@ export function stepDrive(
   // "clutch" releases the floor the first time the drivetrain outruns it,
   // which is exactly what a clutch finishing its slip does. No new invented
   // number: the floor simply stops applying.
-  if (
-    policy === "clutch" &&
-    launchArmed &&
-    rpmInGear(spec, gearTotal, v, gear) > spec.launchRpm
-  ) {
-    launchArmed = false;
-    rpmFloor = 0;
+  const wheelRpm = rpmInGear(spec, gearTotal, v, gear);
+  if (policy === "clutch") {
+    if (launchArmed && wheelRpm > spec.launchRpm) {
+      // The drivetrain has outrun the slipping clutch: it is fully engaged now.
+      launchArmed = false;
+      rpmFloor = 0;
+    } else if (!launchArmed && wheelRpm < spec.idleRpm) {
+      // Rolling to a stop. A driver declutches here rather than stalling, so
+      // the car is ready to pull away again.
+      launchArmed = true;
+      rpmFloor = spec.launchRpm;
+    }
   }
 
   // Force at the wheels in gear g at FULL throttle, or -1 if that gear would
@@ -376,7 +393,29 @@ export function stepDrive(
   // is bit-identical to the original three-term expression.
   const brakeForceN =
     inputs.brake > 0 ? inputs.brake * brakeDecelMps2(spec, v) * spec.massKg : 0;
-  const a = (drive - drag - roll - brakeForceN) / (spec.massKg * ROTATIONAL_MASS_FACTOR);
+
+  // Engine braking: with the throttle shut, turning the engine over costs
+  // torque, and that drags the car down through the gearbox. Off entirely
+  // unless a curve shape is supplied and the driver has lifted, so the
+  // whole-run simulation (always full throttle) is bit-identical without it.
+  // The clutch is open during a gear change and at a standstill, so the engine
+  // is not connected to the wheels and cannot slow them.
+  const lift = 1 - inputs.throttle;
+  const engineBrakeN =
+    opts?.overrunRpmScaleFloor !== undefined && lift > 0 && shiftTimer <= 0 && !launchArmed
+      ? (spec.engineBrakeTorqueNm *
+          (opts.overrunRpmScaleFloor +
+            (1 - opts.overrunRpmScaleFloor) *
+              Math.min(1, Math.max(0, wheelRpm / spec.redlineRpm))) *
+          gearTotal[gear] *
+          spec.drivelineEff *
+          lift) /
+        spec.wheelRadiusM
+      : 0;
+
+  const a =
+    (drive - drag - roll - brakeForceN - engineBrakeN) /
+    (spec.massKg * ROTATIONAL_MASS_FACTOR);
 
   const vNext = Math.max(0, v + a * dt);
   const xNext = state.x + vNext * dt;
@@ -392,18 +431,29 @@ export function stepDrive(
       rpmFloor,
       launchArmed,
     },
-    rpm: Math.max(rpmInGear(spec, gearTotal, vNext, gear), rpmFloor),
+    // What the rev counter reads. While the clutch slips under power the
+    // engine sits at launch rpm; otherwise it follows the wheels, and never
+    // falls below idle, because an engine at rest is still running.
+    rpm:
+      policy === "clutch"
+        ? Math.max(
+            rpmInGear(spec, gearTotal, vNext, gear),
+            launchArmed && inputs.throttle > 0.02 ? spec.launchRpm : spec.idleRpm,
+          )
+        : Math.max(rpmInGear(spec, gearTotal, vNext, gear), rpmFloor),
     gear: gear + 1,
     shifting: shiftTimer > 0,
     onLimiter: rpmInGear(spec, gearTotal, v, gear) > spec.redlineRpm,
     tractionLimited: driveForce > tractionCap,
     stopped: vNext === 0,
+    idling: policy === "clutch" && launchArmed && vNext < 0.1,
     speedMph: vNext / MPS_PER_MPH,
     driveForceN: drive,
     tractionCapN: tractionCap,
     dragN: drag,
     rollN: roll,
     brakeForceN,
+    engineBrakeN,
   };
 }
 

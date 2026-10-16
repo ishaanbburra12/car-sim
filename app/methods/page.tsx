@@ -184,7 +184,8 @@ export default function MethodsPage() {
         <p className="rounded-md border border-amber-400/20 bg-amber-400/5 p-3 text-amber-100/80">
           The assumed bucket is larger than you might expect. Tire grip, brake
           limit, driveline efficiency, rolling resistance, traction fraction,
-          launch rpm and shift time are all required by the model and{" "}
+          launch rpm, shift time, idle speed and overrun torque are all
+          required by the model and{" "}
           <em>published by nobody</em>. So a meaningful part of every
           &ldquo;real&rdquo; car here is our guesswork wearing a real car&rsquo;s
           name. Frontal areas are all approximated as 0.8 &times; width &times;
@@ -290,6 +291,20 @@ export default function MethodsPage() {
           rather than between two, and always contains the needle.
         </p>
 
+        <p>
+          <span className="text-slate-300">Two more per-car assumptions.</span>{" "}
+          Driving needs an idle speed and an overrun torque, and neither is
+          printed in any spec sheet. Idle speeds are set at 800 rpm for the two
+          four-cylinder cars, 750 for the GT-R&rsquo;s V6 (more cylinders firing
+          per revolution means it runs smoothly slower) and 1000 for the GT3
+          RS, whose race-derived engine idles high. Overrun torque &mdash; what
+          it costs to turn an engine over with no fuel &mdash; uses a rule of
+          thumb of roughly 25 Nm per litre of displacement, giving 50, 50, 95
+          and 100 Nm. A test bounds the result to between 0.01 g and 0.25 g of
+          deceleration for every car, so the figures cannot drift into
+          nonsense, but they remain guesses with a justification rather than
+          measurements.
+        </p>
         <p>
           <span className="text-slate-300">
             One place drive mode differs from the Garage on purpose.

@@ -23,6 +23,12 @@ export const DRIVE_TUNABLES = Object.freeze({
   /** How often the on-screen numbers are rewritten, Hz. Not the physics rate. */
   displayHz: 10,
   /**
+   * Shape of the overrun (engine braking) curve. Engine braking is scaled by
+   * (floor + (1 - floor) * rpm / redline), so at this fraction of its peak at
+   * idle and full at the limiter.
+   */
+  overrunRpmScaleFloor: 0.5,
+  /**
    * How fast a key press ramps the pedal, units per second. A key is a switch
    * and a pedal is not; 4 means about a quarter second from nothing to full.
    * This is an input smoothing choice, not a claim about any car.

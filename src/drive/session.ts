@@ -69,7 +69,10 @@ const ZERO_DT = { dt: 0, policy: "clutch" as const };
  * of sticking at launch rpm. The whole-run simulation keeps the legacy policy,
  * so the Garage's published numbers are untouched.
  */
-const DRIVE_OPTS = { policy: "clutch" as const };
+const DRIVE_OPTS = {
+  policy: "clutch" as const,
+  overrunRpmScaleFloor: DRIVE_TUNABLES.overrunRpmScaleFloor,
+};
 
 /** A readout taken without advancing time, for the first frame before any step. */
 function peek(

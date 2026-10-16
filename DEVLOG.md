@@ -589,3 +589,84 @@ off because they go on the Methods page in my name.
 - **Claude:** the wiring, the launch policy, 9 new tests, and the browser runs
   that found the flatlining note and proved the fix.
 
+---
+
+## 2026-10-16 — Session 8: idle, a real standstill, and engine braking
+
+### What we did
+
+The car now behaves like a car at both ends of its speed range. It idles at a
+plausible rpm instead of sitting at launch rpm. It brakes to a complete stop
+and STAYS there. It pulls away again afterwards. And lifting off actually
+slows it, instead of coasting on air resistance like it is on ice.
+
+Tests 154 -> 167.
+
+### The standstill problem the clutch policy created
+
+Session 7's clutch policy released the launch rpm floor once the drivetrain
+outran it, which fixed the flatlining engine note. But it created a quieter
+bug: once released, the floor never came back, so a car that stopped had no
+torque to pull away with. The fix is what a driver actually does — declutch as
+you roll to a stop. The policy now re-arms the floor when wheel rpm falls below
+idle, so the car is always ready to launch again.
+
+The rev counter needed its own rule, separate from the torque floor: while the
+clutch slips under power the engine sits at launch rpm; otherwise it follows
+the wheels and never drops below idle, because an engine at rest is still
+running.
+
+### Engine braking, and how it is kept honest
+
+Overrun torque is scaled from half its peak at idle to full at the limiter,
+multiplied by how far the driver has lifted, and geared through the drivetrain.
+It stops entirely during a gear change and at a standstill, because the clutch
+is open at both.
+
+Two mechanisms keep it from being a fudge factor:
+
+- **It is off unless explicitly switched on.** `stepDrive` applies engine
+  braking only when given a curve shape in its options. The whole-run
+  simulation never passes one, so the Garage's figures are bit-identical
+  without relying on "full throttle means the term is zero" as the only
+  safeguard.
+- **A test bounds the result.** Engine-only deceleration must land between
+  0.01 g and 0.25 g for every car. Gentle enough not to be a brake pedal,
+  strong enough to feel. The four assumed overrun figures cannot drift into
+  nonsense without the suite catching it.
+
+### Verified by driving it
+
+Idles at 800 rpm. Accelerates to 46 mph. Coasts down to 41 with no brake
+touched, which is engine braking doing its job. Brakes to zero, tacho returns
+to 800, and the distance readout stays at 116 m across several seconds of
+standing still. Then pulls away again to 32 mph. No console errors.
+
+### A process mistake worth recording
+
+I rebuilt the app while the production server was still running and then tested
+against it. Every readout came back zero and the console filled with 400s. The
+server was serving a half-replaced build, not a broken app. Rebuild, THEN
+restart, then test. Also: `pkill -f "next-server"` matches its own command line
+and kills the shell running it — `pkill -f "[n]ext-server"` does not.
+
+### New assumed values, now on the Methods page
+
+idleRpm: 800 Pulse, 800 Type R, 750 GT-R, 1000 GT3 RS.
+engineBrakeTorqueNm: 50, 50, 95, 100, from roughly 25 Nm per litre.
+overrunRpmScaleFloor: 0.5, disclosed through the drive ledger like every other
+number drive mode invents.
+
+### Who wrote what
+
+- **Me (Raju):** approved the idle and overrun figures, having been told they
+  go on the Methods page in my name.
+- **Claude:** the clutch re-arm, the idle rpm rule, engine braking and its
+  bound, 13 new tests, and the browser run that confirmed the car stops and
+  stays stopped.
+
+### Next
+
+The post-run card: your driven 0-60 against the model's range, with the model
+band shown separately from the parts band.
+

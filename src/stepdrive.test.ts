@@ -377,3 +377,147 @@ describe("launch policy", () => {
     expect(Math.abs(a.v - b.v) / a.v).toBeLessThan(0.02);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Idle, a real standstill, and engine braking.
+// ---------------------------------------------------------------------------
+
+const CLUTCH = { policy: "clutch" as const, overrunRpmScaleFloor: 0.5 };
+const LIFT = { throttle: 0, brake: 0 };
+
+describe("idle and a real standstill", () => {
+  const spec = applyParts(PULSE, [], "pessimistic");
+  const gt = gearTotals(spec);
+
+  it("a stopped car idles rather than reading zero rpm", () => {
+    const out = stepDrive(spec, gt, standingStart(spec), LIFT, CLUTCH);
+    expect(out.rpm).toBeCloseTo(spec.idleRpm, 6);
+    expect(out.idling).toBe(true);
+  });
+
+  it("a stopped car with no throttle stays stopped", () => {
+    let state = standingStart(spec);
+    for (let i = 0; i < 2000; i++) state = stepDrive(spec, gt, state, LIFT, CLUTCH).state;
+    expect(state.v).toBe(0);
+    expect(state.x).toBe(0);
+  });
+
+  it("opening the throttle lifts the engine to launch rpm, not idle", () => {
+    const out = stepDrive(spec, gt, standingStart(spec), WOT, CLUTCH);
+    expect(out.rpm).toBeCloseTo(spec.launchRpm, 6);
+  });
+
+  it("brakes the car to a complete stop and it STAYS stopped", () => {
+    let state = standingStart(spec);
+    for (let i = 0; i < 1500; i++) state = stepDrive(spec, gt, state, WOT, CLUTCH).state;
+    expect(state.v).toBeGreaterThan(20);
+    let out = stepDrive(spec, gt, state, { throttle: 0, brake: 1 }, CLUTCH);
+    for (let i = 0; i < 5000 && out.state.v > 0; i++) {
+      out = stepDrive(spec, gt, out.state, { throttle: 0, brake: 1 }, CLUTCH);
+    }
+    expect(out.state.v).toBe(0);
+    const stoppedAt = out.state.x;
+    for (let i = 0; i < 2000; i++) out = stepDrive(spec, gt, out.state, LIFT, CLUTCH);
+    expect(out.state.v).toBe(0);
+    expect(out.state.x).toBe(stoppedAt);
+    expect(out.rpm).toBeCloseTo(spec.idleRpm, 6);
+  });
+
+  it("and can pull away again afterwards", () => {
+    let state = standingStart(spec);
+    for (let i = 0; i < 1500; i++) state = stepDrive(spec, gt, state, WOT, CLUTCH).state;
+    let out = stepDrive(spec, gt, state, { throttle: 0, brake: 1 }, CLUTCH);
+    for (let i = 0; i < 5000 && out.state.v > 0; i++) {
+      out = stepDrive(spec, gt, out.state, { throttle: 0, brake: 1 }, CLUTCH);
+    }
+    expect(out.state.v).toBe(0);
+    // The clutch must have re-armed, or there is no torque to move off with.
+    expect(out.state.launchArmed).toBe(true);
+    for (let i = 0; i < 400; i++) out = stepDrive(spec, gt, out.state, WOT, CLUTCH);
+    expect(out.state.v).toBeGreaterThan(5);
+  });
+});
+
+describe("engine braking", () => {
+  const spec = applyParts(PULSE, [], "pessimistic");
+  const gt = gearTotals(spec);
+
+  function coastFrom(steps: number, opts: typeof CLUTCH | { policy: "clutch" }) {
+    let state = standingStart(spec);
+    for (let i = 0; i < steps; i++) state = stepDrive(spec, gt, state, WOT, CLUTCH).state;
+    const before = state.v;
+    let out = stepDrive(spec, gt, state, LIFT, opts as never);
+    for (let i = 0; i < 200; i++) out = stepDrive(spec, gt, out.state, LIFT, opts as never);
+    return { before, after: out.state.v, out };
+  }
+
+  it("a car that lifts off slows faster WITH engine braking than without", () => {
+    const withEb = coastFrom(1500, CLUTCH);
+    const withoutEb = coastFrom(1500, { policy: "clutch" });
+    expect(withEb.after).toBeLessThan(withoutEb.after);
+  });
+
+  it("is reported in the force balance", () => {
+    const { out } = coastFrom(1500, CLUTCH);
+    expect(out.engineBrakeN).toBeGreaterThan(0);
+  });
+
+  it("is zero at full throttle, which is why the simulation is unchanged", () => {
+    let state = standingStart(spec);
+    for (let i = 0; i < 800; i++) {
+      const out = stepDrive(spec, gt, state, WOT, CLUTCH);
+      expect(out.engineBrakeN).toBe(0);
+      state = out.state;
+    }
+  });
+
+  it("scales with how far the driver has lifted", () => {
+    let state = standingStart(spec);
+    for (let i = 0; i < 1500; i++) state = stepDrive(spec, gt, state, WOT, CLUTCH).state;
+    const full = stepDrive(spec, gt, state, { throttle: 0, brake: 0 }, CLUTCH).engineBrakeN;
+    const half = stepDrive(spec, gt, state, { throttle: 0.5, brake: 0 }, CLUTCH).engineBrakeN;
+    expect(half).toBeCloseTo(full * 0.5, 6);
+  });
+
+  it("stops during a gear change, because the clutch is open", () => {
+    let state = standingStart(spec);
+    let sawShiftWithEngineBraking = false;
+    for (let i = 0; i < 3000; i++) {
+      const out = stepDrive(spec, gt, state, { throttle: 0.2, brake: 0 }, CLUTCH);
+      if (out.shifting && out.engineBrakeN > 0) sawShiftWithEngineBraking = true;
+      state = out.state;
+    }
+    expect(sawShiftWithEngineBraking).toBe(false);
+  });
+
+  it("stops at a standstill, because the clutch is open there too", () => {
+    const out = stepDrive(spec, gt, standingStart(spec), LIFT, CLUTCH);
+    expect(out.engineBrakeN).toBe(0);
+  });
+
+  it("lands in a believable range for every car", () => {
+    // Engine braking alone should be a gentle deceleration, not a brake pedal.
+    // This bounds the four assumed overrun figures against something real.
+    for (const car of CARS) {
+      const s = applyParts(car, [], "pessimistic");
+      const g = gearTotals(s);
+      let state = standingStart(s);
+      for (let i = 0; i < 1500; i++) state = stepDrive(s, g, state, WOT, CLUTCH).state;
+      const out = stepDrive(s, g, state, LIFT, CLUTCH);
+      const gEquivalent = out.engineBrakeN / (s.massKg * 9.81);
+      expect(gEquivalent, `${car.name} engine braking`).toBeGreaterThan(0.01);
+      expect(gEquivalent, `${car.name} engine braking`).toBeLessThan(0.25);
+    }
+  });
+
+  it("never pushes the car backwards", () => {
+    const s = applyParts(PULSE, [], "pessimistic");
+    const g = gearTotals(s);
+    let state = standingStart(s);
+    for (let i = 0; i < 600; i++) state = stepDrive(s, g, state, WOT, CLUTCH).state;
+    for (let i = 0; i < 20000; i++) {
+      state = stepDrive(s, g, state, LIFT, CLUTCH).state;
+      expect(state.v).toBeGreaterThanOrEqual(0);
+    }
+  });
+});

@@ -40,6 +40,13 @@ export const DRIVE_ASSUMPTIONS: DriveAssumption[] = [
     why: "The numbers on screen are rewritten 10 times a second while the physics runs at 200. A figure flickering through every intermediate value is unreadable and implies a precision the model does not have. The gauges move smoothly; only the digits are slowed.",
   },
   {
+    key: "overrunRpmScaleFloor",
+    label: "Engine braking at idle, as a share of its peak",
+    value: "0.5 (half at idle, full at the rev limiter)",
+    kind: "physics-choice",
+    why: "Lifting off in gear slows the car because turning the engine over without fuel costs torque. Those pumping and friction losses genuinely rise with engine speed, so we scale the effect from half its peak at idle to full at the limiter. The straight line between the two is a simplification, and the peak figure itself is a per-car assumption listed with that car. The clutch is open during a gear change and at a standstill, so engine braking stops entirely at both.",
+  },
+  {
     key: "inputRampPerS",
     label: "Pedal ramp rate",
     value: "4 per second (about 0.25 s from nothing to full)",
