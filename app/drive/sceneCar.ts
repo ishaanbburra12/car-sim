@@ -98,9 +98,14 @@ type Station = {
 };
 
 type Ribbon = {
-  /** Angular span of the band, measured with 0 = +x side, PI/2 = crown. */
-  theta0: number;
-  theta1: number;
+  /**
+   * Angular span of the band, measured with 0 = +x side, PI/2 = crown.
+   * A single number holds the edge at one angle for the whole sweep; an array
+   * (one per station) lets the band open out as it travels, which is how the
+   * roof rail grows into a C-pillar without a seam between the two.
+   */
+  theta0: number | number[];
+  theta1: number | number[];
   /** Outward offset of the visible face, one per station (ramps are allowed). */
   outer: number[];
   /** Offset of the hidden face. Negative buries it inside the host shell. */
@@ -109,7 +114,11 @@ type Ribbon = {
 
 const _v = new THREE.Vector3();
 
-function sectionPoint(s: Station, theta: number, inflate: number, out: THREE.Vector3): void {
+/**
+ * The section curve itself, measured from the section's own centre. x is half
+ * width, y is signed height either side of the waist.
+ */
+function sectionXY(s: Station, theta: number): { x: number; y: number } {
   const c = Math.cos(theta);
   const sn = Math.sin(theta);
 
@@ -122,18 +131,46 @@ function sectionPoint(s: Station, theta: number, inflate: number, out: THREE.Vec
 
   const hw = s.wBot + (s.wTop - s.wBot) * t;
   const p = 2 / (sn >= 0 ? s.nTop : s.nBot);
-  const yc = (s.top + s.bot) * 0.5;
   const hh = (s.top - s.bot) * 0.5;
 
-  let x = hw * Math.sign(c) * Math.pow(Math.abs(c), p);
-  let y = hh * Math.sign(sn) * Math.pow(Math.abs(sn), p);
+  return {
+    x: hw * Math.sign(c) * Math.pow(Math.abs(c), p),
+    y: hh * Math.sign(sn) * Math.pow(Math.abs(sn), p),
+  };
+}
+
+function sectionPoint(s: Station, theta: number, inflate: number, out: THREE.Vector3): void {
+  const base = sectionXY(s, theta);
+  let x = base.x;
+  let y = base.y;
 
   if (inflate !== 0) {
-    const len = Math.hypot(x, y) || 1;
-    x += (x / len) * inflate;
-    y += (y / len) * inflate;
+    // Offset along the section's OWN outward normal, not along the radius out
+    // of its centre. On a near-flat section those two directions are tens of
+    // degrees apart, so a radial push of 12 mm bought barely 1 mm of real
+    // clearance and the glass came back out through the painted C-pillar at
+    // the tail. Taking the normal from a central difference of the curve costs
+    // two extra evaluations and makes the offset mean what it says.
+    const h = 1e-3;
+    const a = sectionXY(s, theta - h);
+    const b = sectionXY(s, theta + h);
+    // Theta runs counter-clockwise, so rotating the tangent by -90 deg points
+    // out of the section.
+    let nx = b.y - a.y;
+    let ny = -(b.x - a.x);
+    const len = Math.hypot(nx, ny);
+    if (len > 1e-9) {
+      nx /= len;
+      ny /= len;
+    } else {
+      const r = Math.hypot(x, y) || 1;
+      nx = x / r;
+      ny = y / r;
+    }
+    x += nx * inflate;
+    y += ny * inflate;
   }
-  out.set(x, yc + y, s.z);
+  out.set(x, (s.top + s.bot) * 0.5 + y, s.z);
 }
 
 /**
@@ -148,35 +185,43 @@ function sectionPoint(s: Station, theta: number, inflate: number, out: THREE.Vec
  */
 function loft(stations: Station[], segments: number, ribbon?: Ribbon): THREE.BufferGeometry {
   const rings = stations.length;
-  const theta: number[] = [];
+  // `frac` is where each sample sits across the band, 0 at theta0 and 1 at
+  // theta1. The angle itself is resolved per station, further down.
+  const frac: number[] = [];
   const isInner: boolean[] = [];
 
   if (ribbon) {
     for (let j = 0; j < segments; j++) {
-      theta.push(ribbon.theta0 + ((ribbon.theta1 - ribbon.theta0) * j) / (segments - 1));
+      frac.push(j / (segments - 1));
       isInner.push(false);
     }
     for (let j = segments - 1; j >= 0; j--) {
-      theta.push(ribbon.theta0 + ((ribbon.theta1 - ribbon.theta0) * j) / (segments - 1));
+      frac.push(j / (segments - 1));
       isInner.push(true);
     }
   } else {
     // Seam at the bottom centre, where nothing is ever seen.
     for (let j = 0; j < segments; j++) {
-      theta.push(-Math.PI / 2 + (Math.PI * 2 * j) / segments);
+      frac.push(j / segments);
       isInner.push(false);
     }
   }
 
-  const ringN = theta.length;
+  const at = (v: number | number[], i: number) => (typeof v === "number" ? v : v[i]);
+  const ringN = frac.length;
   const pos: number[] = [];
   const uvs: number[] = [];
   const idx: number[] = [];
 
   for (let i = 0; i < rings; i++) {
     const outer = ribbon ? ribbon.outer[i] : 0;
+    const t0 = ribbon ? at(ribbon.theta0, i) : 0;
+    const t1 = ribbon ? at(ribbon.theta1, i) : 0;
     for (let j = 0; j < ringN; j++) {
-      sectionPoint(stations[i], theta[j], isInner[j] ? ribbon!.inner : outer, _v);
+      const theta = ribbon
+        ? t0 + (t1 - t0) * frac[j]
+        : -Math.PI / 2 + Math.PI * 2 * frac[j];
+      sectionPoint(stations[i], theta, isInner[j] ? ribbon!.inner : outer, _v);
       pos.push(_v.x, _v.y, _v.z);
       uvs.push(j / ringN, rings > 1 ? i / (rings - 1) : 0);
     }
@@ -266,6 +311,33 @@ function stationAt(list: Station[], z: number): Station {
   return { ...list[z < list[0].z ? 0 : list.length - 1], z };
 }
 
+/**
+ * Add rings at the given z values, in order, each one exactly what stationAt()
+ * already reports there.
+ *
+ * This exists because of a bug worth remembering. A painted panel riding on
+ * the greenhouse was drawn from its own list of stations while the glass under
+ * it was drawn from the CABIN table, and between two CABIN stations the glass
+ * is a straight line in z while the panel's extra stations sit on the curve.
+ * Where the curve fell inside that line the glass came out THROUGH the paint,
+ * as a ragged dark tear up the middle of the C-pillar. Measured at its worst:
+ * 26 mm of paint swallowed, around z = 1.13.
+ *
+ * Lofting both from one ring list removes the disagreement at the source: the
+ * panel is then the glass's own ring pushed outwards, which cannot sink into
+ * it. The cost is that the glass gains the sliver of fullness the straight
+ * line was cutting off, a little under 2 mm.
+ */
+function densify(list: Station[], extra: number[]): Station[] {
+  const out = [...list];
+  for (const z of extra) {
+    if (out.some((o) => Math.abs(o.z - z) < 1e-9)) continue;
+    const i = out.findIndex((o) => o.z > z);
+    out.splice(i < 0 ? out.length : i, 0, stationAt(list, z));
+  }
+  return out;
+}
+
 /** Merge, then free the sources: they never enter the scene graph. */
 function mergeParts(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
   if (parts.length === 1) return parts[0];
@@ -351,6 +423,12 @@ const SHOULDER: Station[] = [
  * at z = +0.43, i.e. it sits back.
  */
 const CABIN: Station[] = [
+  // Same trick as the tail, at the other end: the windscreen keeps falling
+  // past the cowl and dies under the bonnet, so its base is a shutline rather
+  // than a flat pane of glass facing the oncoming road. `top` at the first
+  // station is below the shoulder crown (0.797 here), which buries the cap.
+  { z: -0.92, wTop: 0.26, wBot: 0.43, top: 0.788, bot: 0.74, nTop: 2.2, nBot: 2.2 },
+  { z: -0.8, wTop: 0.34, wBot: 0.47, top: 0.88, bot: 0.72, nTop: 2.3, nBot: 2.4 },
   { z: -0.66, wTop: 0.41, wBot: 0.5, top: 1.0, bot: 0.7, nTop: 2.4, nBot: 2.6 },
   { z: -0.4, wTop: 0.56, wBot: 0.66, top: 1.14, bot: 0.7, nTop: 2.8, nBot: 2.8 },
   { z: -0.1, wTop: 0.68, wBot: 0.76, top: 1.25, bot: 0.7, nTop: 3.4, nBot: 3.0 },
@@ -359,7 +437,38 @@ const CABIN: Station[] = [
   { z: 0.92, wTop: 0.69, wBot: 0.785, top: 1.27, bot: 0.7, nTop: 4.0, nBot: 3.0 },
   { z: 1.26, wTop: 0.58, wBot: 0.74, top: 1.165, bot: 0.7, nTop: 3.2, nBot: 2.8 },
   { z: 1.52, wTop: 0.43, wBot: 0.66, top: 1.0, bot: 0.72, nTop: 2.6, nBot: 2.6 },
+  // The backlight keeps falling after the cabin proper ends, so the glass
+  // runs out under the decklid instead of stopping in a flat wall facing the
+  // car behind. `top` at the last station is below the shoulder crown (0.786
+  // at this z), which is what buries the end cap.
+  { z: 1.66, wTop: 0.35, wBot: 0.57, top: 0.9, bot: 0.73, nTop: 2.4, nBot: 2.4 },
+  { z: 1.78, wTop: 0.27, wBot: 0.46, top: 0.775, bot: 0.74, nTop: 2.2, nBot: 2.2 },
 ];
+
+/**
+ * Where the painted roof skin stops and glass begins, measured the same way
+ * `loft` measures theta (0 = +x flank, PI/2 = crown). The roof panel and the
+ * C-pillars both read it, which is what keeps the pillar welded to the roof
+ * edge rather than floating somewhere near it.
+ */
+const ROOF_EDGE = Math.PI / 2 - 0.95;
+
+/** Lower edge of the C-pillar. Buried inside the shoulder at every z it spans. */
+const SAIL_KEEL = -0.8;
+
+/**
+ * The rings the greenhouse and everything riding on it are actually lofted
+ * from. The extra z values are where the painted side skin needs to change
+ * shape; putting them in the shared list is what keeps the two surfaces from
+ * cutting through each other. See densify().
+ */
+const CABIN_RINGS: Station[] = densify(
+  CABIN,
+  [-0.78, -0.7, -0.62, -0.5, -0.38, -0.26, -0.18, 1.0, 1.08, 1.16, 1.24, 1.32, 1.42],
+);
+
+/** Stations of the roof skin, by z rather than by index into the ring list. */
+const ROOF_Z = [-0.1, 0.22, 0.58, 0.92];
 
 const MIRROR_POD: Station[] = [
   { z: -0.63, wTop: 0.03, wBot: 0.028, top: 0.03, bot: -0.03, nTop: 2.2, nBot: 2.2 },
@@ -481,12 +590,16 @@ export function createCarKit(): CarKit {
   // end caps become the windscreen header and the roof edge over the backlight,
   // so painted pillars fall out of the construction for free.
   paintParts.push(
-    loft(CABIN.slice(2, 6), 12, {
-      theta0: Math.PI / 2 - 0.95,
-      theta1: Math.PI / 2 + 0.95,
-      outer: [0.016, 0.02, 0.02, 0.016],
-      inner: -0.006,
-    }),
+    loft(
+      ROOF_Z.map((z) => stationAt(CABIN_RINGS, z)),
+      12,
+      {
+        theta0: ROOF_EDGE,
+        theta1: Math.PI - ROOF_EDGE,
+        outer: [0.016, 0.02, 0.02, 0.016],
+        inner: -0.006,
+      },
+    ),
   );
 
   // Ducktail: same trick on the shoulder, offset ramping to 55 mm so the lip
@@ -506,13 +619,81 @@ export function createCarKit(): CarKit {
     ),
   );
 
-  // NOTE: painted C-pillars were tried here and removed. The idea was right —
-  // a backlight with no pillars is the loudest "3D model" cue from the angle
-  // we actually view this car — but three attempts at placing them by sweep
-  // angle produced patches sitting ON the glass rather than structure framing
-  // it, which looked worse than the clean backlight. If someone revisits it,
-  // build the pillar from the greenhouse's OUTER edge curve rather than from a
-  // theta range, so it is anchored to the shoulder by construction.
+  // Painted side skin: roof rail at the front, C-pillar at the back, one
+  // ribbon. Three earlier attempts cut the pillar out as its own patch with a
+  // guessed sweep angle, and every one of them left a bare panel edge lying on
+  // the glass, which reads as a crack rather than as structure. This band has
+  // no such edge, because both of its long sides are defined by something real:
+  //
+  //   upper  ROOF_EDGE at every station - the same constant the roof skin
+  //          starts from, so the two panels share one boundary exactly and the
+  //          pillar cannot drift off the roof.
+  //   lower  SIDE_SKIN_LOWER: tucked just under the roof rail while there is a
+  //          side window to leave alone, then swung down past SAIL_KEEL over
+  //          the rear 40 cm. That swing IS the C-pillar's leading edge, and
+  //          because it is a boundary of the band rather than a cut through it,
+  //          it costs no cap.
+  //
+  // Below SAIL_KEEL the edge is inside the bodywork at every z it reaches, so
+  // the panel dies in the quarter instead of stopping in mid-air.
+  const SIDE_SKIN_Z = [
+    -0.78, -0.7, -0.62, -0.5, -0.38, -0.26, -0.18, -0.1, 0.22, 0.58, 0.92, 1.0, 1.08, 1.16,
+    1.24, 1.32, 1.42, 1.52, 1.66,
+  ];
+  // The lower edge may not turn more than about 0.2 rad between two stations.
+  // It is a polyline, and a longer step cuts a chord across the greenhouse
+  // instead of following it round - which is what let the glass out through
+  // the paint the first time this was built. At 0.2 rad the chord sits ~4 mm
+  // inside the surface, against a paint offset of 12-16 mm.
+  const SIDE_SKIN_LOWER = [
+    // A-pillar. It opens downward going forward exactly as the C-pillar opens
+    // going back, but it must stay NARROW: a real A-pillar is a strut, and the
+    // first version of this swung the edge down so early that the windscreen
+    // and the door glass were separated by a buttress half a metre across.
+    // So the edge hugs the roof rail through the door opening and only drops
+    // away under the bonnet, where it is buried and nobody sees it go.
+    -0.45,
+    -0.2,
+    0.02,
+    0.22,
+    0.36,
+    0.45,
+    0.49,
+    ROOF_EDGE - 0.1,
+    ROOF_EDGE - 0.13,
+    ROOF_EDGE - 0.13,
+    ROOF_EDGE - 0.15,
+    0.33,
+    0.14,
+    -0.06,
+    -0.26,
+    -0.45,
+    -0.62,
+    -0.75,
+    SAIL_KEEL,
+  ];
+  // Matches the roof skin's offsets at the four stations they share, so the
+  // seam between roof and side is flush rather than stepped.
+  const SIDE_SKIN_OUTER = [
+    0.012, 0.013, 0.014, 0.015, 0.016, 0.016, 0.016, 0.016, 0.02, 0.02, 0.016, 0.016, 0.016,
+    0.015, 0.015, 0.014, 0.014, 0.013, 0.012,
+  ];
+  const sideStations = SIDE_SKIN_Z.map((z) => stationAt(CABIN_RINGS, z));
+  for (const sx of [1, -1]) {
+    // Mirrored by theta -> PI - theta, never by scale(-1, 1, 1): a negative
+    // scale reverses the winding order and the panel renders inside out.
+    // Reflecting reverses orientation and swapping the two edges reverses it
+    // back, so the sweep stays low-to-high on both sides.
+    const flip = (t: number) => Math.PI - t;
+    paintParts.push(
+      loft(sideStations, 14, {
+        theta0: sx > 0 ? SIDE_SKIN_LOWER : flip(ROOF_EDGE),
+        theta1: sx > 0 ? ROOF_EDGE : SIDE_SKIN_LOWER.map(flip),
+        outer: SIDE_SKIN_OUTER,
+        inner: -0.006,
+      }),
+    );
+  }
 
   for (const sx of [-1, 1]) {
     const pod = loft(MIRROR_POD, 10);
@@ -525,7 +706,7 @@ export function createCarKit(): CarKit {
   const paint = mergeParts(paintParts);
 
   /* ---- glass ---- */
-  const glass = loft(CABIN, 18);
+  const glass = loft(CABIN_RINGS, 18);
 
   /* ---- matte black trim ---- */
   const trimParts: THREE.BufferGeometry[] = [];
@@ -552,7 +733,12 @@ export function createCarKit(): CarKit {
   // Recessed dark panel behind the tail lamps. Without it the lenses look
   // painted onto the bodywork instead of set into it, which is most of what
   // made the old tail read as two stickers.
-  const tailBezel = new THREE.BoxGeometry(1.62, 0.17, 0.02);
+  // Three widths have to agree here, and the first attempt got all three
+  // wrong. The tail is a flat face and the body is 1.337 m across it at lamp
+  // height (0.7): a bezel wider than that hangs its corners in open air, and a
+  // bezel the same width as the lamps leaves them no dark surround to sit in.
+  // 1.30 fits the face with 90 mm of margin either side of the 1.12 m lamp.
+  const tailBezel = new THREE.BoxGeometry(1.3, 0.19, 0.02);
   tailBezel.translate(0, 0.7, 2.158);
   trimParts.push(tailBezel);
   for (let k = -2; k <= 2; k++) {
@@ -595,14 +781,15 @@ export function createCarKit(): CarKit {
      legible at the size it is actually seen. ---- */
   const tailParts: THREE.BufferGeometry[] = [];
   for (const sx of [-1, 1]) {
-    const lens = new THREE.BoxGeometry(0.44, 0.115, 0.05);
-    lens.translate(sx * 0.42, 0.7, 2.174);
+    const lens = new THREE.BoxGeometry(0.38, 0.105, 0.042);
+    lens.translate(sx * 0.37, 0.7, 2.168);
     tailParts.push(lens);
   }
   // Full-width connector, not a stub: it ties the two clusters into one light
-  // bar across the whole tail.
-  const bar = new THREE.BoxGeometry(0.9, 0.105, 0.046);
-  bar.translate(0, 0.7, 2.176);
+  // bar across the whole tail. It overlaps both lenses, so the bar is
+  // continuous rather than three pieces with seams.
+  const bar = new THREE.BoxGeometry(0.78, 0.095, 0.04);
+  bar.translate(0, 0.7, 2.17);
   tailParts.push(bar);
   const thirdBrake = new THREE.BoxGeometry(0.24, 0.022, 0.025);
   thirdBrake.translate(0, 1.295, 0.94);
@@ -751,6 +938,7 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
     );
     const glassMat = keep(
       new THREE.MeshStandardMaterial({
+        name: "glass",
         color: 0x080b10,
         metalness: 0.1,
         roughness: 0.05,
