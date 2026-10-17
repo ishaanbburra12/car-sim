@@ -349,6 +349,55 @@ function mergeParts(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
 }
 
 /**
+ * Bake a cheap ambient-occlusion term into the paint's vertex colours.
+ *
+ * Nothing in this scene supplies occlusion. There is no SSAO, the sky probe is
+ * uniform, and a hemisphere light only darkens downward-facing normals - so an
+ * outward-facing panel 20 cm off the tarmac inside a wheel arch receives
+ * exactly as much ambient light as the roof does. That is why the flanks read
+ * as one dead-flat field of saturated orange with no weight in them: real cars
+ * look heavy precisely because the bottom half of the body is in shadow from
+ * the ground and the arches are nearly black.
+ *
+ * Two terms, both cheap, both approximations of things that are actually true:
+ *
+ *   height - the nearer the road, the less sky can reach a surface.
+ *   arches - points close to a wheel centre are boxed in by the fender, but
+ *            ONLY low ones: the top of a fender sits directly above a wheel
+ *            and is wide open to the sky, so the arch term has to fade out
+ *            with height or the car ends up with dark stripes over its hips.
+ *
+ * Must be called AFTER ghostShell and hullSrc have cloned the paint geometry.
+ * They merge it with glass, trim and the rest, and mergeGeometries throws if
+ * one input carries an attribute the others do not.
+ */
+function bakeAmbientOcclusion(g: THREE.BufferGeometry): void {
+  const pos = g.getAttribute("position") as THREE.BufferAttribute;
+  const col = new Float32Array(pos.count * 3);
+  const wheels = wheelPositions();
+  const smooth = (a: number, b: number, x: number) => {
+    const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    let ao = 0.58 + 0.42 * smooth(0.16, 0.66, y);
+    let near = 0;
+    for (const [wx, , wz] of wheels) {
+      near = Math.max(near, 1 - smooth(0.3, 0.66, Math.hypot(x - wx, z - wz)));
+    }
+    ao *= 1 - 0.38 * near * (1 - smooth(0.44, 0.76, y));
+    ao = Math.max(0.3, Math.min(1, ao));
+    col[i * 3] = ao;
+    col[i * 3 + 1] = ao;
+    col[i * 3 + 2] = ao;
+  }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+}
+
+/**
  * Outline hull for the ghosts: weld the shell (dropping the crease-split
  * normals), re-smooth, then push every vertex along its own normal. Welding
  * first is what stops the hull splitting open at every cap rim.
@@ -988,6 +1037,10 @@ export function createCarKit(): CarKit {
   hullSrc.dispose(); // intermediate: never reaches the scene graph
   const ghostWheel = mergeParts([tyre.clone(), rim.clone()]);
 
+  // Only now, with every clone taken, may the paint grow an attribute the
+  // others do not have.
+  bakeAmbientOcclusion(paint);
+
   const all = [
     paint,
     glass,
@@ -1069,13 +1122,16 @@ export function buildCar(
         // At metalness 0.55 the albedo was being tinted by the environment and
         // a vivid amber came out as mud. The gloss comes from the clearcoat.
         metalness: 0.08,
-        roughness: 0.38,
+        // Narrower base lobe to match the tighter sun card in the probe.
+        roughness: 0.3,
         clearcoat: 1.0,
         clearcoatRoughness: 0.06,
         // Orange peel. A mirror-flat clearcoat is what makes rendered paint
         // look like injection-moulded plastic; this is a shimmer, not a
         // texture, and you only notice it in the reflection.
         clearcoatRoughnessMap: kit.textures.orangePeel,
+        // Reads the baked occlusion in the paint geometry's vertex colours.
+        vertexColors: true,
         envMapIntensity: 1.35,
       }),
     );

@@ -331,12 +331,19 @@ export function createAtmosphere(
   groundDisc.position.y = -2;
   probe.add(groundDisc);
 
-  const sunCardGeo = new THREE.CircleGeometry(18, 20);
+  // Size matters more than brightness here. At radius 18 and 150 m away this
+  // card subtended 13.7 degrees - about 26 times the real sun's 0.53 - so the
+  // "crisp specular highlight" it was meant to give was actually a soft wash
+  // spread over most of the upper body, and the whole top of the car
+  // desaturated towards warm grey. At radius 4 it is 3.05 degrees: still
+  // generous, but small enough to read as a glint. The brightness goes up to
+  // compensate for the smaller area.
+  const sunCardGeo = new THREE.CircleGeometry(4, 16);
   const sunCardMat = new THREE.MeshBasicMaterial({
     // Deliberately above 1.0. PMREM bakes into a HalfFloat target, so the
     // overbright survives and becomes a crisp specular highlight on the
     // paint instead of a flat white smudge.
-    color: new THREE.Color(1.0, 0.93, 0.82).multiplyScalar(8),
+    color: new THREE.Color(1.0, 0.93, 0.82).multiplyScalar(34),
     toneMapped: false,
   });
   const sunCard = new THREE.Mesh(sunCardGeo, sunCardMat);
