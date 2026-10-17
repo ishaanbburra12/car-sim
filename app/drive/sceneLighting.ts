@@ -287,28 +287,6 @@ function bakeEnvironment(renderer: THREE.WebGLRenderer, probe: THREE.Scene): THR
   }
 }
 
-/* ------------------------------------------------------------------ *
- * Contact shadows
- * ------------------------------------------------------------------ */
-
-function createContactShadowTexture(): THREE.CanvasTexture {
-  const size = 128;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-    gradient.addColorStop(0, "rgba(0,0,0,0.85)");
-    gradient.addColorStop(0.45, "rgba(0,0,0,0.45)");
-    gradient.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, size, size);
-  }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
 
 /* ------------------------------------------------------------------ *
  * The whole thing
@@ -327,8 +305,6 @@ export type Atmosphere = {
    * (WebGLRenderer.js:2110-2112), so setting it by hand silently does nothing.
    */
   applyTo: (material: THREE.MeshStandardMaterial, intensity: number) => void;
-  /** Adds a soft blob decal under a car so it sits on the road. */
-  addContactShadow: (group: THREE.Object3D, opacity: number) => THREE.Mesh;
   dispose: () => void;
 };
 
@@ -416,29 +392,10 @@ export function createAtmosphere(
   scene.add(sun);
   scene.add(sun.target);
 
-  // ---- Contact shadows ----
-  const blobTexture = disposer.add(createContactShadowTexture());
-  const blobGeo = disposer.add(new THREE.PlaneGeometry(1, 1));
-
-  function addContactShadow(group: THREE.Object3D, opacity: number): THREE.Mesh {
-    const material = disposer.add(
-      new THREE.MeshBasicMaterial({
-        map: blobTexture,
-        transparent: true,
-        opacity,
-        depthWrite: false,
-        toneMapped: false,
-      }),
-    );
-    const blob = new THREE.Mesh(blobGeo, material);
-    blob.rotation.x = -Math.PI / 2;
-    blob.scale.set(3.2, 5.8, 1);
-    // Just above the lane dashes at y = 0.03 so it darkens them too.
-    blob.position.y = 0.04;
-    blob.renderOrder = 1;
-    group.add(blob);
-    return blob;
-  }
+  // Contact shadows live with the car, not here: each rig carries a plane
+  // textured to its own PLAN (see makeContactTexture in sceneCar.ts). This
+  // module used to add a second, bigger radial blob on top of that one, so
+  // every car sat on two stacked haloes, both wider than the car.
 
   // ---- Per frame ----
   function update(camera: THREE.Camera, playerZ: number) {
@@ -474,7 +431,6 @@ export function createAtmosphere(
     environment: environmentTarget.texture,
     update,
     applyTo,
-    addContactShadow,
     dispose,
   };
 }
@@ -526,22 +482,17 @@ export function createAtmosphere(
  *      cabin.castShadow = solid; cabin.receiveShadow = true;
  *      wheel.castShadow = solid; wheel.receiveShadow = true;
  *
- * 6. After the three rigs are built:
- *      atmosphere.addContactShadow(cars.expected.group, 0.75);
- *      atmosphere.addContactShadow(cars.pessimistic.group, 0.3);
- *      atmosphere.addContactShadow(cars.optimistic.group, 0.3);
- *
- * 7. In render(), REPLACE the three sun.position / sun.target lines
+ * 6. In render(), REPLACE the three sun.position / sun.target lines
  *    (scene.ts:264-266) with a single call placed AFTER the camera has been
  *    positioned and the FOV eased, and BEFORE renderer.render:
  *      atmosphere.update(camera, -positions.expected);
  *
- * 8. In resize(), re-apply the pixel ratio — it is currently captured once
+ * 7. In resize(), re-apply the pixel ratio — it is currently captured once
  *    at construction and never updated when the window moves to a monitor
  *    with a different DPR:
  *      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
  *
- * 9. REPLACE dispose() wholesale. The traverse cannot see textures,
+ * 8. REPLACE dispose() wholesale. The traverse cannot see textures,
  *    scene.environment or the shadow map, and it double-disposes shared
  *    geometry:
  *      function dispose() {
@@ -551,6 +502,6 @@ export function createAtmosphere(
  *        renderer.forceContextLoss();  // see disposalNotes first
  *      }
  *
- * 10. Unrelated to lighting but free while you are in render(): wrap the
+ * 9. Unrelated to lighting but free while you are in render(): wrap the
  *     unbounded wheelSpin accumulator, wheelSpin %= Math.PI * 2.
  * ==================================================================== */

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { createCarTextures, type CarTextures } from "./carTextures";
 import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 /* ===========================================================================
@@ -491,12 +492,22 @@ export type CarKit = {
   rim: THREE.BufferGeometry;
   pool: THREE.BufferGeometry;
   poolTex: THREE.Texture;
+  /** Procedurally drawn maps, shared by every car. See carTextures.ts. */
+  textures: CarTextures;
   /** Everything above the wheels, welded into one geometry, for the ghosts. */
   ghostShell: THREE.BufferGeometry;
   ghostHull: THREE.BufferGeometry;
   ghostWheel: THREE.BufferGeometry;
   dispose: () => void;
 };
+
+/**
+ * The ground-shadow plane. A little larger than the car's 1.87 x 4.33 m plan,
+ * so the blur has somewhere to fade out, and no larger - the old plane was
+ * 2.6 x 5.0 with a second 3.2 x 5.8 one on top of it.
+ */
+const POOL_W = 2.3;
+const POOL_L = 4.9;
 
 function wheelPositions(): [number, number, number][] {
   return [
@@ -507,21 +518,64 @@ function wheelPositions(): [number, number, number][] {
   ];
 }
 
+/**
+ * The shadow the car lays on the road.
+ *
+ * This used to be one radial gradient: darkest dead centre, fading outward,
+ * on a plane half again as big as the car. That is the exact inverse of real
+ * ground occlusion, which is near-black at the four contact patches and along
+ * the sills and then stops at the car's plan outline. A halo that is darkest
+ * where nothing touches the ground is the airbrushed-blob-under-a-toy look,
+ * and at chase distance it was the single loudest reason the car read as
+ * floating rather than standing.
+ *
+ * So it is drawn to the car's actual plan instead. The plane is
+ * POOL_W x POOL_L metres, u runs across it and v runs along it (v = 0 is the
+ * tail, because the geometry is rotated -90 deg about x), which is what the
+ * metres-to-pixels helpers below convert.
+ */
 function makeContactTexture(): THREE.CanvasTexture {
-  const size = 96;
+  const size = 256;
   const c = document.createElement("canvas");
   c.width = size;
   c.height = size;
   const g = c.getContext("2d");
   if (g) {
-    const r = size / 2;
-    const grad = g.createRadialGradient(r, r, 0, r, r, r);
-    grad.addColorStop(0, "rgba(255,255,255,1)");
-    grad.addColorStop(0.42, "rgba(255,255,255,0.78)");
-    grad.addColorStop(0.76, "rgba(255,255,255,0.2)");
-    grad.addColorStop(1, "rgba(255,255,255,0)");
-    g.fillStyle = grad;
-    g.fillRect(0, 0, size, size);
+    const px = (x: number) => ((x + POOL_W / 2) / POOL_W) * size;
+    const py = (z: number) => ((POOL_L / 2 - z) / POOL_L) * size;
+
+    g.clearRect(0, 0, size, size);
+
+    // 1. The body's own occlusion: soft, and only as big as the car is.
+    g.filter = "blur(9px)";
+    g.fillStyle = "rgba(255,255,255,0.5)";
+    const x0 = px(-0.9);
+    const x1 = px(0.9);
+    const z0 = py(2.1);
+    const z1 = py(-2.1);
+    g.beginPath();
+    g.roundRect(x0, z1, x1 - x0, z0 - z1, size * 0.07);
+    g.fill();
+
+    // 2. The four contact patches, which is where a real shadow is black.
+    //    Tighter blur so they stay hard against the soft body shape.
+    g.filter = "blur(3px)";
+    g.fillStyle = "rgba(255,255,255,0.98)";
+    for (const [wx, , wz] of wheelPositions()) {
+      g.beginPath();
+      g.ellipse(px(wx), py(wz), size * 0.055, size * 0.042, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    // 3. A darker band down the middle, under the floorpan, where the car is
+    //    closest to the road between the axles.
+    g.filter = "blur(7px)";
+    g.fillStyle = "rgba(255,255,255,0.35)";
+    g.beginPath();
+    g.roundRect(px(-0.62), py(1.3), px(0.62) - px(-0.62), py(-1.3) - py(1.3), size * 0.04);
+    g.fill();
+
+    g.filter = "none";
   }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -531,21 +585,29 @@ function makeContactTexture(): THREE.CanvasTexture {
 /** Lathed tyre carcass with a real sidewall bulge and rounded shoulders. */
 function makeTyre(): THREE.BufferGeometry {
   const w = WHEEL_HALF_W;
-  // Beads at 0.212 tuck BEHIND the rim flange at 0.222, so the open ends of
+  // Beads at 0.245 tuck BEHIND the rim flange at 0.255, so the open ends of
   // the lathe are never visible as a see-through gap.
+  //
+  // The sidewall used to be 108 mm tall on a 235 mm section - a 46% profile,
+  // which is a family saloon. At 75 mm it is a 32% profile, which is what a
+  // car with these numbers would actually be wearing. It also means a lot
+  // more bright rim and a lot less black rubber, and at chase distance the
+  // wheels stop disappearing into the shadow under the car.
   const profile = [
-    new THREE.Vector2(0.212, -w),
-    new THREE.Vector2(0.272, -w * 0.96),
-    new THREE.Vector2(0.308, -w * 0.82),
-    new THREE.Vector2(0.325, -w * 0.58),
+    new THREE.Vector2(0.245, -w),
+    new THREE.Vector2(0.292, -w * 0.96),
+    new THREE.Vector2(0.315, -w * 0.82),
+    new THREE.Vector2(0.327, -w * 0.58),
     new THREE.Vector2(WHEEL_R, -w * 0.3),
     new THREE.Vector2(WHEEL_R, w * 0.3),
-    new THREE.Vector2(0.325, w * 0.58),
-    new THREE.Vector2(0.308, w * 0.82),
-    new THREE.Vector2(0.272, w * 0.96),
-    new THREE.Vector2(0.212, w),
+    new THREE.Vector2(0.327, w * 0.58),
+    new THREE.Vector2(0.315, w * 0.82),
+    new THREE.Vector2(0.292, w * 0.96),
+    new THREE.Vector2(0.245, w),
   ];
-  const g = new THREE.LatheGeometry(profile, 20);
+  // 32 segments, not 20: a tyre is the roundest thing on the car and at 20
+  // you can count its corners from two metres away.
+  const g = new THREE.LatheGeometry(profile, 32);
   g.rotateZ(-Math.PI / 2); // lathe axis Y -> axle along +x, outboard face at +x
   return g;
 }
@@ -560,25 +622,25 @@ function makeRim(): THREE.BufferGeometry {
   // from straight on and the barrel's own interior fills it from an angle.
   const profile = [
     new THREE.Vector2(0.0, -0.105), // closed inboard end
-    new THREE.Vector2(0.1, -0.105),
-    new THREE.Vector2(0.212, -0.1),
-    new THREE.Vector2(0.222, -0.08), // inner flange
-    new THREE.Vector2(0.206, -0.04), // barrel well
-    new THREE.Vector2(0.206, 0.04),
-    new THREE.Vector2(0.222, 0.085), // outer flange
-    new THREE.Vector2(0.212, 0.108),
-    new THREE.Vector2(0.196, 0.1), // lip rolls in, and the face stops here
+    new THREE.Vector2(0.12, -0.105),
+    new THREE.Vector2(0.245, -0.1),
+    new THREE.Vector2(0.255, -0.08), // inner flange
+    new THREE.Vector2(0.238, -0.04), // barrel well
+    new THREE.Vector2(0.238, 0.04),
+    new THREE.Vector2(0.255, 0.085), // outer flange
+    new THREE.Vector2(0.246, 0.108),
+    new THREE.Vector2(0.228, 0.1), // lip rolls in, and the face stops here
   ];
-  const parts: THREE.BufferGeometry[] = [new THREE.LatheGeometry(profile, 20)];
+  const parts: THREE.BufferGeometry[] = [new THREE.LatheGeometry(profile, 28)];
   // Hub, with its cap: without this the spokes would meet at nothing.
   const hub = new THREE.CylinderGeometry(0.062, 0.056, 0.062, 14);
   hub.translate(0, 0.062, 0);
   parts.push(hub);
   for (let k = 0; k < 5; k++) {
-    // Reaches from the hub (r 0.05) out to the lip (r 0.206), so each spoke
+    // Reaches from the hub (r 0.05) out to the lip (r 0.24), so each spoke
     // lands on both and the gap between them is genuinely open.
-    const spoke = new THREE.BoxGeometry(0.156, 0.026, 0.05);
-    spoke.translate(0.128, 0.082, 0);
+    const spoke = new THREE.BoxGeometry(0.19, 0.028, 0.052);
+    spoke.translate(0.145, 0.082, 0);
     spoke.rotateY((k * Math.PI * 2) / 5);
     parts.push(spoke);
   }
@@ -593,7 +655,11 @@ function makeRim(): THREE.BufferGeometry {
  */
 export function createCarKit(): CarKit {
   /* ---- paint: tub + outer skin + roof panel + ducktail + mirrors ---- */
-  const paintParts: THREE.BufferGeometry[] = [loft(TUB, 20), loft(SHOULDER, 24)];
+  // 32 segments on the outer skin rather than 24: at 24 the flat tail face
+  // showed its facets as vertical banding, which is a pure tessellation
+  // artefact and reads as cheap. The geometry is built once and shared by all
+  // three cars, so the cost is paid once.
+  const paintParts: THREE.BufferGeometry[] = [loft(TUB, 24), loft(SHOULDER, 32)];
 
   // Roof skin: a ribbon riding 16-20 mm proud of the greenhouse crown. Its two
   // end caps become the windscreen header and the roof edge over the backlight,
@@ -715,7 +781,7 @@ export function createCarKit(): CarKit {
   const paint = mergeParts(paintParts);
 
   /* ---- glass ---- */
-  const glass = loft(CABIN_RINGS, 18);
+  const glass = loft(CABIN_RINGS, 24);
 
   /* ---- matte black trim ---- */
   const trimParts: THREE.BufferGeometry[] = [];
@@ -735,14 +801,31 @@ export function createCarKit(): CarKit {
     liner.translate(wx, WHEEL_R, wz);
     trimParts.push(liner);
   }
-  const diffuser = new THREE.BoxGeometry(1.16, 0.14, 0.34);
-  diffuser.translate(0, 0.255, 1.98);
+  // Measured: at y = 0.255 the body's tail section has NO width at all - its
+  // keel is at 0.335 - so the old diffuser hung in free air under the car with
+  // a 10 mm gap of daylight above it, which is exactly how it read. It now
+  // overlaps the bumper it is supposed to be let into: the top edge at 0.425
+  // is buried in bodywork, and only the part below the keel hangs free, which
+  // is what a diffuser is.
+  // Backing disc just inboard of each tyre. The rim's outboard face is open
+  // and the brake disc does not quite fill the opening, so from an oblique
+  // angle you could see between the spokes, through the arch, and out the far
+  // side of the car. This closes it, and reads as the dark of the wheel well.
+  for (const [wx, wy, wz] of wheelPositions()) {
+    const back = new THREE.CircleGeometry(0.29, 24);
+    back.rotateY(Math.PI / 2);
+    back.translate(wx - Math.sign(wx) * 0.117, wy, wz);
+    trimParts.push(back);
+  }
+
+  const diffuser = new THREE.BoxGeometry(0.94, 0.19, 0.38);
+  diffuser.translate(0, 0.33, 1.95);
   trimParts.push(diffuser);
 
   // Number plate recess: a dark inset for the plate to sit in, so the plate
   // reads as set into the bodywork rather than stuck on it.
   const plateRecess = new THREE.BoxGeometry(0.56, 0.17, 0.02);
-  plateRecess.translate(0, 0.475, 2.14);
+  plateRecess.translate(0, 0.44, 2.14);
   trimParts.push(plateRecess);
 
   // Recessed dark panel behind the tail lamps. Without it the lenses look
@@ -753,12 +836,12 @@ export function createCarKit(): CarKit {
   // height (0.7): a bezel wider than that hangs its corners in open air, and a
   // bezel the same width as the lamps leaves them no dark surround to sit in.
   // 1.30 fits the face with 90 mm of margin either side of the 1.12 m lamp.
-  const tailBezel = new THREE.BoxGeometry(1.3, 0.19, 0.02);
-  tailBezel.translate(0, 0.7, 2.158);
+  const tailBezel = new THREE.BoxGeometry(1.24, 0.17, 0.02);
+  tailBezel.translate(0, 0.63, 2.158);
   trimParts.push(tailBezel);
   for (let k = -2; k <= 2; k++) {
-    const fin = new THREE.BoxGeometry(0.022, 0.13, 0.32);
-    fin.translate(k * 0.22, 0.3, 1.98);
+    const fin = new THREE.BoxGeometry(0.024, 0.12, 0.34);
+    fin.translate(k * 0.19, 0.265, 1.95);
     trimParts.push(fin);
   }
   // Shutlines. A car without panel gaps reads as a bar of soap, and these are
@@ -799,8 +882,13 @@ export function createCarKit(): CarKit {
     // Dark disc at the BACK of the exhaust tip: this is what seals the open
     // tube so you see a recessed bore instead of straight through the car.
     const bore = new THREE.CircleGeometry(0.052, 12);
-    bore.translate(sx * 0.42, 0.37, 2.06);
+    bore.translate(sx * 0.38, 0.465, 2.06);
     trimParts.push(bore);
+    // ...and a dark surround on the tail face, so the tip reads as a pipe
+    // coming out of a cut-out rather than a chrome washer stuck on the paint.
+    const surround = new THREE.CircleGeometry(0.075, 20);
+    surround.translate(sx * 0.38, 0.465, 2.151);
+    trimParts.push(surround);
   }
   const trim = mergeParts(trimParts);
 
@@ -809,10 +897,10 @@ export function createCarKit(): CarKit {
   for (const sx of [-1, 1]) {
     const tip = new THREE.CylinderGeometry(0.058, 0.05, 0.15, 12, 1, true);
     tip.rotateX(Math.PI / 2);
-    tip.translate(sx * 0.42, 0.37, 2.12);
+    tip.translate(sx * 0.38, 0.465, 2.12);
     chromeParts.push(tip);
     const lip = new THREE.TorusGeometry(0.056, 0.01, 4, 12);
-    lip.translate(sx * 0.42, 0.37, 2.19);
+    lip.translate(sx * 0.38, 0.465, 2.19);
     chromeParts.push(lip);
   }
   const chrome = mergeParts(chromeParts);
@@ -825,14 +913,14 @@ export function createCarKit(): CarKit {
   const tailParts: THREE.BufferGeometry[] = [];
   for (const sx of [-1, 1]) {
     const lens = new THREE.BoxGeometry(0.38, 0.105, 0.042);
-    lens.translate(sx * 0.37, 0.7, 2.168);
+    lens.translate(sx * 0.37, 0.63, 2.168);
     tailParts.push(lens);
   }
   // Full-width connector, not a stub: it ties the two clusters into one light
   // bar across the whole tail. It overlaps both lenses, so the bar is
   // continuous rather than three pieces with seams.
   const bar = new THREE.BoxGeometry(0.78, 0.095, 0.04);
-  bar.translate(0, 0.7, 2.17);
+  bar.translate(0, 0.63, 2.17);
   tailParts.push(bar);
   const thirdBrake = new THREE.BoxGeometry(0.24, 0.022, 0.025);
   thirdBrake.translate(0, 1.295, 0.94);
@@ -852,7 +940,7 @@ export function createCarKit(): CarKit {
   // slightly self-lit, which is what a retroreflective plate looks like, and
   // it costs no extra material or draw call.
   const plate = new THREE.BoxGeometry(0.52, 0.13, 0.012);
-  plate.translate(0, 0.475, 2.152);
+  plate.translate(0, 0.44, 2.152);
   headParts.push(plate);
   const head = mergeParts(headParts);
 
@@ -860,13 +948,13 @@ export function createCarKit(): CarKit {
   const discParts: THREE.BufferGeometry[] = [];
   const caliperParts: THREE.BufferGeometry[] = [];
   for (const [wx, wy, wz] of wheelPositions()) {
-    const d = new THREE.CylinderGeometry(0.195, 0.195, 0.02, 18);
+    const d = new THREE.CylinderGeometry(0.205, 0.205, 0.02, 24);
     d.rotateZ(Math.PI / 2);
     d.translate(wx, wy, wz);
     discParts.push(d);
-    const cal = new THREE.BoxGeometry(0.04, 0.1, 0.14);
+    const cal = new THREE.BoxGeometry(0.042, 0.105, 0.15);
     cal.rotateX(0.69); // sit tangentially on the disc
-    cal.translate(wx - Math.sign(wx) * 0.03, wy + 0.115, wz + 0.095);
+    cal.translate(wx - Math.sign(wx) * 0.03, wy + 0.155, wz + 0.1);
     caliperParts.push(cal);
   }
   const disc = mergeParts(discParts);
@@ -877,9 +965,10 @@ export function createCarKit(): CarKit {
   const rim = makeRim();
 
   /* ---- contact patch ---- */
-  const pool = new THREE.PlaneGeometry(2.6, 5.0);
+  const pool = new THREE.PlaneGeometry(POOL_W, POOL_L);
   pool.rotateX(-Math.PI / 2);
   const poolTex = makeContactTexture();
+  const textures = createCarTextures();
 
   /* ---- ghost: one welded shell, so there is nothing left to self-sort ---- */
   const ghostShell = mergeParts([
@@ -929,12 +1018,14 @@ export function createCarKit(): CarKit {
     rim,
     pool,
     poolTex,
+    textures,
     ghostShell,
     ghostHull,
     ghostWheel,
     dispose: () => {
       for (const g of all) g.dispose();
       poolTex.dispose();
+      textures.dispose();
     },
   };
 }
@@ -953,7 +1044,12 @@ export type CarRig = {
   dispose: () => void;
 };
 
-export function buildCar(color: number, opacity: number, sharedKit?: CarKit): CarRig {
+export function buildCar(
+  color: number,
+  opacity: number,
+  sharedKit?: CarKit,
+  env?: THREE.Texture,
+): CarRig {
   const kit = sharedKit ?? createCarKit();
   const ownsKit = sharedKit === undefined;
   const group = new THREE.Group();
@@ -976,6 +1072,10 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
         roughness: 0.38,
         clearcoat: 1.0,
         clearcoatRoughness: 0.06,
+        // Orange peel. A mirror-flat clearcoat is what makes rendered paint
+        // look like injection-moulded plastic; this is a shimmer, not a
+        // texture, and you only notice it in the reflection.
+        clearcoatRoughnessMap: kit.textures.orangePeel,
         envMapIntensity: 1.35,
       }),
     );
@@ -1010,8 +1110,13 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
     const tailMat = keep(
       new THREE.MeshStandardMaterial({
         color: 0x2a0406,
-        emissive: 0xff2a16,
-        emissiveIntensity: 2.4, // raise to ~4.0 under ACES/AgX
+        // 0xff2a16 at 2.4 clipped the red channel under NeutralToneMapping and
+        // lifted green and blue with it, so the lens desaturated to a flat pink
+        // slab with no variation in it at all - and it is the brightest thing
+        // in the frame for the whole game. Deeper red, lower intensity: it
+        // stays red, and leaves headroom for a brighter braking state.
+        emissive: 0xe01208,
+        emissiveIntensity: 1.25,
         roughness: 0.3,
       }),
     );
@@ -1027,17 +1132,58 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
       // Real rubber in daylight is a dark grey, not black. At 0x0c0e11 the
       // tyres disappeared into the shadow under the car and it read as
       // floating rather than standing on four wheels.
-      new THREE.MeshStandardMaterial({ color: 0x1b1d21, roughness: 0.95, metalness: 0.0 }),
+      new THREE.MeshStandardMaterial({
+        color: 0x1b1d21,
+        roughness: 0.95,
+        metalness: 0.0,
+        bumpMap: kit.textures.tread,
+        bumpScale: 1.6,
+      }),
     );
     const rimMat = keep(
       new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: 0.95, roughness: 0.28 }),
     );
     const discMat = keep(
-      new THREE.MeshStandardMaterial({ color: 0x5c6066, metalness: 0.8, roughness: 0.45 }),
+      new THREE.MeshStandardMaterial({
+        color: 0x5c6066,
+        metalness: 0.8,
+        roughness: 0.45,
+        bumpMap: kit.textures.disc,
+        bumpScale: 0.8,
+      }),
     );
     const calMat = keep(
       new THREE.MeshStandardMaterial({ color: 0xb3261e, metalness: 0.3, roughness: 0.5 }),
     );
+
+    // Hand the hero's materials the environment map explicitly.
+    //
+    // This is not optional polish, it is a bug fix. sceneLighting.ts documents
+    // it at the top of applyTo(): when a MeshStandardMaterial has envMap ===
+    // null, the renderer OVERWRITES envMapIntensity with the scene's global
+    // environmentIntensity every frame, so setting it on the material does
+    // nothing at all. The paint asked for 1.35 and the glass for 1.8, and both
+    // of them had been quietly running at the scene's 0.65 ever since the
+    // lighting went in - roughly half the reflection the paint was tuned for
+    // and a third of the glass's. Car paint and glass read as real almost
+    // entirely through what they reflect, so this is most of why they looked
+    // like coloured plastic.
+    //
+    // Ghosts are deliberately left on the global intensity: flatter, and more
+    // obviously not the car you are driving.
+    if (env) {
+      for (const [mat, intensity] of [
+        [paintMat, 1.35],
+        [glassMat, 1.8],
+        [chromeMat, 1.0],
+        [rimMat, 1.0],
+        [discMat, 0.8],
+      ] as [THREE.MeshStandardMaterial, number][]) {
+        mat.envMap = env;
+        mat.envMapIntensity = intensity;
+        mat.needsUpdate = true;
+      }
+    }
 
     const solid: [THREE.BufferGeometry, THREE.Material][] = [
       [kit.paint, paintMat],

@@ -279,17 +279,16 @@ export function createScene(
   const cars = {
     pessimistic: buildCar(CAR_COLORS.ghost, 0.42, kit),
     optimistic: buildCar(CAR_COLORS.ghost, 0.42, kit),
-    expected: buildCar(CAR_COLORS.expected, 1, kit),
+    expected: buildCar(CAR_COLORS.expected, 1, kit, atmosphere.environment),
   };
   cars.pessimistic.group.position.x = -2.6;
   cars.optimistic.group.position.x = 2.6;
   for (const rig of Object.values(cars)) scene.add(rig.group);
-  // Only the car you drive gets a contact shadow at full strength; the
-  // ghosts get a fainter one, because a solid shadow would make them read
-  // as real traffic rather than as the edges of a model.
-  atmosphere.addContactShadow(cars.expected.group, 0.55);
-  atmosphere.addContactShadow(cars.pessimistic.group, 0.18);
-  atmosphere.addContactShadow(cars.optimistic.group, 0.18);
+  // No contact shadow is added here any more. Every car already carries its
+  // own, inside buildCar: a plane textured to the car's PLAN, dark at the four
+  // contact patches. Adding the atmosphere's radial blob on top of that put
+  // two stacked haloes under each car, both wider than the car itself and both
+  // darkest in the middle where nothing touches the ground.
 
   /* ---- Per-frame --------------------------------------------------- */
   const camTarget = new THREE.Vector3();
