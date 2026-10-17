@@ -30,9 +30,11 @@ and how far the model lands from the real cars' published figures.
   bands, one for how much the parts data varies and one for how wrong the model
   itself might be. Cars with a real manual gearbox hand you the gears; the
   dual-clutch cars shift themselves.
-- **A 3D view** of the run: your car and the two ghosts on a road, so the
-  uncertainty in the parts data is something you watch open up rather than a
-  number on a panel. It renders what the simulation computed and feeds nothing
+- **A 3D view** of the run: your car and the two ghosts on a road under a
+  physically-based sky, with image-based lighting, procedural asphalt,
+  guardrails and scenery — so the uncertainty in the parts data is something
+  you watch open up rather than a number on a panel. Every texture and mesh is
+  generated in code; the project still ships no binary assets. It renders what the simulation computed and feeds nothing
   back, and it can be switched off without losing any information. You drive the *typical* build while the pessimistic and
   optimistic builds run alongside from the same inputs — the gap between them
   on the road is the uncertainty in the parts data. Every gauge carries three

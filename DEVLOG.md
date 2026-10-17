@@ -1018,3 +1018,85 @@ in the very next session would have been a poor response to it.
 Still the five-person test. It has been the most valuable unfinished thing for
 four sessions now, and nothing I build changes that.
 
+---
+
+## 2026-10-17 — Session 14: making the 3D look real
+
+### What we did
+
+The drive view went from boxes on a grey plane to something that reads as a
+road: a physically-based sky with a real sun, image-based lighting so the paint
+has something to reflect, cars with actual shape and glowing tail lights,
+textured asphalt, painted markings, shoulders, guardrails, rolling terrain and
+trees on the horizon. Still no new dependency beyond three, and still no asset
+files — every texture and every piece of geometry is generated in code.
+
+### The design was orchestrated, and half of it died
+
+Seven agents: a study of the installed three package, four specialists (car,
+lighting, world, motion), a performance judge and a synthesiser.
+
+**Three of the seven failed** — the motion specialist, the judge and the
+synthesiser all hit a session limit and returned nothing. So there was no
+integrated plan. The car and lighting designs survived, and I did the judging
+and integration myself, writing the road, scenery and camera work by hand
+since those agents never reported.
+
+Worth recording because it is the first time this project leaned on
+orchestration and only got part of what it asked for. The partial results were
+still worth having, which is the argument for structuring the work that way;
+losing the judge is the argument for not depending on it.
+
+### What the surviving agents found that I would not have
+
+The lighting work verified its claims against the actual installed source
+rather than recalling them, and two of those checks changed the design:
+
+- `Sky.js` already ends with the tone-mapping and colour-space includes, so
+  the horizon-tearing problem was caused by the OLD canvas-gradient background
+  and is cured by deleting it, not by working around it.
+- A `MeshStandardMaterial` with `envMap === null` has its `envMapIntensity`
+  overwritten by `scene.environmentIntensity` every frame, so setting it by
+  hand silently does nothing. That is why the reflection strength is applied
+  through an explicit helper instead.
+
+It also baked the environment map from the sky itself rather than from the
+stock room preset, so the reflections match the world the car is standing in.
+
+### Disposal, which is where Three.js punishes you
+
+`scene.traverse()` finds objects, not resources: it cannot see textures
+hanging off materials, `scene.environment`, `scene.background` or a light's
+shadow map, and it visits shared geometry once per mesh. The old dispose() was
+traverse-based. It is now a `Disposer` keyed on the resource itself. Verified:
+eight view toggles plus four car changes still leave exactly one canvas and no
+WebGL warnings.
+
+### Performance, honestly
+
+This container has no GPU. The measurement is SwiftShader, a pure CPU
+rasteriser, so the numbers say almost nothing about real hardware — but they
+do say something about the shape of the problem.
+
+The richer scene dropped from 27 fps to 6 under software rendering. The visible
+consequence is NOT stutter: the drive loop's catch-up clamp discards time it
+cannot simulate, so the car simply covered less ground in the same real
+seconds — 24 m instead of 34 m. A slow renderer makes the simulation run in
+slow motion, by design.
+
+So the scene now scales its own resolution: it keeps a rolling average of
+frame time and drops the pixel ratio toward 55% when frames run long, raising
+it again when they do not. That took software rendering from 6 fps to 9, and
+the car from 24 m to 39 m of ground covered. On real hardware it should sit at
+full resolution and never engage.
+
+**I cannot verify the frame rate on a real GPU from here, and I have not
+claimed one.** That needs checking on an actual machine.
+
+### Who wrote what
+
+- **Me (Raju):** asked for real 3D, like a game.
+- **Claude:** ran the design workflow, judged and integrated it after half of
+  it failed, wrote the road, scenery and camera feel, added adaptive
+  resolution, and verified disposal.
+
