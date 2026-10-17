@@ -1153,3 +1153,56 @@ while the ghosts are offset far enough to show their flanks.
 - **Claude:** read the shot, found the metalness, hull-blending and tail-lamp
   problems, and iterated against screenshots rather than against the code.
 
+---
+
+## 2026-10-17 — Session 16: number plate, tyres, and a feature I removed
+
+### What we did
+
+Two more realism cues on the car, and one attempt that failed and got deleted.
+
+**A number plate.** A dark recess in the tail panel with a pale plate set into
+it. Nothing says "car" faster than a rectangle of white on the back, and
+nothing says "untextured 3D model" faster than its absence. It costs no new
+material: the plate rides in the headlamp material, which is already a pale
+near-white, and that is close enough to retroreflective.
+
+**Tyres that are visible.** The rubber was 0x0c0e11, which is all but pure
+black. Under the car's own shadow the wheels vanished completely and the car
+read as floating rather than standing on four of them. Real rubber in daylight
+is a dark grey; 0x1b1d21 is enough to separate it from the shadow.
+
+### The C-pillars: tried three times, then removed
+
+A backlight with no pillars either side is the loudest "this is a model" cue
+from the angle we actually view this car, so painted C-pillars should have
+been the biggest single win available. Three attempts:
+
+1. Mirrored one pillar with `scale(-1, 1, 1)`. Negative scaling REVERSES a
+   geometry's winding order, so the mirrored copy rendered inside-out and
+   appeared as a stray orange slash across the glass. Fixed by mirroring the
+   sweep angle instead (theta -> PI - theta), which is the correct way to
+   reflect a lofted section.
+2. Symmetric, but too thick: the backlight became a narrow V and the roof
+   looked pinched.
+3. Narrower and further back: now they floated in the middle of the glass
+   rather than framing it, because pulling the sweep inboard moves the pillar
+   off the greenhouse shoulder.
+
+Each attempt looked worse than no pillars at all, so they are gone and the
+clean backlight is back. The code keeps a note saying why, and what a fourth
+attempt should do differently: build the pillar from the greenhouse's OUTER
+EDGE CURVE so it is anchored to the shoulder by construction, instead of from
+a theta range that has to be guessed at.
+
+Removing a feature after three attempts is not a failure to report quietly. It
+is the correct outcome when every version is worse than the thing it replaces,
+and shipping it because effort went into it would have been the actual
+mistake.
+
+### Who wrote what
+
+- **Me (Raju):** asked to keep pushing until the cars look real.
+- **Claude:** the plate and the tyre fix, three failed pillar attempts, and
+  the decision to delete them rather than ship them.
+

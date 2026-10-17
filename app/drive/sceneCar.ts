@@ -506,6 +506,14 @@ export function createCarKit(): CarKit {
     ),
   );
 
+  // NOTE: painted C-pillars were tried here and removed. The idea was right —
+  // a backlight with no pillars is the loudest "3D model" cue from the angle
+  // we actually view this car — but three attempts at placing them by sweep
+  // angle produced patches sitting ON the glass rather than structure framing
+  // it, which looked worse than the clean backlight. If someone revisits it,
+  // build the pillar from the greenhouse's OUTER edge curve rather than from a
+  // theta range, so it is anchored to the shoulder by construction.
+
   for (const sx of [-1, 1]) {
     const pod = loft(MIRROR_POD, 10);
     pod.translate(sx * 0.955, 0.822, 0);
@@ -534,6 +542,12 @@ export function createCarKit(): CarKit {
   const diffuser = new THREE.BoxGeometry(1.16, 0.14, 0.34);
   diffuser.translate(0, 0.255, 1.98);
   trimParts.push(diffuser);
+
+  // Number plate recess: a dark inset for the plate to sit in, so the plate
+  // reads as set into the bodywork rather than stuck on it.
+  const plateRecess = new THREE.BoxGeometry(0.56, 0.17, 0.02);
+  plateRecess.translate(0, 0.475, 2.14);
+  trimParts.push(plateRecess);
 
   // Recessed dark panel behind the tail lamps. Without it the lenses look
   // painted onto the bodywork instead of set into it, which is most of what
@@ -604,6 +618,12 @@ export function createCarKit(): CarKit {
     drl.translate(sx * 0.45, 0.545, -2.095);
     headParts.push(drl);
   }
+  // The plate itself. It rides in the headlamp material: pale and very
+  // slightly self-lit, which is what a retroreflective plate looks like, and
+  // it costs no extra material or draw call.
+  const plate = new THREE.BoxGeometry(0.52, 0.13, 0.012);
+  plate.translate(0, 0.475, 2.152);
+  headParts.push(plate);
   const head = mergeParts(headParts);
 
   /* ---- brakes: all four corners merged, and deliberately NOT spinning ---- */
@@ -773,7 +793,10 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
       }),
     );
     const tyreMat = keep(
-      new THREE.MeshStandardMaterial({ color: 0x0c0e11, roughness: 0.92, metalness: 0.0 }),
+      // Real rubber in daylight is a dark grey, not black. At 0x0c0e11 the
+      // tyres disappeared into the shadow under the car and it read as
+      // floating rather than standing on four wheels.
+      new THREE.MeshStandardMaterial({ color: 0x1b1d21, roughness: 0.95, metalness: 0.0 }),
     );
     const rimMat = keep(
       new THREE.MeshStandardMaterial({ color: 0x9aa0a8, metalness: 0.95, roughness: 0.28 }),
