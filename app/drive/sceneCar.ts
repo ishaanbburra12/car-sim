@@ -534,6 +534,13 @@ export function createCarKit(): CarKit {
   const diffuser = new THREE.BoxGeometry(1.16, 0.14, 0.34);
   diffuser.translate(0, 0.255, 1.98);
   trimParts.push(diffuser);
+
+  // Recessed dark panel behind the tail lamps. Without it the lenses look
+  // painted onto the bodywork instead of set into it, which is most of what
+  // made the old tail read as two stickers.
+  const tailBezel = new THREE.BoxGeometry(1.62, 0.17, 0.02);
+  tailBezel.translate(0, 0.7, 2.158);
+  trimParts.push(tailBezel);
   for (let k = -2; k <= 2; k++) {
     const fin = new THREE.BoxGeometry(0.022, 0.13, 0.32);
     fin.translate(k * 0.22, 0.3, 1.98);
@@ -567,15 +574,21 @@ export function createCarKit(): CarKit {
   }
   const chrome = mergeParts(chromeParts);
 
-  /* ---- lamps: the tail is the hero view, so it gets the signature ---- */
+  /* ---- lamps: the tail is the hero view, so it gets the signature ----
+     We look at the back of this car essentially 100% of the time, and at
+     chase-camera distance two separate lenses read as two floating pink
+     smudges. A single full-width bar is both more modern and far more
+     legible at the size it is actually seen. ---- */
   const tailParts: THREE.BufferGeometry[] = [];
   for (const sx of [-1, 1]) {
-    const lens = new THREE.BoxGeometry(0.4, 0.095, 0.045);
-    lens.translate(sx * 0.415, 0.7, 2.172);
+    const lens = new THREE.BoxGeometry(0.44, 0.115, 0.05);
+    lens.translate(sx * 0.42, 0.7, 2.174);
     tailParts.push(lens);
   }
-  const bar = new THREE.BoxGeometry(0.44, 0.03, 0.038);
-  bar.translate(0, 0.7, 2.17);
+  // Full-width connector, not a stub: it ties the two clusters into one light
+  // bar across the whole tail.
+  const bar = new THREE.BoxGeometry(0.9, 0.105, 0.046);
+  bar.translate(0, 0.7, 2.176);
   tailParts.push(bar);
   const thirdBrake = new THREE.BoxGeometry(0.24, 0.022, 0.025);
   thirdBrake.translate(0, 1.295, 0.94);
@@ -706,11 +719,14 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
     const paintMat = keep(
       new THREE.MeshPhysicalMaterial({
         color: base,
-        metalness: 0.55, // NEEDS scene.environment -- see integration note 7
-        roughness: 0.3,
+        // Car paint is a DIELECTRIC with a clear lacquer over it, not a metal.
+        // At metalness 0.55 the albedo was being tinted by the environment and
+        // a vivid amber came out as mud. The gloss comes from the clearcoat.
+        metalness: 0.08,
+        roughness: 0.38,
         clearcoat: 1.0,
-        clearcoatRoughness: 0.07,
-        envMapIntensity: 1.2,
+        clearcoatRoughness: 0.06,
+        envMapIntensity: 1.35,
       }),
     );
     const glassMat = keep(
@@ -835,9 +851,12 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
      sorting, so no shimmer), a sheen rim, an inner glow, an additive outline
      hull, no cast shadow, no lamps, no chrome, no red calipers. Same
      silhouette, completely different material language.                     */
-  const shellCol = base.clone().multiplyScalar(0.3);
-  const glowCol = base.clone().multiplyScalar(0.7);
-  const rimCol = base.clone().lerp(new THREE.Color(0xffffff), 0.55);
+  // Keep the ghost's colour close to its real hue. Crushing it to 30% and
+  // then adding emissive on top was what made it read as a light source
+  // rather than as a car.
+  const shellCol = base.clone().multiplyScalar(0.85);
+  const glowCol = base.clone().multiplyScalar(0.35);
+  const rimCol = base.clone().lerp(new THREE.Color(0xffffff), 0.3);
 
   const shellMat = keep(
     new THREE.MeshPhysicalMaterial({
@@ -845,13 +864,14 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
       roughness: 0.42,
       metalness: 0.0,
       emissive: glowCol,
-      emissiveIntensity: 0.55,
-      // Stock-three fresnel: a grazing-angle lobe that lights the silhouette.
-      sheen: 1.0,
+      emissiveIntensity: 0.12,
+      // A little grazing-angle lift so the silhouette still reads against the
+      // road, but nowhere near enough to glow.
+      sheen: 0.45,
       sheenColor: rimCol,
-      sheenRoughness: 0.28,
+      sheenRoughness: 0.4,
       transparent: true,
-      opacity: Math.min(0.34, opacity + 0.02),
+      opacity: Math.min(0.46, opacity + 0.06),
       // Safe: WebGLRenderer renders opaque -> transmissive -> transparent, so
       // the opaque hero is already in the depth buffer and can never be hidden
       // by a ghost. This is what lets the outline hull work.
@@ -859,12 +879,16 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
       envMapIntensity: 0.6,
     }),
   );
+  // The outline hull: a THIN back-side rim, not a glow. At 0.4 additive over
+  // the whole silhouette it swallowed the car's shape and the ghosts stopped
+  // looking like the same model as the hero, which is the one thing they must
+  // never stop looking like.
   const hullMat = keep(
     new THREE.MeshBasicMaterial({
       color: rimCol,
       transparent: true,
-      opacity: 0.4,
-      blending: THREE.AdditiveBlending,
+      opacity: 0.1,
+      blending: THREE.NormalBlending,
       side: THREE.BackSide,
       depthWrite: false,
     }),
@@ -873,11 +897,11 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
     new THREE.MeshStandardMaterial({
       color: shellCol,
       emissive: glowCol,
-      emissiveIntensity: 0.3,
+      emissiveIntensity: 0.1,
       roughness: 0.6,
       metalness: 0.0,
       transparent: true,
-      opacity: Math.min(0.4, opacity + 0.08),
+      opacity: Math.min(0.5, opacity + 0.12),
       depthWrite: false,
     }),
   );
@@ -887,7 +911,7 @@ export function buildCar(color: number, opacity: number, sharedKit?: CarKit): Ca
       map: kit.poolTex,
       color: rimCol,
       transparent: true,
-      opacity: 0.3,
+      opacity: 0.22,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     }),

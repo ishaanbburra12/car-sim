@@ -1100,3 +1100,56 @@ claimed one.** That needs checking on an actual machine.
   it failed, wrote the road, scenery and camera feel, added adaptive
   resolution, and verified disposal.
 
+---
+
+## 2026-10-17 — Session 15: making the cars themselves look right
+
+### What we did
+
+Took a proper high-resolution "before" shot of the cars, read what was
+actually wrong from it, and fixed three things. Tests stay at 203; no physics
+touched.
+
+### What the before shot showed
+
+Looking at a screenshot rather than at the code is what found all three:
+
+**The paint was muddy.** The hero's amber came out brown. The material had
+`metalness: 0.55`, but car paint is a DIELECTRIC with a clear lacquer over it,
+not a metal. At that metalness the environment was tinting the albedo itself.
+Dropped to 0.08 and let the clearcoat provide the gloss; the amber went vivid.
+
+**The ghosts did not look like the same car.** They read as long glowing
+lozenges, not as translucent copies of the hero. The cause was an additive
+back-side hull at 0.4 opacity drawn over the whole silhouette, plus strong
+emissive and full sheen: three glow effects stacked on one object. The
+geometry was always identical to the hero's — it was the material language
+that destroyed the resemblance. That is a MEANING bug as much as a visual one:
+the three cars are the same car with different parts, and the view exists to
+let you compare them.
+
+**The tail lights read as two pink stickers.** We look at the back of this car
+essentially 100% of the time, so the rear is where detail actually pays. The
+two lenses were joined by a stub bar too thin to see, and there was nothing
+behind them, so they looked painted on. They are now one continuous full-width
+bar set into a recessed dark bezel.
+
+### One thing I got wrong while reading the picture
+
+I first concluded the body was far too narrow, because a comment said the max
+half-width was 0.634 m. That is the TUB — the floorpan between the wheels. The
+SHOULDER is the actual outer skin at 0.934, so the car is 1.87 m wide, which
+is correct for a coupe. I nearly "fixed" a proportion that was already right.
+Read which part a number belongs to before acting on it.
+
+The other thing that looked wrong and was not: the ghosts appear longer than
+the hero. That is just perspective — the hero is dead astern and foreshortened
+while the ghosts are offset far enough to show their flanks.
+
+### Who wrote what
+
+- **Me (Raju):** asked for a before shot first, which is what made the
+  diagnosis possible.
+- **Claude:** read the shot, found the metalness, hull-blending and tail-lamp
+  problems, and iterated against screenshots rather than against the code.
+
