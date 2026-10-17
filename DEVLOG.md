@@ -1338,3 +1338,131 @@ they were not — they were a measurement problem.
 - **Claude:** the viewer harness, the pillar band, both tessellation bugs and
   the measurements that found them, the greenhouse ends, tail bezel, rims,
   arch liners and shutlines.
+
+---
+
+## 2026-10-17 — Session 18: make it look like real life
+
+### What I asked for
+
+"Make it look like real life." Ultracode on, so: use a workflow.
+
+### The workflow, and what went wrong with it
+
+Twelve critics, one per realism lens (proportions, surfacing, materials,
+lighting, missing parts, wheels, lamps, procedural textures, glass, the
+chase read, photo-versus-render, grounding), each reading the renders and the
+source, then clustering, then two adversarial checks per surviving finding,
+then a ranked build plan.
+
+It did not go to plan twice:
+
+1. **This container has 4 CPUs**, so the workflow runs at most 2 agents at
+   once. Twelve critics each reading thirteen 1500x1000 PNGs would have taken
+   hours. Killed it and rewrote it leaner: eight critics, each given only the
+   3-4 renders its lens actually needs.
+2. **Every agent then died on "You've hit your session limit."** All ten of
+   them, in 27 seconds. Retried later and it ran, but slowly — by the time I
+   stopped waiting, three of eight critics had reported.
+
+So most of this session's work is mine, with two critics' findings folded in.
+Both of those earned their keep, and one of them found a bug I would not have
+found by looking.
+
+### Measuring instead of squinting
+
+The useful trick this session was writing a probe for each claim before
+acting on it.
+
+**Where can a part actually go?** A script that walks the body's own section
+and reports the half-width available at any (y, z). Run against the tail it
+said, immediately:
+
+- the exhaust tips hung **26 mm outside the bodywork** at their height;
+- the diffuser sat **entirely below the car** — the tail's keel is at y 0.335
+  and the diffuser's top was 0.325, so there was a 10 mm gap of daylight above
+  a part that is supposed to be let into the bumper;
+- the lamp bezel ran **past the body's crown** at the top, into thin air.
+
+All three were visible in a low render as "parts bolted on", but I could not
+have said which parts or by how much. Everything on the tail face now fits
+inside the section it is mounted to, checked at three heights per part.
+
+**Do the wheels read at chase distance?** Sampling the chase render: tyres at
+luminance 8-20 against a road at 40 and an under-car shadow at 24. The wheels
+were not invisible, they were merging into one dark mass with the shadow. The
+fix was not to brighten rubber but to show more rim: the sidewall was 108 mm
+on a 235 mm section, a 46% profile — a family saloon. It is 32% now.
+
+### What the critics found
+
+**Two shadows, both the wrong shape.** buildCar already gave every rig a
+ground plane and scene.ts added the atmosphere's blob on top, so each car sat
+on two stacked haloes, 2.6 x 5.0 m and 3.2 x 5.8 m, against a car whose plan
+is 1.87 x 4.33. Both radial, so both darkest dead centre under the cabin and
+fading out at the wheels — the exact inverse of real ground occlusion, which
+is near-black at the four contact patches. One shadow now, drawn to the car's
+plan. Measured: road luminance a car's width to the side was pulled down 3.1
+by the spill before, 0.3 after.
+
+**The paint had half the reflection it asked for.** This is the one I would
+not have found. sceneLighting.ts documents it at the top of its own applyTo():
+with envMap === null the renderer overwrites envMapIntensity with the scene's
+global value every frame, so setting it on a material does nothing. Its
+integration note says to call applyTo on the car paint. Nothing ever did —
+scene.ts called it only on the guard rail. Paint tuned to 1.35 and glass tuned
+to 1.8 had both been silently running at 0.65 since the lighting went in. Car
+paint and glass read as real almost entirely through what they reflect, so
+this was most of why they looked like coloured plastic.
+
+**No ambient occlusion anywhere**, so the flanks were a flat orange field with
+no weight. Baked into vertex colours on the paint geometry.
+
+### What I got wrong, and said so
+
+A critic blamed the washed-out upper body on the probe's sun card being far
+too wide. The card IS far too wide — 13.7 degrees against the sun's 0.53, 26
+times over — so I tightened it. Then I measured, and it changed nothing:
+roof saturation 0.440 to 0.440, haunch 0.497 to 0.500. The diagnosis was
+wrong about the cause.
+
+I then guessed the wash was my own restored reflection over-correcting, swept
+paint envMapIntensity at 1.35 / 1.05 / 0.85, and that was wrong too — 1.35
+measures the MOST saturated of the three. So the pale band is the specular
+highlight itself, which is what a glossy car in sunlight does, and the value
+stays where it is. The sun card change is kept because a 13.7 degree sun is
+indefensible on its own terms, not because it fixed anything.
+
+Two wrong guesses in a row is worth writing down. Both looked obvious and
+both would have been shipped as "fixes" without a measurement.
+
+### Also
+
+- **carTextures.ts**, a new file: procedurally drawn maps, no binary assets.
+  Orange peel in the clearcoat so the paint is not a perfect mirror, tread and
+  sidewall relief on the tyres, a turned and cross-drilled brake disc face.
+  Deterministic noise, not Math.random, so two screenshots of the same car are
+  comparable.
+- The tail lamp stopped clipping. 0xff2a16 at 2.4 blew the red channel out to
+  a flat pink slab — the brightest thing on screen for the whole game.
+- The tyre lathe went from 20 segments to 32; you could count its corners.
+- A backing disc inboard of each tyre: opening the rim face let you see
+  between the spokes and straight out the far side of the car.
+- Removed addContactShadow from sceneLighting.ts rather than leaving it dead.
+
+### Still not done
+
+- Tread is a bump map, not a normal map, because LatheGeometry generates no
+  tangents. It is fine at the distances the tyre is ever seen.
+- The cabin behind the glass is empty. The glass is opaque enough to get away
+  with it; making it transparent would show through the car.
+- Frame rate on real hardware still unmeasured — this container is software
+  rendering only.
+- The five-person user test still needs five people.
+
+### Who wrote what
+
+- **Me (Raju):** "make it look like real life", and told it to try again when
+  the first workflow fell over.
+- **Claude:** the workflow and its two rewrites, the measurement probes, the
+  tail geometry, wheels, shadow, AO, textures, and the two wrong guesses above.
