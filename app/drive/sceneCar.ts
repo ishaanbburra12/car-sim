@@ -552,6 +552,12 @@ function makeTyre(): THREE.BufferGeometry {
 
 /** Five-spoke rim: lathed barrel, flange and dished face, plus spokes. */
 function makeRim(): THREE.BufferGeometry {
+  // The outboard face is OPEN. The old profile ran all the way back to the
+  // centre, which made the wheel a closed dish with five little blocks raised
+  // on it: no gaps, so the brake disc behind was never visible and the wheel
+  // read as a hubcap. A real alloy is mostly hole. The lip rolls inward and
+  // stops at 0.196, just inside the 0.195 disc, so the disc fills the opening
+  // from straight on and the barrel's own interior fills it from an angle.
   const profile = [
     new THREE.Vector2(0.0, -0.105), // closed inboard end
     new THREE.Vector2(0.1, -0.105),
@@ -561,15 +567,18 @@ function makeRim(): THREE.BufferGeometry {
     new THREE.Vector2(0.206, 0.04),
     new THREE.Vector2(0.222, 0.085), // outer flange
     new THREE.Vector2(0.212, 0.108),
-    new THREE.Vector2(0.15, 0.09), // face falls away
-    new THREE.Vector2(0.09, 0.078),
-    new THREE.Vector2(0.038, 0.082), // centre cap
-    new THREE.Vector2(0.0, 0.08),
+    new THREE.Vector2(0.196, 0.1), // lip rolls in, and the face stops here
   ];
-  const parts: THREE.BufferGeometry[] = [new THREE.LatheGeometry(profile, 16)];
+  const parts: THREE.BufferGeometry[] = [new THREE.LatheGeometry(profile, 20)];
+  // Hub, with its cap: without this the spokes would meet at nothing.
+  const hub = new THREE.CylinderGeometry(0.062, 0.056, 0.062, 14);
+  hub.translate(0, 0.062, 0);
+  parts.push(hub);
   for (let k = 0; k < 5; k++) {
-    const spoke = new THREE.BoxGeometry(0.15, 0.03, 0.055);
-    spoke.translate(0.132, 0.066, 0);
+    // Reaches from the hub (r 0.05) out to the lip (r 0.206), so each spoke
+    // lands on both and the gap between them is genuinely open.
+    const spoke = new THREE.BoxGeometry(0.156, 0.026, 0.05);
+    spoke.translate(0.128, 0.082, 0);
     spoke.rotateY((k * Math.PI * 2) / 5);
     parts.push(spoke);
   }
@@ -714,7 +723,13 @@ export function createCarKit(): CarKit {
     // Arch liner: an open half tube seen through the arch opening. Sized to
     // span |x| 0.665..0.905 so it stays inboard of the 0.911 fender and never
     // pokes through the paint.
-    const arc = Math.PI * 1.05;
+    //
+    // The arc used to be 189 deg, which put its two ends at y 0.299 while the
+    // body's keel at that z is around 0.49: the liner hung below the car as a
+    // pair of dark flaps. At 112 deg the ends sit at y 0.57, within a centimetre
+    // or two of the keel above them, and the part of the arch anyone can
+    // actually see into is still lined.
+    const arc = Math.PI * 0.62;
     const liner = new THREE.CylinderGeometry(0.4, 0.4, 0.24, 12, 1, true, Math.PI / 2 - arc / 2, arc);
     liner.rotateZ(Math.PI / 2);
     liner.translate(wx, WHEEL_R, wz);
@@ -746,6 +761,34 @@ export function createCarKit(): CarKit {
     fin.translate(k * 0.22, 0.3, 1.98);
     trimParts.push(fin);
   }
+  // Shutlines. A car without panel gaps reads as a bar of soap, and these are
+  // the cheapest way to say "this is made of pressed panels".
+  //
+  // Each one is a ribbon only 1.5 mm proud of the body, which is far less than
+  // the body's own tessellation error - so why does it not sink in and come
+  // out dashed? Because a ribbon's vertices sit on the TRUE surface while the
+  // body is a polygon inscribed in it. The strip is at worst flush and usually
+  // a few mm proud, never swallowed. The same holds along z, as long as a
+  // strip stays between two neighbouring SHOULDER stations, which is why the
+  // z values below are what they are.
+  const shutline = (z0: number, z1: number, t0: number, t1: number) =>
+    loft(
+      [stationAt(SHOULDER, z0), stationAt(SHOULDER, z1)],
+      22,
+      { theta0: t0, theta1: t1, outer: [0.0015, 0.0015], inner: -0.012 },
+    );
+  // Door, front and rear cuts, both sides (theta -> PI - theta to mirror).
+  for (const [za, zb] of [
+    [-0.87, -0.862],
+    [0.952, 0.96],
+  ] as const) {
+    trimParts.push(shutline(za, zb, -0.9, 0.95));
+    trimParts.push(shutline(za, zb, Math.PI - 0.95, Math.PI + 0.9));
+  }
+  // Bonnet, where it meets the base of the windscreen. The cabin's first ring
+  // is at z = -0.92, so the cut goes just ahead of it.
+  trimParts.push(shutline(-1.0, -0.992, 0.55, Math.PI - 0.55));
+
   const splitter = new THREE.BoxGeometry(1.1, 0.03, 0.26);
   splitter.translate(0, 0.27, -2.0);
   trimParts.push(splitter);

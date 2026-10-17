@@ -1206,3 +1206,135 @@ mistake.
 - **Claude:** the plate and the tyre fix, three failed pillar attempts, and
   the decision to delete them rather than ship them.
 
+
+---
+
+## 2026-10-17 — Session 17: the pillars, on the fourth attempt
+
+### What I asked for
+
+Try the C-pillars again, using the outer-edge-curve idea the last session left
+a note about, and carry on making the car look like a real one.
+
+### A better way to look at the car
+
+Everything below was found by looking at the car properly, and the first thing
+built this session was the means to do that. The game renders the car about
+150 pixels wide at chase distance, which is too small to tell a shading quirk
+from a hole in the mesh. So: a standalone viewer that imports the *same*
+`sceneCar.ts` and `sceneLighting.ts` the game uses, drops the car on a plain
+ground plane, and screenshots it at 1520x1020 from any of ten camera angles,
+with toggles to hide the glass, drop the self-shadowing, or go wireframe.
+
+It is not part of the app and does not ship. It lives in the scratchpad with
+the other verification scripts. It rebuilt in about a second, against roughly
+a minute for a full Next build and restart, which is most of why this session
+got further than the last one.
+
+### The pillars
+
+The note from last time was half right. "Anchor it to the greenhouse's outer
+edge" was the correct instinct, but the first version of it still produced a
+patch with a cut edge lying on the glass, and a cut edge on glass reads as a
+crack. What actually works is to stop cutting at all:
+
+> One continuous band per side, and both of its long edges are anchored to
+> something real. The top edge is `ROOF_EDGE` — the very constant the roof
+> skin starts from, so the pillar is the roof panel's own side edge carried
+> fore and aft, and cannot drift off it. The bottom edge hugs the roof rail
+> past the door and then swings down to `SAIL_KEEL`, which is inside the
+> bodywork everywhere it reaches, so it dies in the quarter rather than
+> stopping in mid-air.
+
+That one band is now the A-pillar, the roof rail and the C-pillar. Nothing is
+cut out of it, so there is no bare panel edge anywhere on the glass.
+
+### Two bugs the eye could see but not explain
+
+Both showed up as the same symptom: a ragged dark tear up the middle of each
+C-pillar, like a lightning bolt. My first guess was shadow acne. Turning
+self-shadowing off entirely did not change it, so that was wrong, and rather
+than guess again I wrote a script that rebuilds *both* tessellations exactly
+as `loft()` builds them and asks one question: is any vertex of the painted
+panel inside the glass as actually drawn? It was. 49 of 1456 samples, up to
+26 mm deep. Two separate causes:
+
+1. **The band's lower edge turned too fast.** It swung up to 0.55 rad between
+   two stations, and an edge is a polyline — a step that long cuts a chord
+   straight across the greenhouse and dives under the glass. Capped near
+   0.2 rad per station, where the chord sits about 4 mm inside the surface.
+
+2. **`inflate` pushed the wrong way.** It offset along the radius from the
+   section's centre. On the near-flat section at the tail, the radius and the
+   actual surface normal are tens of degrees apart, so a 12 mm radial push
+   bought barely 1 mm of real clearance. Ribbons now offset along a normal
+   taken from a central difference of the section curve, which makes the
+   offset mean what it says. This is a better primitive for the roof skin and
+   the ducktail too.
+
+Measured over 3276 samples of the finished panel: **0 mm swallowed**, down
+from 26.3.
+
+A third thing was wrong on principle even after the tear was gone: the glass
+and the panels riding on it were lofted from *different* station lists, so
+between two stations one followed a straight line in z and the other followed
+the curve. They now share one ring list (`densify`), which removes the
+disagreement at the source instead of leaving it small enough to get away with.
+
+### The rest of the car
+
+With the pillars right, things that had been hiding behind them became
+obvious:
+
+**The greenhouse stopped dead at both ends.** A flat pane of glass facing the
+car behind, and another facing the road ahead. Both now keep falling until
+they are under the decklid and under the bonnet, so each ends in a shutline.
+This is most of what turned the back of the car into a fastback.
+
+**The tail bezel was wider than the car.** 1.62 m of bezel across a tail face
+that is 1.337 m at lamp height, so its corners hung in open air — that is why
+the whole tail read as a slab bolted on. Narrowing it to exactly the lamp
+width was *worse*, because then the lamp had no dark surround to sit in. 1.30
+of bezel around 1.12 of lamp is right.
+
+**The wheels were hubcaps.** The rim profile ran all the way back to the
+centre, so the face was a closed dish with five little blocks raised on it —
+no gaps, and the brake disc behind was never visible. A real alloy is mostly
+hole. The face is open now and the spokes bridge hub to rim, so you see the
+disc through it.
+
+**The arch liners hung below the car.** A 189° liner put its ends at y 0.299
+where the body's keel is around 0.49, so two dark flaps stuck out under the
+sills. 112° keeps the part anyone can see into lined and tucks the ends away.
+
+**Shutlines.** A car with no panel gaps reads as a bar of soap. Door cuts both
+sides and a bonnet cut at the base of the windscreen. These are only 1.5 mm
+proud, far less than the body's own tessellation error, and they still never
+come out dashed — because a ribbon's vertices sit on the true surface while
+the body is a polygon inscribed in it, so the strip is at worst flush and
+never swallowed. Same geometry fact as bug 2 above, used deliberately.
+
+### What I decided
+
+Keep going on realism rather than stopping at the pillars. Three failed
+attempts in the last session had made the pillars feel like a dead end, and
+they were not — they were a measurement problem.
+
+### What is still not done
+
+- No tyre tread, no badge, no paint flake. All of those want textures, and
+  this project has held a zero-binary-assets line since day one.
+- The A-pillar still flares into a wedge where it buries at the cowl. It reads
+  as a thick pillar rather than wrong, so I left it.
+- Frame rate on a real GPU is still unmeasured. This container only has
+  software rendering, so the 8 fps it reports means nothing either way.
+- The five-person user test in `USER-TEST.md` still has not been run. It needs
+  five real people and I cannot stand in for them.
+
+### Who wrote what
+
+- **Me (Raju):** asked for the fourth pillar attempt, using the outer-edge
+  idea, and to keep going until the cars look like real life.
+- **Claude:** the viewer harness, the pillar band, both tessellation bugs and
+  the measurements that found them, the greenhouse ends, tail bezel, rims,
+  arch liners and shutlines.
