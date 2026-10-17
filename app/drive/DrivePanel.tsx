@@ -6,17 +6,18 @@ import type { Car } from "../../src/types";
 import type { DriverInputs } from "../../src/engine";
 import { estimate } from "../../src/engine";
 import {
-  advance,
   createSession,
   frameOf,
   resetSession,
   type DriveFrame,
+  type DriveSession,
 } from "../../src/drive/session";
 import { createDriveLoop, rampInput, type DriveLoop } from "../../src/drive/loop";
 import { DRIVE_TUNABLES } from "../../src/drive/tunables";
 import { fmt } from "../../src/ui/format";
 import { EngineSound, cylindersFor } from "../../src/ui/sound";
 import Gauge from "./Gauge";
+import Scene3D from "./Scene3D";
 import RunCard from "./RunCard";
 
 
@@ -55,6 +56,7 @@ export default function DrivePanel({
   const [soundOn, setSoundOn] = useState(true);
   const [frame, setFrame] = useState<DriveFrame | null>(null);
   const [pedals, setPedals] = useState({ throttle: 0, brake: 0 });
+  const [show3d, setShow3d] = useState(true);
   const manual = car.gearboxType === "manual";
 
   const loopRef = useRef<DriveLoop | null>(null);
@@ -65,6 +67,19 @@ export default function DrivePanel({
   const lastInputMsRef = useRef(0);
   /** 0-based gear the driver has selected. Only used on a manual car. */
   const gearRef = useRef(0);
+  /** Anything that wants a callback on every physics frame, such as the 3D view. */
+  const tickSubsRef = useRef(new Set<(f: DriveFrame, s: DriveSession) => void>());
+
+  const subscribeToTicks = useCallback(
+    (fn: (f: DriveFrame, s: DriveSession) => void) => {
+      const subs = tickSubsRef.current;
+      subs.add(fn);
+      return () => {
+        subs.delete(fn);
+      };
+    },
+    [],
+  );
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // A new array identity every render would restart the session constantly, so
@@ -138,7 +153,8 @@ export default function DrivePanel({
       inputs: readInputs,
       // Audio must move every frame; updating it at the display rate is
       // audible as stepping.
-      onTick: (f) => {
+      onTick: (f, session) => {
+        for (const fn of tickSubsRef.current) fn(f, session);
         const sound = soundRef.current;
         if (!sound) return;
         const driven = f.outputs.expected;
@@ -294,6 +310,13 @@ export default function DrivePanel({
           : "This car shifts for itself, as the real one does."}
       </p>
 
+      {show3d && (
+        <Scene3D
+          subscribe={subscribeToTicks}
+          className="mt-4 h-64 w-full overflow-hidden rounded-md border border-white/10 bg-black/40 sm:h-80"
+        />
+      )}
+
       {/* ---- Cluster ---- */}
       <div className="relative mt-4 rounded-md border border-white/10 bg-black/20 p-4">
         {/* The badge lives INSIDE the cluster, so a screenshot of the gauges
@@ -427,6 +450,15 @@ export default function DrivePanel({
             Back to the line
           </button>
         )}
+        <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-400">
+          <input
+            type="checkbox"
+            checked={show3d}
+            onChange={(e) => setShow3d(e.target.checked)}
+            className="accent-amber-500"
+          />
+          3D view
+        </label>
         <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-400">
           <input
             type="checkbox"

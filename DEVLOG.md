@@ -947,3 +947,74 @@ because the new numbers went somewhere the checker could not see.
   and verified the braking cap, the leak, the redline zone, the reciprocal
   mute and the frame rate in a browser.
 
+---
+
+## 2026-10-17 — Session 13: 3D
+
+### What we did
+
+Drive mode has a 3D view: your car and the two ghosts on a road, with a chase
+camera, a gradient sky, lane markings, roadside posts and a quarter-mile gate.
+`three` is the first runtime dependency the project has taken beyond Next and
+React, and I approved it for this.
+
+Tests stay at 203. Nothing about the physics changed, so nothing about the
+tests needed to.
+
+### Why it earns its place
+
+Claude pushed back before building it, and the pushback was fair: a car model
+does not make a single number better, and 3D is the item on the list that adds
+the least per hour.
+
+What changed my mind is that it makes MY OWN design visible. In session 5 I
+wrote that the driver should race two ghost cars and that the gap between them
+on the track is the model's uncertainty. Until now that gap was a number on a
+panel reading "19 m". On a road it is a thing you watch open up as you
+accelerate. The honesty architecture stopped being a caption and became the
+picture.
+
+That is also why the Methods page now says plainly that the only thing in that
+view carrying information is the distance between the three cars. The road,
+the sky and the camera are scenery.
+
+### Kept honest
+
+The scene renders what the simulation already computed and feeds nothing back,
+so the physics is byte-for-byte identical whether the view is on screen or
+switched off. It does not start a clock of its own either: it subscribes to
+the existing drive loop, so it cannot drift from the physics or double the
+work. And it can be turned off, which is a checkbox, not an apology — the
+numbers lose nothing.
+
+### Checked properly
+
+Three.js does not free GPU memory on its own, and this component mounts and
+unmounts every time the car changes. Toggling the view eight times and then
+changing car four times leaves exactly one canvas and produces no WebGL
+warnings, so disposal is working. Browsers hard-cap live WebGL contexts, and
+getting this wrong would have broken the page after a handful of car changes
+rather than failing loudly.
+
+Also: the first check appeared to show nothing rendering, because reading a
+WebGL canvas with toDataURL returns a blank image unless preserveDrawingBuffer
+is set. The screenshot showed the scene perfectly. Worth remembering before
+trusting a canvas probe again.
+
+### What I left out
+
+I removed a resetView() helper I had added and never wired up. Last session's
+review flagged a dead method for exactly this reason, and shipping another one
+in the very next session would have been a poor response to it.
+
+### Who wrote what
+
+- **Me (Raju):** chose real 3D over a no-dependency fake, and approved three.
+- **Claude:** argued against it first, then built the scene, the subscription
+  that keeps it on the physics clock, and the leak check.
+
+### Next
+
+Still the five-person test. It has been the most valuable unfinished thing for
+four sessions now, and nothing I build changes that.
+

@@ -29,7 +29,11 @@ and how far the model lands from the real cars' published figures.
   you achieved beside what the model says the build should do — as two separate
   bands, one for how much the parts data varies and one for how wrong the model
   itself might be. Cars with a real manual gearbox hand you the gears; the
-  dual-clutch cars shift themselves. You drive the *typical* build while the pessimistic and
+  dual-clutch cars shift themselves.
+- **A 3D view** of the run: your car and the two ghosts on a road, so the
+  uncertainty in the parts data is something you watch open up rather than a
+  number on a panel. It renders what the simulation computed and feeds nothing
+  back, and it can be switched off without losing any information. You drive the *typical* build while the pessimistic and
   optimistic builds run alongside from the same inputs — the gap between them
   on the road is the uncertainty in the parts data. Every gauge carries three
   needles and the cluster is permanently badged as a simulation.
@@ -102,6 +106,9 @@ app/garage/       the configurator screen and its chart
 app/drive/        the rev test: slider, synthesised engine note
 app/methods/      the assumptions, in full
 ```
+
+`three` is the only runtime dependency beyond Next and React, and it is used
+solely to draw the view described above. The engine does not import it.
 
 The engine is deliberately separate from the UI. The whole Garage screen runs
 on one function call — `estimate(car, selectedPartIds)` — and renders whatever

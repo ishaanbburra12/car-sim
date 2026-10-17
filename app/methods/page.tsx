@@ -380,6 +380,18 @@ export default function MethodsPage() {
           published figures are untouched by it.
         </p>
 
+        <p>
+          <span className="text-slate-300">The 3D view is a view.</span> It
+          draws the three cars at the positions the simulation already
+          computed and feeds nothing back, so the physics is identical whether
+          it is on screen or switched off. The road, the sky and the camera
+          carry no information about any car: the only thing in that picture
+          with meaning is the distance between the three cars, which is the
+          same ghost gap the panel reports as a number. Everything else is
+          scenery, and the view can be turned off without losing anything the
+          model knows.
+        </p>
+
         <h3 className="pt-2 font-medium text-slate-300">
           Every number drive mode invents
         </h3>
