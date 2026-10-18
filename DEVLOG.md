@@ -1460,6 +1460,50 @@ both would have been shipped as "fixes" without a measurement.
   rendering only.
 - The five-person user test still needs five people.
 
+### Addendum: the audit finished, and found two things I had missed
+
+The workflow's critics all reported in the end. Two of their findings were
+bugs, not opinions, and both were things I had looked straight at.
+
+**Four of the eight tail parts were never drawn.** loft() flat-caps both ends
+of a sweep, so the body carries a solid disc across its last station at
+z = 2.16, and any tail part whose front face is behind that plane is simply
+never rasterised. The number plate was 2 mm behind it, its recess 10 mm, the
+exhaust surrounds 9 mm, the bore seals 100 mm.
+
+I had the symptom in front of me twice and drew the wrong conclusion both
+times. I noted "I can't see the number plate" in a render and assumed it was
+small and dark. And the exhaust surround I added earlier the same day - the
+dark cut-out whose whole job was to stop the tips reading as chrome washers
+stuck on the paint - was itself invisible, so that fix had done nothing at
+all. 0 of 8 hidden now, against 4 of 8.
+
+**Squat and dive were rotating the wheels and the shadow.** scene.ts did
+`cars.expected.group.rotation.x = pitch`, and the group holds the shell, the
+four wheels and the ground shadow, so the whole car rotated about the road
+rather than the body rotating on its springs. Measured at the 0.05 rad clamp
+the code uses under power:
+
+    pitch on the group: tyre contact heights  66.1  66.1  -66.9  -66.9 mm
+    pitch on the body:  tyre contact heights   0.0   0.0    0.0    0.0 mm
+
+Two front tyres hanging 66 mm in the air and two rear tyres 67 mm through the
+tarmac, during hard acceleration, which is the only thing this game ever does.
+CarRig now exposes `body` - the sprung mass - and the wheels and shadow stay
+on `group`.
+
+That one could not be screenshotted: the canvas will not render mid-launch
+under this container's software rasteriser, so it was proved with a probe that
+reads the tyres' world positions instead. Better evidence than a picture.
+
+**And a scare that was not a bug.** Midway through, every browser check
+started failing with the drive page blank and no buttons on it. It looked like
+I had broken the app. The running server had simply survived SIGTERM, so port
+3000 was still being served by a process built from older code, handing out
+HTML that referenced a chunk hash no longer on disk. `lsof -ti tcp:3000 |
+xargs kill` is not enough; it needs `-9`. Worth remembering, because for a few
+minutes I was debugging code that was fine.
+
 ### Who wrote what
 
 - **Me (Raju):** "make it look like real life", and told it to try again when
