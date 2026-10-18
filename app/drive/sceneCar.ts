@@ -1095,6 +1095,17 @@ export function createCarKit(): CarKit {
 export type CarRig = {
   group: THREE.Group;
   /**
+   * The sprung mass: the shell, glass, trim and lamps, but NOT the wheels and
+   * NOT the ground shadow. Squat and dive must be applied here.
+   *
+   * `group.rotation.x = pitch` was rotating all three together about the road
+   * at z = 0, so at the 0.05 rad clamp the front axle rose 66 mm and the rear
+   * sank 66 mm straight through the tarmac - under hard acceleration, which is
+   * the only thing this game ever does - and the shadow tilted off the road
+   * with them.
+   */
+  body: THREE.Group;
+  /**
    * The four spinners. render() writes `.rotation.x` on each, exactly as
    * before. Type widened from THREE.Mesh[] because these are now bare
    * Object3Ds holding a tyre mesh and a rim mesh.
@@ -1113,6 +1124,11 @@ export function buildCar(
   const kit = sharedKit ?? createCarKit();
   const ownsKit = sharedKit === undefined;
   const group = new THREE.Group();
+  // Everything that is sprung rides in `body`; the wheels and the ground
+  // shadow stay on `group`, which is what lets the car squat and dive without
+  // taking its tyres and its shadow with it.
+  const body = new THREE.Group();
+  group.add(body);
   const materials: THREE.Material[] = [];
   const keep = <T extends THREE.Material>(m: T): T => {
     materials.push(m);
@@ -1263,7 +1279,7 @@ export function buildCar(
       mesh.castShadow = true;
       // New: the car now shades itself. Needs sun.shadow.normalBias -- note 5.
       mesh.receiveShadow = true;
-      group.add(mesh);
+      body.add(mesh);
     }
 
     // The sun is off to one side, so the real shadow does not sit under the
@@ -1301,6 +1317,7 @@ export function buildCar(
 
     return {
       group,
+      body,
       wheels,
       dispose: () => {
         for (const m of materials) m.dispose();
@@ -1402,11 +1419,11 @@ export function buildCar(
 
   const shell = new THREE.Mesh(kit.ghostShell, shellMat);
   shell.renderOrder = 2;
-  group.add(shell);
+  body.add(shell);
 
   const hull = new THREE.Mesh(kit.ghostHull, hullMat);
   hull.renderOrder = 3;
-  group.add(hull);
+  body.add(hull);
 
   // A ghost is a maybe. It must not throw a hard black shadow on the tarmac --
   // that was the most solid-looking thing about the old ones.
@@ -1417,6 +1434,7 @@ export function buildCar(
 
   return {
     group,
+    body,
     wheels,
     dispose: () => {
       for (const m of materials) m.dispose();

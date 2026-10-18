@@ -346,7 +346,8 @@ export function createScene(
     lastSpeed = speedMps;
     const wantPitch = Math.max(-0.045, Math.min(0.05, -accel * 0.006));
     pitch += (wantPitch - pitch) * Math.min(1, dtS * 6);
-    cars.expected.group.rotation.x = pitch;
+    // The body only: wheels stay on the road and the shadow stays flat.
+    cars.expected.body.rotation.x = pitch;
 
     // Camera shake, scaled by speed. Two sine waves at unrelated frequencies
     // read as road surface rather than as a wobble.
