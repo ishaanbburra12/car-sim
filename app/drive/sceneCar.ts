@@ -873,8 +873,15 @@ export function createCarKit(): CarKit {
 
   // Number plate recess: a dark inset for the plate to sit in, so the plate
   // reads as set into the bodywork rather than stuck on it.
+  //
+  // NOTE THE Z. loft() flat-caps both ends of a sweep, so the body has a solid
+  // disc across its last station at z = 2.16, and ANY tail part whose front
+  // face sits behind that plane is simply never drawn. The plate, its recess,
+  // the exhaust surrounds and the bore seals were all behind it - four of the
+  // eight parts on this face rendered nothing at all, which is why the plate
+  // could not be found in any screenshot. Everything here must clear 2.16.
   const plateRecess = new THREE.BoxGeometry(0.56, 0.17, 0.02);
-  plateRecess.translate(0, 0.44, 2.14);
+  plateRecess.translate(0, 0.44, 2.163);
   trimParts.push(plateRecess);
 
   // Recessed dark panel behind the tail lamps. Without it the lenses look
@@ -886,7 +893,7 @@ export function createCarKit(): CarKit {
   // bezel the same width as the lamps leaves them no dark surround to sit in.
   // 1.30 fits the face with 90 mm of margin either side of the 1.12 m lamp.
   const tailBezel = new THREE.BoxGeometry(1.24, 0.17, 0.02);
-  tailBezel.translate(0, 0.63, 2.158);
+  tailBezel.translate(0, 0.63, 2.162);
   trimParts.push(tailBezel);
   for (let k = -2; k <= 2; k++) {
     const fin = new THREE.BoxGeometry(0.024, 0.12, 0.34);
@@ -931,12 +938,12 @@ export function createCarKit(): CarKit {
     // Dark disc at the BACK of the exhaust tip: this is what seals the open
     // tube so you see a recessed bore instead of straight through the car.
     const bore = new THREE.CircleGeometry(0.052, 12);
-    bore.translate(sx * 0.38, 0.465, 2.06);
+    bore.translate(sx * 0.38, 0.465, 2.172);
     trimParts.push(bore);
     // ...and a dark surround on the tail face, so the tip reads as a pipe
     // coming out of a cut-out rather than a chrome washer stuck on the paint.
     const surround = new THREE.CircleGeometry(0.075, 20);
-    surround.translate(sx * 0.38, 0.465, 2.151);
+    surround.translate(sx * 0.38, 0.465, 2.166);
     trimParts.push(surround);
   }
   const trim = mergeParts(trimParts);
@@ -989,7 +996,7 @@ export function createCarKit(): CarKit {
   // slightly self-lit, which is what a retroreflective plate looks like, and
   // it costs no extra material or draw call.
   const plate = new THREE.BoxGeometry(0.52, 0.13, 0.012);
-  plate.translate(0, 0.44, 2.152);
+  plate.translate(0, 0.44, 2.174);
   headParts.push(plate);
   const head = mergeParts(headParts);
 
