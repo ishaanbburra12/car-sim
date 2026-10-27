@@ -1,5 +1,5 @@
 import { CARS } from "./index";
-import { isAbsence, isFigure, type Car } from "./types";
+import { isAbsence, isFigure, type Car, type Figure } from "./types";
 
 // ---------------------------------------------------------------------------
 // Where does this car sit among its own kind?
@@ -18,6 +18,27 @@ import { isAbsence, isFigure, type Car } from "./types";
 // ---------------------------------------------------------------------------
 
 const MIN_PEERS = 3;
+
+/**
+ * Which sprint a 0-60 figure actually is.
+ *
+ * Europe mostly publishes 0-100 km/h, which is 62 mph; the United States
+ * publishes 0-60 mph; and a drag-strip number may have a one-foot rollout
+ * subtracted. At these speeds the three differ by one to three tenths, so a
+ * row that mixes them is not quite ranking one thing.
+ *
+ * Read from the note rather than a field of its own, which is only safe
+ * because a test forbids a 0-60 figure whose note does not say which it is.
+ */
+export type Basis = "0-60 mph" | "0-100 km/h" | "rollout-adjusted";
+
+export function basisOf(f: Figure): Basis | null {
+  const n = (f.note ?? "").toLowerCase();
+  if (n.includes("rollout")) return "rollout-adjusted";
+  if (n.includes("km/h")) return "0-100 km/h";
+  if (n.includes("60 mph")) return "0-60 mph";
+  return null;
+}
 
 /**
  * How far clear of the next car the top figure has to be before the axis is
@@ -87,6 +108,12 @@ export type Comparison = MeasureSpec & {
    * both is a little softer than it looks and the page should say so.
    */
   mixedSources: boolean;
+  /**
+   * The distinct measurement bases among the peers in this row, where the
+   * measure has one. More than one means the ranking spans 0-60 mph and
+   * 0-100 km/h figures, which are not the same sprint.
+   */
+  bases: string[];
 };
 
 function median(sorted: number[]): number {
@@ -128,6 +155,16 @@ export function compareWithinCategory(car: Car, pool: Car[] = CARS): Comparison[
 
     const kinds = new Set(peers.map((c) => c[spec.key]).filter(isFigure).map((f) => f.source));
 
+    const bases = [
+      ...new Set(
+        peers
+          .map((c) => c[spec.key])
+          .filter(isFigure)
+          .map(basisOf)
+          .filter((b): b is Basis => b !== null),
+      ),
+    ].sort();
+
     // Rank by the direction that counts as "better" for this measure. Ties
     // share the better rank, which is why this counts strictly-better cars.
     const better = values.filter((v) =>
@@ -150,6 +187,7 @@ export function compareWithinCategory(car: Car, pool: Car[] = CARS): Comparison[
       scaleMax,
       overScale: own.value > scaleMax,
       mixedSources: kinds.size > 1,
+      bases,
     });
   }
 

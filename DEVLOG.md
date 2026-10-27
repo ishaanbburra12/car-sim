@@ -2084,3 +2084,65 @@ Nulls 58 -> 48. Checked links 5 -> 11. Hypercars 80% -> 92%, overall 79% ->
 - **Me (Raju):** chose depth over breadth.
 - **Claude:** the research, the two corrections, and the measurement-basis
   ratchet.
+
+---
+
+## 2026-10-27 — Session 24: auditing all 25 0-60 times
+
+Raju said do the ratchet, and told me the end goal: a place where people can
+learn about cars, and about a specific car if they want one. That changed how
+I finished this — the chart is the teaching surface, so labelling the data was
+only half the job.
+
+### Nine of twenty-five were not what they claimed
+
+I expected to be adding notes. Checking each figure against the maker's own
+material found nine that were wrong, not merely unlabelled:
+
+| car | was | what it actually is |
+|---|---|---|
+| 911 GT3 RS | 3.0 s "manufacturer" | only on dealer pages; Porsche publishes 3.2 s to 100 km/h |
+| 918 Spyder | 2.5 s "manufacturer" | a third-party 0-60; Porsche's own is 2.6 s to 100 km/h |
+| McLaren 750S | 2.7 s "manufacturer" | McLaren publishes 2.8 s to 62 mph and no 0-60 at all |
+| LaFerrari | 2.9 s "manufacturer" | Ferrari publishes only "under 3 seconds" — a bound |
+| Rimac Concept_One | 2.5 s | that is Rimac's 0-100 km/h; its own 0-60 is **2.4 s** |
+| Pagani Zonda F | 3.6 s "manufacturer" | a magazine figure, not Pagani's |
+| Peugeot 205 GTI | 7.8 s "manufacturer" | a 1986 Auto Bild road test |
+| Civic Type R FL5 | 5.0 s "independent" | a spec-database number; Honda rates it 5.4 s to 62 mph |
+| Golf GTI Mk1 | 9.0 s | belongs to the later 1.8; the 110 PS 1.6 is quoted at 9.2 s |
+
+Four of those were provenance errors — a magazine's or a database's number
+wearing a `manufacturer` tag — which is a worse failure than a missing figure,
+because the site's whole claim is that the tag means something.
+
+LaFerrari is the neat case. Ferrari publishes its torque as "over 900 Nm" and
+its sprint as "under 3 seconds". Both are bounds, not figures, so both are now
+marked absent with that as the reason. The 2.9 s was somebody reading a bound
+as a number, and it had been sitting in the chart.
+
+### The ratchet is gone because it emptied
+
+Replaced with an absolute rule: a 0-60 figure must say whether it is 0-60 mph,
+0-100 km/h or a rollout-adjusted run, or it does not go in. The list of nine
+corrections is kept in the test as the reason the rule exists.
+
+### The chart now says when a row is not one measurement
+
+Labelling the data fixed the spec table and left the chart ranking 0-100 km/h
+against 0-60 mph in silence, which was the actual bug. A row whose peers
+published different sprints now says so underneath, next to the existing
+warning about mixing makers' claims with independent tests.
+
+`basisOf` reads the basis out of the note rather than from a field of its own.
+That is only safe because the test above forbids a 0-60 figure whose note does
+not state it, so the string is guaranteed. Worth knowing if that test is ever
+relaxed.
+
+### Counts
+
+Every 0-60 figure in the catalogue now states its basis. 262 tests.
+
+### Who wrote what
+
+- **Me (Raju):** said do the ratchet, and said what the site is for.
+- **Claude:** the 25 audits, the nine corrections, and the chart warning.

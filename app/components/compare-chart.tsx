@@ -125,6 +125,18 @@ function Bar({ c, peers }: { c: Comparison; peers: string }) {
           the same measurement.
         </p>
       ) : null}
+      {/* The 0-60 row is the one where this really bites. Most of Europe
+          publishes 0-100 km/h, which is 62 mph, and the US publishes 0-60 mph:
+          a tenth to three tenths apart at these speeds, which is enough to
+          move a car up or down the order. Saying so is the honest version of
+          ranking them together, and a reader learns something from it. */}
+      {c.bases.length > 1 ? (
+        <p className="mt-1 text-[12px]" style={{ color: "var(--ink-3)" }}>
+          These are not all the same sprint: the cars counted here published{" "}
+          {c.bases.slice(0, -1).join(", ")} and {c.bases[c.bases.length - 1]} figures, which
+          differ by a tenth or two. Each car&rsquo;s own page says which it is.
+        </p>
+      ) : null}
     </li>
   );
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CARS, CAR_BY_SLUG } from "./index";
-import { compareWithinCategory, coverage, coverageOf, rankPhrase } from "./compare";
+import { basisOf, compareWithinCategory, coverage, coverageOf, rankPhrase } from "./compare";
 import type { Car } from "./types";
 
 const car = (over: Partial<Car>): Car => ({
@@ -268,5 +268,48 @@ describe("rank phrasing", () => {
     expect(phrase(12, 20)).toBe("12th of 20");
     expect(phrase(13, 20)).toBe("13th of 20");
     expect(phrase(21, 30)).toBe("21st of 30");
+  });
+});
+
+describe("rows say when they are not ranking the same sprint", () => {
+  const withBasis = (v: number, note: string) => ({
+    value: v,
+    source: "manufacturer" as const,
+    note,
+  });
+
+  it("notices a row mixing 0-60 mph with 0-100 km/h figures", () => {
+    const pool = [
+      car({ slug: "a", zeroTo60S: withBasis(4, "0-60 mph, the maker's US figure") }),
+      car({ slug: "b", zeroTo60S: withBasis(5, "quoted as 0-100 km/h (62 mph)") }),
+      car({ slug: "c", zeroTo60S: withBasis(6, "0-60 mph") }),
+    ];
+    const [row] = compareWithinCategory(pool[0], pool);
+    expect(row.bases).toEqual(["0-100 km/h", "0-60 mph"]);
+  });
+
+  it("stays quiet when every car published the same sprint", () => {
+    const pool = [
+      car({ slug: "a", zeroTo60S: withBasis(4, "0-100 km/h (62 mph)") }),
+      car({ slug: "b", zeroTo60S: withBasis(5, "0-100 km/h (62 mph)") }),
+      car({ slug: "c", zeroTo60S: withBasis(6, "0-100 km/h (62 mph)") }),
+    ];
+    expect(compareWithinCategory(pool[0], pool)[0].bases).toEqual(["0-100 km/h"]);
+  });
+
+  it("reads a rollout-adjusted run as its own kind", () => {
+    expect(basisOf({ value: 2.9, source: "independent", note: "with a one-foot rollout" })).toBe(
+      "rollout-adjusted",
+    );
+    expect(basisOf({ value: 2.9, source: "independent" })).toBeNull();
+  });
+
+  it("leaves measures that have no basis alone", () => {
+    const pool = [
+      car({ slug: "a", powerHp: hp(100) }),
+      car({ slug: "b", powerHp: hp(200) }),
+      car({ slug: "c", powerHp: hp(300) }),
+    ];
+    expect(compareWithinCategory(pool[0], pool)[0].bases).toEqual([]);
   });
 });

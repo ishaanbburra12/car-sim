@@ -1,4 +1,4 @@
-import { disputed, unpublished, type Car, mfr } from "../types";
+import { disputed, unpublished, type Car, ind, mfr } from "../types";
 
 export const HYPERCARS: Car[] = [
   {
@@ -100,7 +100,7 @@ export const HYPERCARS: Car[] = [
     powerHp: mfr(903, "combined petrol and electric"),
     torqueLbFt: mfr(723, "combined"),
     weightKg: mfr(1490, "kerb weight"),
-    zeroTo60S: mfr(2.8),
+    zeroTo60S: mfr(2.8, "McLaren quotes 0-100 km/h (62 mph), not 0-60 mph; 0-200 km/h in 6.8 s"),
     topSpeedMph: mfr(217, "electronically limited"),
     produced: { count: 375 },
     sources: [
@@ -124,7 +124,12 @@ export const HYPERCARS: Car[] = [
         "other cars' combined hybrid figures would not be comparing like with like.",
     ),
     weightKg: null,
-    zeroTo60S: mfr(2.9, "quoted as under 3 seconds"),
+    zeroTo60S: unpublished(
+      "Ferrari quotes only \"under 3 seconds\" to 100 km/h, which is a bound rather than " +
+        "a figure -- the same way it gives the torque as \"over 900 Nm\". Third-party " +
+        "databases print 3.0 s. The 2.9 s this entry used to carry was nobody's published " +
+        "number.",
+    ),
     topSpeedMph: mfr(217, "quoted as over 350 km/h"),
     produced: { count: 499, note: "coupes; a further 210 open-top Aperta followed" },
     sources: [
@@ -293,7 +298,7 @@ export const HYPERCARS: Car[] = [
     powerHp: mfr(1001),
     torqueLbFt: mfr(922),
     weightKg: mfr(1888, "kerb weight"),
-    zeroTo60S: mfr(2.5),
+    zeroTo60S: mfr(2.5, "Bugatti quotes 0-100 km/h (62 mph), not 0-60 mph; 7.3 s to 200 km/h"),
     topSpeedMph: mfr(253, "requires a second key to unlock the top-speed mode"),
     produced: { count: 450, note: "coupes and roadsters across all versions" },
     sources: [
@@ -340,7 +345,11 @@ export const HYPERCARS: Car[] = [
     powerHp: mfr(1224),
     torqueLbFt: mfr(1180),
     weightKg: mfr(1850),
-    zeroTo60S: mfr(2.5),
+    zeroTo60S: mfr(
+      2.4,
+      "0-60 mph, Rimac's own figure for the 2017 900 kW car; the same release gives " +
+        "2.5 s to 100 km/h, and the 2016 800 kW production car 2.6 s",
+    ),
     topSpeedMph: mfr(221),
     produced: { count: 8 },
     sources: [
@@ -360,7 +369,11 @@ export const HYPERCARS: Car[] = [
     powerHp: mfr(602),
     torqueLbFt: mfr(575),
     weightKg: mfr(1230, "dry weight"),
-    zeroTo60S: mfr(3.6),
+    zeroTo60S: ind(
+      3.6,
+      "0-100 km/h (62 mph) as reported by Auto Bild; 3.8 s also circulates, and no " +
+        "Pagani figure for the F appears in these sources",
+    ),
     topSpeedMph: mfr(214),
     produced: { count: 25, note: "F coupes; the wider Zonda family ran to roughly 140 cars" },
     review:

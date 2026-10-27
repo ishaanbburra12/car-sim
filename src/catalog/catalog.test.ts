@@ -263,76 +263,50 @@ describe("lookups", () => {
 
 describe("0-60 times say which measurement they are", () => {
   // Makers do not publish the same sprint. Most of Europe quotes 0-100 km/h,
-  // which is 62 mph, and the United States quotes 0-60 mph. At these speeds
-  // the two differ by roughly a tenth to three tenths of a second -- enough to
-  // reorder a chart that ranks them against each other as though they were the
-  // same number. Two were already wrong when this was written: the Chiron's
-  // 2.4 s is Bugatti's 0-100 km/h, and the 918's 2.5 s was a third-party
-  // 0-60 mph time wearing a manufacturer tag (Porsche's own figure is 2.6 s).
+  // which is 62 mph; the United States quotes 0-60 mph. At these speeds the
+  // two differ by roughly a tenth to three tenths of a second -- enough to
+  // reorder a chart that ranks them against each other as though they were
+  // the same number.
   //
-  // This list is a RATCHET, not a permission slip. A car may sit here only
-  // until somebody checks what its figure actually measures; a new car may
-  // never be added to it, and a car fixed must be removed, or the test fails.
-  const UNAUDITED = new Set([
-  "mclaren-p1",
-  "ferrari-laferrari",
-  "bugatti-veyron",
-  "rimac-concept-one",
-  "pagani-zonda-f",
-  "porsche-911-gt3-rs-992",
-  "porsche-718-cayman-gt4-rs",
-  "mazda-mx-5-nd",
-  "toyota-gr86",
-  "toyota-gr-supra",
-  "bmw-m2-g87",
-  "chevrolet-corvette-c8",
-  "honda-civic-type-r-fl5",
-  "lotus-emira",
-  "audi-r8-v10-performance",
-  "nissan-gt-r-r35",
-  "ferrari-296-gtb",
-  "mclaren-750s",
-  "aston-martin-vantage",
-  "volkswagen-golf-gti-mk1",
-  "chevrolet-corvette-z06-c8",
-  "hyundai-ioniq-5-n",
-  "lotus-elise-s1",
-  "cadillac-ct5-v-blackwing",
-  "peugeot-205-gti",
-  ]);
-
+  // This started as a ratchet over 25 unlabelled figures. Checking them found
+  // nine that were not what they claimed, which is why the rule is now
+  // absolute: a 0-60 figure must say what it measures, or it does not go in.
+  //
+  //   911 GT3 RS      3.0 s "manufacturer" -> only on dealer pages; Porsche
+  //                          publishes 3.2 s to 100 km/h
+  //   918 Spyder      2.5 s "manufacturer" -> a third-party 0-60; Porsche's
+  //                          own figure is 2.6 s to 100 km/h
+  //   750S            2.7 s "manufacturer" -> McLaren publishes 2.8 s to
+  //                          62 mph and no 0-60 figure at all
+  //   LaFerrari       2.9 s "manufacturer" -> Ferrari publishes only "under
+  //                          3 seconds", a bound, so the figure is now absent
+  //   Concept_One     2.5 s                -> that is Rimac's 0-100 km/h; its
+  //                          own 0-60 mph figure is 2.4 s
+  //   Zonda F         3.6 s "manufacturer" -> a magazine figure, not Pagani's
+  //   205 GTI         7.8 s "manufacturer" -> a 1986 Auto Bild road test
+  //   Civic Type R    5.0 s "independent"  -> a spec-database number, not a
+  //                          measured run; Honda rates it 5.4 s to 62 mph
+  //   Golf GTI Mk1    9.0 s                -> belongs to the later 1.8-litre
+  //                          car; the 110 PS 1.6 is quoted at 9.2 s
   const statesBasis = (note: string | undefined) => {
     const n = (note ?? "").toLowerCase();
     return n.includes("km/h") || n.includes("60 mph") || n.includes("rollout");
   };
 
-  it("states the basis, or is on the list of ones still to check", () => {
+  it("states, for every car, which sprint the number is", () => {
     for (const car of CARS) {
       const f = car.zeroTo60S;
       if (!isFigure(f)) continue;
-      if (statesBasis(f.note)) continue;
       expect(
-        UNAUDITED.has(car.slug),
-        `${car.slug} has a 0-60 time that does not say what it measures. Check it, ` +
-          `or add it to UNAUDITED -- but only if it predates this test.`,
+        statesBasis(f.note),
+        `${car.slug}: a 0-60 time must say whether it is 0-60 mph, 0-100 km/h, ` +
+          `or a rollout-adjusted run. Check the source before adding one.`,
       ).toBe(true);
     }
   });
 
-  it("keeps the list honest: nothing on it has quietly been fixed", () => {
-    for (const slug of UNAUDITED) {
-      const car = CAR_BY_SLUG[slug];
-      expect(car, `${slug} is on UNAUDITED but is not a car any more`).toBeDefined();
-      const f = car.zeroTo60S;
-      expect(
-        isFigure(f) && !statesBasis(f.note),
-        `${slug} now states its basis -- remove it from UNAUDITED`,
-      ).toBe(true);
-    }
-  });
-
-  it("is shrinking", () => {
-    // Lower this number as entries are checked. It may never go up.
-    expect(UNAUDITED.size).toBeLessThanOrEqual(25);
+  it("covers enough of the catalogue to be worth having", () => {
+    const withTimes = CARS.filter((c) => isFigure(c.zeroTo60S));
+    expect(withTimes.length).toBeGreaterThan(25);
   });
 });

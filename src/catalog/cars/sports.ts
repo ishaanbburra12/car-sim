@@ -14,7 +14,11 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(518),
     torqueLbFt: mfr(343),
     weightKg: mfr(1450, "DIN kerb weight"),
-    zeroTo60S: mfr(3.0),
+    zeroTo60S: mfr(
+      3.2,
+      "Porsche quotes 0-100 km/h (62 mph); a 3.0 s 0-60 mph figure circulates on dealer " +
+        "pages but does not appear in Porsche's own material",
+    ),
     topSpeedMph: mfr(184),
     produced: null,
     sources: [
@@ -37,7 +41,11 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(493),
     torqueLbFt: mfr(331),
     weightKg: mfr(1415, "DIN kerb weight"),
-    zeroTo60S: mfr(3.2),
+    zeroTo60S: mfr(
+      3.2,
+      "0-60 mph, Porsche's own US figure; its European figure is 3.4 s to 100 km/h, " +
+        "which is the same car measured to a higher speed",
+    ),
     topSpeedMph: mfr(196),
     produced: null,
     sources: [
@@ -57,7 +65,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(181, "2.0 L, 2019 onwards; earlier 2.0 cars made 155 hp"),
     torqueLbFt: mfr(151),
     weightKg: mfr(1058, "kerb weight, varies by market and roof"),
-    zeroTo60S: ind(5.7),
+    zeroTo60S: ind(5.7, "Car and Driver instrumented test of a 2019 soft-top, 0-60 mph; the RF ran 5.8 s"),
     topSpeedMph: mfr(136),
     produced: null,
     sources: [
@@ -78,7 +86,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(228),
     torqueLbFt: mfr(184),
     weightKg: mfr(1270, "manual, varies by market"),
-    zeroTo60S: mfr(6.1, "manual transmission"),
+    zeroTo60S: mfr(6.1, "0-60 mph, Toyota's own US figure, 6-speed manual; the automatic is 6.6 s"),
     topSpeedMph: null,
     produced: null,
     sources: [
@@ -138,7 +146,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(382, "3.0 L, 2021 onwards"),
     torqueLbFt: mfr(368),
     weightKg: mfr(1542, "kerb weight, varies by market"),
-    zeroTo60S: mfr(3.9, "automatic"),
+    zeroTo60S: mfr(3.9, "0-60 mph, Toyota's own US figure, automatic; the 2.0-litre car is 5.0 s"),
     topSpeedMph: mfr(155, "electronically limited"),
     produced: null,
     sources: [
@@ -158,7 +166,13 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(453),
     torqueLbFt: mfr(406),
     weightKg: mfr(1725, "DIN kerb weight"),
-    zeroTo60S: mfr(4.1, "manual"),
+    zeroTo60S: mfr(
+      4.1,
+      "0-100 km/h (62 mph) for the launch 460 hp car with the automatic; the manual " +
+        "takes 4.3 s, and the facelifted 480 hp car 4.0 s. BMW's US 0-60 mph figures " +
+        "happen to include 4.1 s too, for the manual, which is a coincidence worth " +
+        "not tripping over",
+    ),
     topSpeedMph: mfr(155, "limited; 177 mph with the M Driver's Package"),
     produced: null,
     sources: [
@@ -178,7 +192,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(495, "with performance exhaust; 490 hp otherwise"),
     torqueLbFt: mfr(470),
     weightKg: mfr(1527, "kerb weight"),
-    zeroTo60S: mfr(2.9, "with the Z51 package"),
+    zeroTo60S: mfr(2.9, "0-60 mph, GM's own figure, with the Z51 Performance Package fitted"),
     topSpeedMph: mfr(194),
     produced: null,
     sources: [
@@ -218,7 +232,11 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(315, "US specification; 329 PS in Europe and Japan"),
     torqueLbFt: mfr(310),
     weightKg: mfr(1429, "kerb weight, varies by market"),
-    zeroTo60S: ind(5.0),
+    zeroTo60S: mfr(
+      5.4,
+      "Honda quotes 0-100 km/h (62 mph). The 5.0 s this entry carried as an independent " +
+        "test came from spec databases rather than a measured run",
+    ),
     topSpeedMph: mfr(171),
     produced: null,
     sources: [
@@ -259,7 +277,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(400, "V6 version"),
     torqueLbFt: mfr(317, "V6 with manual gearbox"),
     weightKg: mfr(1458, "V6, dry weight"),
-    zeroTo60S: mfr(4.2),
+    zeroTo60S: mfr(4.2, "0-60 mph, Lotus's US figure for the V6 SE; its European figure is 4.3 s to 62 mph"),
     topSpeedMph: mfr(180),
     produced: null,
     sources: [
@@ -279,7 +297,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(602),
     torqueLbFt: mfr(413),
     weightKg: mfr(1660, "DIN kerb weight"),
-    zeroTo60S: mfr(3.1),
+    zeroTo60S: mfr(3.1, "Audi quotes 0-100 km/h (62 mph), Coup\u00e9; the Spyder is 3.2 s and the 419 kW car 3.4 s"),
     topSpeedMph: mfr(205),
     produced: null,
     sources: [
@@ -299,7 +317,11 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(565, "2017 onwards; the Nismo version makes 600 hp"),
     torqueLbFt: mfr(467),
     weightKg: mfr(1752, "kerb weight, varies by market"),
-    zeroTo60S: ind(2.9),
+    zeroTo60S: ind(
+      2.9,
+      "instrumented test, 0-60 mph with a one-foot rollout as on a drag strip; the same " +
+        "run was 3.1 s without it, and 11.1 s at 124.1 mph over the quarter",
+    ),
     topSpeedMph: mfr(196),
     produced: null,
     sources: [
@@ -320,7 +342,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(819, "combined"),
     torqueLbFt: mfr(546),
     weightKg: mfr(1470, "dry weight"),
-    zeroTo60S: mfr(2.9),
+    zeroTo60S: mfr(2.9, "Ferrari quotes 0-100 km/h (62 mph), not 0-60 mph; 0-200 km/h in 7.3 s"),
     topSpeedMph: mfr(205),
     produced: null,
     sources: [
@@ -340,7 +362,11 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(740),
     torqueLbFt: mfr(590),
     weightKg: mfr(1277, "dry weight"),
-    zeroTo60S: mfr(2.7),
+    zeroTo60S: mfr(
+      2.8,
+      "McLaren quotes 0-100 km/h (62 mph) and publishes no separate 0-60 mph figure; " +
+        "0-200 km/h in 7.2 s",
+    ),
     topSpeedMph: mfr(206),
     produced: null,
     sources: [
@@ -440,7 +466,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(656, "2024 onwards; the 2018 car made 503 hp"),
     torqueLbFt: mfr(590),
     weightKg: mfr(1745, "dry weight"),
-    zeroTo60S: mfr(3.4),
+    zeroTo60S: mfr(3.4, "0-60 mph, Aston Martin's launch figure; its 0-62 mph (100 km/h) figure is 3.5 s"),
     topSpeedMph: mfr(202),
     produced: null,
     sources: [
@@ -482,7 +508,12 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(110),
     torqueLbFt: mfr(103),
     weightKg: mfr(810, "kerb weight"),
-    zeroTo60S: mfr(9.0),
+    zeroTo60S: ind(
+      9.2,
+      "0-100 km/h (62 mph) for the original 110 PS 1.6, as given by Autozeitung and " +
+        "Auto Bild; 9.1 s also circulates, and the 9.0 s this entry carried appears to " +
+        "belong to the later 1.8-litre car",
+    ),
     topSpeedMph: mfr(112),
     produced: null,
     sources: [
@@ -502,7 +533,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(670),
     torqueLbFt: mfr(460),
     weightKg: mfr(1560, "kerb weight"),
-    zeroTo60S: mfr(2.6),
+    zeroTo60S: mfr(2.6, "0-60 mph, GM's own figure, with the Z07 Performance Package fitted"),
     topSpeedMph: mfr(195),
     produced: null,
     sources: [
@@ -542,7 +573,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(641, "with the temporary N Grin Boost engaged; 601 hp otherwise"),
     torqueLbFt: mfr(568),
     weightKg: mfr(2230, "kerb weight"),
-    zeroTo60S: mfr(3.4),
+    zeroTo60S: mfr(3.4, "Hyundai quotes 0-100 km/h (62 mph), with N Grin Boost engaged"),
     topSpeedMph: mfr(161),
     produced: null,
     sources: [
@@ -584,7 +615,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(118),
     torqueLbFt: mfr(122),
     weightKg: mfr(725, "kerb weight"),
-    zeroTo60S: mfr(5.9),
+    zeroTo60S: mfr(5.9, "0-100 km/h (62 mph); the 0-60 mph figure is usually given as 5.8 s"),
     topSpeedMph: mfr(124),
     produced: null,
     sources: [
@@ -604,7 +635,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(668),
     torqueLbFt: mfr(659),
     weightKg: mfr(1944, "kerb weight"),
-    zeroTo60S: mfr(3.4, "with the automatic transmission"),
+    zeroTo60S: mfr(3.4, "0-60 mph, Cadillac's own figure, automatic; the manual is 3.6 s"),
     topSpeedMph: mfr(200),
     produced: null,
     sources: [
@@ -624,7 +655,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(128, "1.9 L specification; the 1.6 made 115 hp"),
     torqueLbFt: mfr(119),
     weightKg: mfr(880, "kerb weight, 1.9"),
-    zeroTo60S: mfr(7.8),
+    zeroTo60S: ind(7.8, "Auto Bild road test, 1986, 0-100 km/h (62 mph); modern compilations give 8.5-8.7 s"),
     topSpeedMph: mfr(124),
     produced: null,
     sources: [
