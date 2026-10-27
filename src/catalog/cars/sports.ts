@@ -98,7 +98,7 @@ export const SPORTS_CARS: Car[] = [
     powerHp: mfr(228),
     torqueLbFt: mfr(184),
     weightKg: mfr(1270, "manual, varies by market"),
-    zeroTo60S: null,
+    zeroTo60S: ind(5.4, "instrumented test to 60 mph; the same run gave 13.9 s at 101 mph over the quarter"),
     topSpeedMph: null,
     produced: null,
     sources: [

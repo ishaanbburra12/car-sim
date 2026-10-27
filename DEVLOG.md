@@ -2023,3 +2023,64 @@ was being asked about.
 - **Claude:** the reachability measurement, the research that turned item 1
   inside out, the `Absence` vocabulary, the coverage metric, the type-enforced
   link checking, and the Methods write-up.
+
+---
+
+## 2026-10-27 — Session 23: the depth pass, and what sources are actually good for
+
+Raju chose depth over adding cars. Working the 58 nulls with WebSearch, one
+car at a time. Two things came out of it that matter more than the count.
+
+### Manufacturers document hypercars. Nobody documents ordinary cars.
+
+The yield from a research batch depends almost entirely on what kind of car it
+is, and the gap is not small:
+
+- **Hypercar batch** (Valkyrie, LaFerrari, AMG ONE, Revuelto): makers publish
+  real technical specifications. Aston certifies 1,160 bhp and 900 Nm. Ferrari
+  gives 963 hp. Lamborghini separates 807 Nm combined from 725 Nm for the V12
+  alone. Eight of ten gaps resolved, every one from the maker's own domain.
+- **Ordinary sports-car batch** (Mustang GT S650, Nissan Z, RX-7 FD, BRZ):
+  not one manufacturer spec sheet. Everything came back from aggregators that
+  disagree with each other — the Z's 0-60 given as both 4.5 s and 5.43 s,
+  where the second was openly a **simulation** rather than a test. One of ten
+  gaps resolved.
+
+So the everyday and ordinary-sports nulls are not the same work as the
+hypercar nulls, and no amount of searching will make them so. They need
+magazine road tests, which are largely paywalled or offline, rather than
+manufacturer pages.
+
+An important discipline came out of that: `disputed` means PUBLISHED figures
+contradict. Aggregators disagreeing with each other is just noise, and marking
+noise as `disputed` would dress up an empty search as a finding. Those stay
+plain nulls.
+
+### The 0-60 column was comparing different measurements
+
+Found while checking a Koenigsegg figure, and it is the worst thing in the
+catalogue. Most of Europe publishes **0-100 km/h**, which is 62 mph. The
+United States publishes **0-60 mph**. At these speeds they differ by one to
+three tenths — enough to reorder the chart that ranks them side by side.
+
+**27 of 36 0-60 figures did not say which they were.** Two were already wrong:
+
+- The Chiron's 2.4 s is Bugatti's 0-100 km/h, unlabelled.
+- The 918 Spyder's 2.5 s was a third-party 0-60 mph time carrying a
+  `manufacturer` tag. Porsche's own figure is 2.6 s to 100 km/h. That is a
+  provenance error, not just a missing note.
+
+Both corrected. The rest are guarded by a ratchet test: a named list of slugs
+still to check, which a new car may never join and a fixed car must leave, or
+the test fails. 25 left.
+
+### Counts
+
+Nulls 58 -> 48. Checked links 5 -> 11. Hypercars 80% -> 92%, overall 79% ->
+83%. 259 tests.
+
+### Who wrote what
+
+- **Me (Raju):** chose depth over breadth.
+- **Claude:** the research, the two corrections, and the measurement-basis
+  ratchet.

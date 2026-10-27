@@ -1,4 +1,4 @@
-import { type Car, mfr } from "../types";
+import { disputed, unpublished, type Car, mfr } from "../types";
 
 export const HYPERCARS: Car[] = [
   {
@@ -14,7 +14,7 @@ export const HYPERCARS: Car[] = [
     powerHp: mfr(1479),
     torqueLbFt: mfr(1180),
     weightKg: mfr(1996, "kerb weight"),
-    zeroTo60S: mfr(2.4),
+    zeroTo60S: mfr(2.4, "Bugatti quotes 0-100 km/h (62 mph), not 0-60 mph"),
     topSpeedMph: mfr(261, "electronically limited; a modified Chiron exceeded 300 mph in a one-way run"),
     produced: { count: 500 },
     sources: [
@@ -41,7 +41,11 @@ export const HYPERCARS: Car[] = [
     torqueLbFt: mfr(1106),
     weightKg: mfr(1420, "dry weight"),
     zeroTo60S: null,
-    topSpeedMph: null,
+    topSpeedMph: unpublished(
+      "Koenigsegg quotes no verified top speed. Its own Jesko Absolut page says how high " +
+        "it goes \"depends on the conditions and location of a possible high-speed run\", " +
+        "and no such run has been made.",
+    ),
     produced: { count: 125 },
     sources: [
       { publisher: "Koenigsegg", title: "Technical specifications for the Jesko" },
@@ -114,13 +118,23 @@ export const HYPERCARS: Car[] = [
     blurb:
       "The only one of the hybrid trio with a naturally aspirated engine, and the only one whose hybrid system came directly from Formula 1 energy recovery rather than from an efficiency programme. The electric motor fills the torque gap low down so the V12 can be tuned for the top end.",
     powerHp: mfr(949, "combined: 789 hp V12 plus 161 hp electric"),
-    torqueLbFt: null,
+    torqueLbFt: unpublished(
+      "Ferrari gives the combined figure only as \"over 900 Nm\", which is a floor rather " +
+        "than a number. The V12 alone makes 700 Nm at 6,750 rpm, but ranking that against " +
+        "other cars' combined hybrid figures would not be comparing like with like.",
+    ),
     weightKg: null,
     zeroTo60S: mfr(2.9, "quoted as under 3 seconds"),
     topSpeedMph: mfr(217, "quoted as over 350 km/h"),
     produced: { count: 499, note: "coupes; a further 210 open-top Aperta followed" },
     sources: [
       { publisher: "Ferrari", title: "Press material for LaFerrari" },
+      {
+        publisher: "Ferrari",
+        title: "LaFerrari (2013), model page",
+        url: "https://www.ferrari.com/en-EN/auto/laferrari",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
   },
   {
@@ -134,9 +148,13 @@ export const HYPERCARS: Car[] = [
     blurb:
       "The most road-usable of the hybrid trio, and the only one with an electric motor driving the front axle, which makes it four-wheel drive and lets it torque-vector across the nose. Its V8 is derived from the RS Spyder racing car and revs to 9,150 rpm.",
     powerHp: mfr(887, "combined"),
-    torqueLbFt: null,
+    torqueLbFt: mfr(
+      940,
+      "complete system in 7th gear, calculated at the crankshaft; Porsche gives 787 lb-ft " +
+        "in 3rd and 390 lb-ft for the V8 alone, so this figure is gear-dependent",
+    ),
     weightKg: mfr(1674, "kerb weight, Weissach package lighter"),
-    zeroTo60S: mfr(2.5),
+    zeroTo60S: mfr(2.6, "Porsche quotes 0-100 km/h (62 mph); third-party 0-60 mph times of 2.5 s circulate"),
     topSpeedMph: mfr(214),
     produced: { count: 918 },
     sources: [
@@ -162,11 +180,17 @@ export const HYPERCARS: Car[] = [
     powerHp: mfr(720),
     torqueLbFt: mfr(738),
     weightKg: mfr(1350, "dry weight"),
-    zeroTo60S: null,
+    zeroTo60S: mfr(3.3, "Pagani quotes 0-100 km/h (62 mph), not 0-60 mph"),
     topSpeedMph: mfr(230),
     produced: { count: 100, note: "coupes; roadster and special versions additional" },
     sources: [
       { publisher: "Pagani", title: "Technical specifications for the Huayra" },
+      {
+        publisher: "Pagani Automobili",
+        title: "Pagani Automobili exclusive event in the Middle East, Huayra technical figures",
+        url: "https://www.pagani.com/news/pagani-automobili-exclusive-event-in-the-middle-east/",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
   },
   {
@@ -180,13 +204,24 @@ export const HYPERCARS: Car[] = [
     blurb:
       "Designed with Adrian Newey, the Formula 1 aerodynamicist, and shaped around airflow before anything else: the underfloor tunnels are so large that the occupants sit with their feet raised. Its V12 revs past 11,000 rpm, which no other road-car engine of this size does.",
     powerHp: mfr(1140, "combined"),
-    torqueLbFt: null,
+    torqueLbFt: mfr(664, "900 Nm combined, certified; the V12 alone makes 740 Nm at 7,000 rpm"),
     weightKg: null,
     zeroTo60S: null,
-    topSpeedMph: null,
+    topSpeedMph: disputed(
+      "Aston Martin's own pages disagree: the model page cites 200 mph while its " +
+        "Silverstone lap-record story says more than 215 mph. Neither is presented as a " +
+        "measured run.",
+    ),
     produced: { count: 150, note: "road cars; the track-only AMR Pro is additional" },
     sources: [
       { publisher: "Aston Martin", title: "Press material for the Valkyrie" },
+      {
+        publisher: "Aston Martin",
+        title: "Valkyrie: the ultimate hybrid powertrain for the ultimate hypercar",
+        year: 2019,
+        url: "https://media.astonmartin.com/aston-martin-valkyrie-the-ultimate-hybrid-powertrain-for-the-ultimate-hypercar/",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
   },
   {
@@ -200,13 +235,19 @@ export const HYPERCARS: Car[] = [
     blurb:
       "Lamborghini's first plug-in hybrid V12, and an unusual case of hybridisation being used to keep a naturally aspirated engine alive rather than replace it: the motors cover the low-rev torque that emissions rules would otherwise force a turbocharger to provide.",
     powerHp: mfr(1001, "combined"),
-    torqueLbFt: null,
+    torqueLbFt: mfr(595, "807 Nm combined; the V12 alone makes 725 Nm at 6,750 rpm"),
     weightKg: mfr(1772, "dry weight"),
     zeroTo60S: mfr(2.5, "quoted as 0-100 km/h in 2.5 s"),
     topSpeedMph: mfr(217),
     produced: null,
     sources: [
       { publisher: "Lamborghini", title: "Technical specifications for the Revuelto" },
+      {
+        publisher: "Lamborghini",
+        title: "Revuelto model page, technical specifications",
+        url: "https://www.lamborghini.com/en-en/models/revuelto-models/revuelto",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
   },
   {
@@ -220,13 +261,23 @@ export const HYPERCARS: Car[] = [
     blurb:
       "The closest a road car has come to using an actual Formula 1 power unit. It took years longer than planned largely because an engine designed to be rebuilt between races had to be made to idle, start from cold and pass emissions tests.",
     powerHp: mfr(1049, "combined"),
-    torqueLbFt: null,
+    torqueLbFt: unpublished(
+      "Mercedes-AMG publishes the ONE's 1,063 hp system output but no peak torque " +
+        "figure, neither combined nor engine-only. Its own model page and technical " +
+        "briefing on the combustion engine both omit one.",
+    ),
     weightKg: null,
     zeroTo60S: mfr(2.9, "quoted as 0-100 km/h in 2.9 s"),
     topSpeedMph: mfr(219),
     produced: { count: 275 },
     sources: [
       { publisher: "Mercedes-AMG", title: "Press material for the One" },
+      {
+        publisher: "Mercedes-AMG",
+        title: "Mercedes-AMG ONE model page",
+        url: "https://www.mercedes-amg.com/en/amg-one",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
   },
   {
@@ -262,11 +313,18 @@ export const HYPERCARS: Car[] = [
     powerHp: mfr(1500, "combined, limited by the battery's output"),
     torqueLbFt: mfr(1475, "combined"),
     weightKg: mfr(1628, "kerb weight"),
-    zeroTo60S: null,
+    zeroTo60S: mfr(2.8, "Koenigsegg quotes 0-100 km/h (62 mph), not 0-60 mph; 0-200 km/h in 6.6 s"),
     topSpeedMph: mfr(255),
     produced: { count: 80 },
     sources: [
       { publisher: "Koenigsegg", title: "Regera technical specifications" },
+      {
+        publisher: "Koenigsegg",
+        title: "Production-spec Regera presented at Geneva 2016",
+         year: 2016,
+        url: "https://dev.koenigsegg.com/koenigsegg-presents-agera-rs-production-regera-and-agera-final-at-geneva-2016/",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
   },
   {
