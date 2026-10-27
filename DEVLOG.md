@@ -1510,3 +1510,112 @@ minutes I was debugging code that was fine.
   the first workflow fell over.
 - **Claude:** the workflow and its two rewrites, the measurement probes, the
   tail geometry, wheels, shadow, AO, textures, and the two wrong guesses above.
+
+---
+
+## 2026-10-27 — Session 19: a different product
+
+### What I asked for
+
+Stop trying to render cars. Turn this into a learning platform about real
+cars: a search bar, a category dropdown next to it (sports, hypercars,
+prototypes, normal cars), a page per car, and a page per brand that links to
+all of that brand's cars and to its real site.
+
+### Two things I settled before writing anything
+
+**Where the numbers come from.** "Search for any car" is unbounded, and I
+cannot produce an accurate database of every car ever made from memory. A
+learning platform full of invented specifications would be worse than no
+platform at all, because a reader has no way to tell a guessed 0-60 time from
+a real one on a page that looks like a reference work. So: a hand-written
+catalogue, every figure published by the manufacturer or measured by an
+independent tester, each tagged with which, and `null` — printed as "Not
+listed" — wherever a number could not be sourced. 50 cars and 26 brands to
+start.
+
+**Real brands.** The original brief for this project said no real brands at
+all. That rule is now reversed by design, so it is worth writing down what
+replaced it: names and factual specifications are used, and every brand links
+out to its own site. No logos and no manufacturer photographs, anywhere —
+those are the parts that carry actual legal weight, and leaving them out also
+keeps the zero-binary-assets line the project has held since day one.
+
+### What got built
+
+    src/catalog/types.ts        the vocabulary, and the Figure/null rule
+    src/catalog/brands.ts       26 manufacturers
+    src/catalog/cars/*.ts       50 cars, four files by category
+    src/catalog/index.ts        search and filtering, pure functions
+    src/catalog/catalog.test.ts 24 tests
+
+    app/page.tsx                landing page
+    app/cars/                   browse, with search + category dropdown
+    app/cars/[slug]/            a page per car        (50 prerendered)
+    app/brands/                 brand index
+    app/brands/[slug]/          a page per brand      (26 prerendered)
+
+The data layer is kept out of the UI exactly as the physics engine is, and for
+the same reason: the catalogue is the thing with the honesty guarantee on it,
+and it should be testable without a browser.
+
+### The tests are mostly about the data
+
+A catalogue fails in dull ways a human will not catch by reading: a brand slug
+typed wrong on the fortieth entry, two cars sharing a URL, a source list left
+empty. So the suite checks the data, not just the code — unique slugs,
+URL-safe slugs, every car pointing at a brand that exists, every car citing a
+source, every brand having a real https link.
+
+Two are worth naming:
+
+- **No invented figures.** Every printed figure must carry a provenance tag
+  and a positive finite value; `null` is always allowed. The type makes the
+  field required so that omitting a number is a decision rather than an
+  oversight.
+- **Prototypes may not have road-car numbers.** Nobody publishes a 0-60 time
+  for a Le Mans car, so if one ever appears in that category it was invented.
+  The test asserts those fields stay null.
+
+There is also a sanity band on each figure — power under 2,500 hp, weight
+between 500 and 4,000 kg — which cannot check accuracy but does catch a
+misplaced decimal point or a kW figure pasted into an hp field.
+
+### The one bug the tests found
+
+Searching "mx5" returned nothing, because normalising "MX-5" splits it into
+two tokens and "mx5" is one. Real people type "mx5", "gt3rs", "f150" without
+the separator. The matcher now also keeps a squashed copy of each name with
+every separator removed, used for terms of three characters or more — shorter
+than that it matches far too much to be useful.
+
+Search also strips accents, so "huracan" finds the Huracán. Typing an accent
+on a keyboard that lacks one is a real obstacle, and a search box that fails
+there feels broken even when the data is fine.
+
+### What I did not do
+
+I did not delete the simulator. The brief said "massive change", not "throw
+the old thing away", and the drive mode, the engine and its 203 tests are all
+still there under /garage and /drive, reachable from the nav and from the
+landing page. They are described as what they are: a model that outputs
+estimates, kept deliberately separate from a catalogue that outputs facts.
+Say the word and I will retire them properly.
+
+### Still open
+
+- 50 cars is a start, not a catalogue. Adding more is now a matter of writing
+  records; the schema and the tests will catch most mistakes.
+- Every brand has a site link but no car has a link to its own model page,
+  because those URLs move and a dead link on a reference site is worse than
+  no link.
+- No images at all, by choice. If the site ever wants them, they have to be
+  drawn rather than downloaded.
+
+### Who wrote what
+
+- **Me (Raju):** the pivot, and the shape of it — search bar, dropdown with
+  those four categories, a page per car, a page per brand linking to its cars
+  and its real site.
+- **Claude:** the catalogue, the search, the pages and the tests, plus the two
+  judgement calls above about sourcing and trademarks.

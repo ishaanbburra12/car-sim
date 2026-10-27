@@ -1,0 +1,109 @@
+// ---------------------------------------------------------------------------
+// The car catalogue.
+//
+// This is a LEARNING platform, so the rule that governs the rest of this
+// project governs it twice over: never print a number we cannot stand behind.
+//
+// The simulator side of this codebase deals in estimates, and labels them as
+// estimates. The catalogue does not estimate at all. Every figure here is one
+// a manufacturer or an independent tester published, and it carries a tag
+// saying which. If we do not have a figure we trust, the field is `null` and
+// the page prints "not listed" rather than a plausible guess.
+//
+// That distinction matters more than it sounds. A guessed 0-60 time on a page
+// that looks like a reference work is worse than no page at all, because a
+// reader has no way to tell it from the real ones.
+// ---------------------------------------------------------------------------
+
+/** Where a published figure came from. */
+export type Provenance =
+  /** The company that built the car printed this. */
+  | "manufacturer"
+  /** A magazine or independent tester measured it. Usually slower than the
+   *  manufacturer's own claim, because they test on a public-road surface with
+   *  a full tank and a real driver. */
+  | "independent";
+
+export type Figure = {
+  value: number;
+  source: Provenance;
+  /** Qualifier: which trim, which market, which measurement standard. */
+  note?: string;
+};
+
+/**
+ * A spec we do not have a trustworthy figure for. Deliberately NOT optional:
+ * writing `null` is a decision, leaving a field out is an accident, and this
+ * way the type system makes you make the decision for every car.
+ */
+export type MaybeFigure = Figure | null;
+
+export const CATEGORIES = ["hypercar", "sports", "prototype", "everyday"] as const;
+export type Category = (typeof CATEGORIES)[number];
+
+export const CATEGORY_LABELS: Record<Category, string> = {
+  hypercar: "Hypercars",
+  sports: "Sports cars",
+  prototype: "Prototypes & racers",
+  everyday: "Everyday cars",
+};
+
+export const CATEGORY_BLURBS: Record<Category, string> = {
+  hypercar:
+    "The top of the tree: tiny production runs, budgets that ignore the usual limits, and engineering that often reaches road cars a decade later.",
+  sports:
+    "Built to be enjoyed on a road or a track. Some are fast, some are not; what they share is that handling came before practicality.",
+  prototype:
+    "Purpose-built racing cars and concepts. They have no price and no options list, and most of them are the reason a road car works the way it does.",
+  everyday:
+    "The cars most people actually own. Unglamorous, enormously refined, and the place almost every piece of safety and efficiency technology ends up.",
+};
+
+export type Brand = {
+  slug: string;
+  name: string;
+  country: string;
+  /** Year the company was founded, as the company itself dates it. */
+  founded: number;
+  /** The manufacturer's own site. We link out rather than reproduce. */
+  site: string;
+  blurb: string;
+};
+
+export type Car = {
+  slug: string;
+  /** Slug of the brand in brands.ts. Checked by a test, not by hand. */
+  brand: string;
+  name: string;
+  /** Production years as commonly given, e.g. "2021-present" or "1990-1993". */
+  years: string;
+  category: Category;
+  /** Engine position and driven wheels, e.g. "mid-engine, rear-wheel drive". */
+  layout: string;
+  /** What the engine is, in words rather than numbers. */
+  engine: string;
+  /** Why this car is worth a page. Two or three sentences, no marketing. */
+  blurb: string;
+  powerHp: MaybeFigure;
+  torqueLbFt: MaybeFigure;
+  /** Kerb/curb weight. Standards differ by market, so the note says which. */
+  weightKg: MaybeFigure;
+  zeroTo60S: MaybeFigure;
+  topSpeedMph: MaybeFigure;
+  /** Where the figures above came from, in plain words. */
+  sources: string[];
+};
+
+/* --- Small constructors, so the data files stay readable ----------------- */
+
+export const mfr = (value: number, note?: string): Figure => ({
+  value,
+  source: "manufacturer",
+  ...(note ? { note } : {}),
+});
+
+export const ind = (value: number, note?: string): Figure => ({
+  value,
+  source: "independent",
+  ...(note ? { note } : {}),
+});
