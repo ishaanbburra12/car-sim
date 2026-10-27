@@ -2146,3 +2146,67 @@ Every 0-60 figure in the catalogue now states its basis. 262 tests.
 
 - **Me (Raju):** said do the ratchet, and said what the site is for.
 - **Claude:** the 25 audits, the nine corrections, and the chart warning.
+
+---
+
+## 2026-10-27 — Session 25: the ideas
+
+The catalogue had 2,730 words of prose across 65 cars. Forty-two words each.
+That is a specification list, and Raju's goal is a place to learn about cars,
+so the writing was the thing most obviously missing.
+
+### What to write about turned out to be already here
+
+The temptation was to write longer blurbs from memory, which is the easiest
+way to put unverified claims on a site whose whole argument is that it does
+not do that.
+
+The better material was the work of the last two sessions. Auditing the
+figures turned up a stack of genuinely interesting, genuinely checked things:
+that a modern Le Mans car's weight is set by the organisers between races,
+that Ferrari publishes bounds rather than figures, that DIN and EU kerb weights
+differ by 75 kg on the same car, that Porsche publishes the 918's torque per
+gear, that a rollout-adjusted 2.9 and a standing-start 3.1 are the same run.
+Each of those explains something real, and each was verified against a maker's
+own material rather than recalled.
+
+So `/concepts` holds ten of them:
+
+- 0-60 mph, 0-100 km/h, and rollout
+- A maker's figure and a measured one
+- When a maker publishes a bound
+- Balance of Performance
+- Kerb weight, dry weight, and whose standard
+- Why ordinary cars are harder to document than hypercars
+- When a maker simply stops saying
+- Why a hybrid's torque is a slippery number
+- Homologation
+- Reading a blank
+
+Roughly 3,000 words, which is more prose than the entire catalogue had.
+
+### Tying the writing to the data
+
+The risk with this kind of page is that it goes stale invisibly: a concept
+illustrates itself with a car whose figures have since changed, and the page
+goes on teaching something that is no longer true.
+
+So examples are car slugs, not prose, and tests check them. Every cited car
+must exist. Every cross-reference must resolve. No car may carry more than
+three examples, and at least twelve distinct cars must be used, so the teaching
+is not leaning on two favourites. And a set of spot-checks ties specific claims
+to specific data — if the 917 stops showing several kinds of blank, or the
+Model 3 gains a power figure, the test fails and the prose gets rewritten.
+
+Each car page now lists the ideas that cite it, so you can go from a car to the
+idea it illustrates, and the idea pages link back to the cars.
+
+### Counts
+
+273 tests. 10 concept pages. Payload still clean.
+
+### Who wrote what
+
+- **Me (Raju):** said what the site is for.
+- **Claude:** the ten concepts, the pages, and the tests that keep the prose
+  honest against the data.

@@ -11,6 +11,7 @@ import { CarIndex, SpecTable } from "@/app/components/catalog-ui";
 import { toRow } from "@/app/components/to-row";
 import { CompareChart } from "@/app/components/compare-chart";
 import { coverage } from "@/src/catalog/compare";
+import { conceptsCiting } from "@/src/catalog/concepts";
 
 export function generateStaticParams() {
   return CARS.map((car) => ({ slug: car.slug }));
@@ -39,6 +40,7 @@ const CATEGORY_WORD: Record<string, string> = {
 export default async function CarPage({ params }: { params: Promise<{ slug: string }> }) {
   const car = CAR_BY_SLUG[(await params).slug];
   const cov = coverage(car);
+  const ideas = conceptsCiting(car.slug);
   if (!car) notFound();
   const brand = BRAND_BY_SLUG[car.brand];
   const siblings = carsOfBrand(car.brand).filter((c) => c.slug !== car.slug);
@@ -138,6 +140,37 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
       </section>
 
       <CompareChart car={car} />
+
+      {ideas.length > 0 ? (
+        <section className="mt-12">
+          <h2 className="text-[15px] font-semibold">What this car illustrates</h2>
+          <p className="prose-serif mt-1.5 text-[15px]" style={{ color: "var(--ink-2)" }}>
+            This car is used as an example on {ideas.length === 1 ? "this page" : "these pages"},
+            which explain the idea rather than the car.
+          </p>
+          <ul className="mt-3 border-t" style={{ borderColor: "var(--rule-soft)" }}>
+            {ideas.map((idea) => (
+              <li key={idea.slug}>
+                <Link
+                  href={`/concepts/${idea.slug}`}
+                  className="group block border-b py-3"
+                  style={{ borderColor: "var(--rule-soft)" }}
+                >
+                  <span className="text-[15px] font-medium transition-colors group-hover:text-[var(--signal-ink)]">
+                    {idea.term}
+                  </span>
+                  <span
+                    className="mt-0.5 block text-[14px] leading-snug"
+                    style={{ color: "var(--ink-2)" }}
+                  >
+                    {idea.examples.find((e) => e.car === car.slug)?.why}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="mt-12 border-t pt-6" style={{ borderColor: "var(--rule)" }}>
         <h2 className="text-[15px] font-semibold">Sources</h2>

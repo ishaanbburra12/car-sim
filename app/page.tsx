@@ -34,7 +34,22 @@ export default function Home() {
         >
           Browse by brand
         </Link>
+        <Link
+          href="/concepts"
+          className="rounded-md border px-5 py-2.5 text-[15px] transition-colors hover:text-[var(--signal-ink)]"
+          style={{ borderColor: "var(--rule)" }}
+        >
+          Start with the ideas
+        </Link>
       </div>
+
+      {/* The ideas are the point of the site, not an appendix to it: a table of
+          figures teaches nothing until you know what the figures are. */}
+      <p className="prose-serif mt-6 max-w-2xl text-[15px]" style={{ color: "var(--ink-2)" }}>
+        If you are new to this, the ideas are the place to start. They explain why three cars
+        here read exactly the same power figure, why a 2.9-second and a 3.1-second 0-60 can be
+        the same run, and what a blank in a specification table is actually telling you.
+      </p>
 
       <ul className="mt-16 border-t" style={{ borderColor: "var(--rule-soft)" }}>
         {CATEGORIES.map((category) => (
