@@ -17,7 +17,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(3.0),
     topSpeedMph: mfr(184),
     produced: null,
-    sources: ["Porsche technical specifications for the 911 GT3 RS (992)"],
+    sources: [
+      { publisher: "Porsche", title: "Technical specifications for the 911 GT3 RS (992)" },
+    ],
   },
   {
     slug: "porsche-718-cayman-gt4-rs",
@@ -35,7 +37,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(3.2),
     topSpeedMph: mfr(196),
     produced: null,
-    sources: ["Porsche technical specifications for the 718 Cayman GT4 RS"],
+    sources: [
+      { publisher: "Porsche", title: "Technical specifications for the 718 Cayman GT4 RS" },
+    ],
   },
   {
     slug: "mazda-mx-5-nd",
@@ -54,8 +58,8 @@ export const SPORTS_CARS: Car[] = [
     topSpeedMph: mfr(136),
     produced: null,
     sources: [
-      "Mazda technical specifications for the MX-5 (ND)",
-      "Independent road tests for the acceleration figure",
+      { publisher: "Mazda", title: "Technical specifications for the MX-5 (ND)" },
+      { publisher: "Independent road tests", title: "Independent road tests for the acceleration figure" },
     ],
   },
   {
@@ -74,7 +78,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(6.1, "manual transmission"),
     topSpeedMph: null,
     produced: null,
-    sources: ["Toyota technical specifications for the GR86"],
+    sources: [
+      { publisher: "Toyota", title: "Technical specifications for the GR86" },
+    ],
   },
   {
     slug: "subaru-brz",
@@ -92,7 +98,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Subaru technical specifications for the BRZ"],
+    sources: [
+      { publisher: "Subaru", title: "Technical specifications for the BRZ" },
+    ],
   },
   {
     slug: "nissan-z",
@@ -110,7 +118,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Nissan technical specifications for the Z"],
+    sources: [
+      { publisher: "Nissan", title: "Technical specifications for the Z" },
+    ],
   },
   {
     slug: "toyota-gr-supra",
@@ -128,7 +138,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(3.9, "automatic"),
     topSpeedMph: mfr(155, "electronically limited"),
     produced: null,
-    sources: ["Toyota technical specifications for the GR Supra"],
+    sources: [
+      { publisher: "Toyota", title: "Technical specifications for the GR Supra" },
+    ],
   },
   {
     slug: "bmw-m2-g87",
@@ -146,7 +158,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(4.1, "manual"),
     topSpeedMph: mfr(155, "limited; 177 mph with the M Driver's Package"),
     produced: null,
-    sources: ["BMW technical specifications for the M2"],
+    sources: [
+      { publisher: "BMW", title: "Technical specifications for the M2" },
+    ],
   },
   {
     slug: "chevrolet-corvette-c8",
@@ -164,7 +178,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(2.9, "with the Z51 package"),
     topSpeedMph: mfr(194),
     produced: null,
-    sources: ["Chevrolet technical specifications for the Corvette Stingray"],
+    sources: [
+      { publisher: "Chevrolet", title: "Technical specifications for the Corvette Stingray" },
+    ],
   },
   {
     slug: "ford-mustang-gt-s650",
@@ -182,7 +198,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Ford technical specifications for the Mustang GT"],
+    sources: [
+      { publisher: "Ford", title: "Technical specifications for the Mustang GT" },
+    ],
   },
   {
     slug: "honda-civic-type-r-fl5",
@@ -201,8 +219,8 @@ export const SPORTS_CARS: Car[] = [
     topSpeedMph: mfr(171),
     produced: null,
     sources: [
-      "Honda technical specifications for the Civic Type R",
-      "Independent road tests for the acceleration figure",
+      { publisher: "Honda", title: "Technical specifications for the Civic Type R" },
+      { publisher: "Independent road tests", title: "Independent road tests for the acceleration figure" },
     ],
   },
   {
@@ -221,7 +239,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(4.5, "quoted as 0-100 km/h in 4.5 s"),
     topSpeedMph: mfr(155),
     produced: null,
-    sources: ["Alpine technical specifications for the A110"],
+    sources: [
+      { publisher: "Alpine", title: "Technical specifications for the A110" },
+    ],
   },
   {
     slug: "lotus-emira",
@@ -239,7 +259,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(4.2),
     topSpeedMph: mfr(180),
     produced: null,
-    sources: ["Lotus technical specifications for the Emira"],
+    sources: [
+      { publisher: "Lotus", title: "Technical specifications for the Emira" },
+    ],
   },
   {
     slug: "audi-r8-v10-performance",
@@ -257,7 +279,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(3.1),
     topSpeedMph: mfr(205),
     produced: null,
-    sources: ["Audi technical specifications for the R8 V10 performance"],
+    sources: [
+      { publisher: "Audi", title: "Technical specifications for the R8 V10 performance" },
+    ],
   },
   {
     slug: "nissan-gt-r-r35",
@@ -276,8 +300,8 @@ export const SPORTS_CARS: Car[] = [
     topSpeedMph: mfr(196),
     produced: null,
     sources: [
-      "Nissan technical specifications for the GT-R",
-      "Independent road tests for the acceleration figure",
+      { publisher: "Nissan", title: "Technical specifications for the GT-R" },
+      { publisher: "Independent road tests", title: "Independent road tests for the acceleration figure" },
     ],
   },
   {
@@ -296,7 +320,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(2.9),
     topSpeedMph: mfr(205),
     produced: null,
-    sources: ["Ferrari technical specifications for the 296 GTB"],
+    sources: [
+      { publisher: "Ferrari", title: "Technical specifications for the 296 GTB" },
+    ],
   },
   {
     slug: "mclaren-750s",
@@ -314,7 +340,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(2.7),
     topSpeedMph: mfr(206),
     produced: null,
-    sources: ["McLaren technical specifications for the 750S"],
+    sources: [
+      { publisher: "McLaren", title: "Technical specifications for the 750S" },
+    ],
   },
   {
     slug: "lamborghini-huracan-sto",
@@ -332,7 +360,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: mfr(3.0, "quoted as 0-100 km/h in 3.0 s"),
     topSpeedMph: mfr(193),
     produced: null,
-    sources: ["Lamborghini technical specifications for the Huracán STO"],
+    sources: [
+      { publisher: "Lamborghini", title: "Technical specifications for the Huracán STO" },
+    ],
   },
   {
     slug: "mazda-rx-7-fd",
@@ -350,7 +380,9 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Mazda specifications for the third-generation RX-7"],
+    sources: [
+      { publisher: "Mazda", title: "Specifications for the third-generation RX-7" },
+    ],
   },
   {
     slug: "honda-nsx-na1",
@@ -368,6 +400,232 @@ export const SPORTS_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: mfr(168),
     produced: null,
-    sources: ["Honda specifications for the first-generation NSX"],
+    sources: [
+      { publisher: "Honda", title: "Specifications for the first-generation NSX" },
+    ],
+  },
+  {
+    slug: "mercedes-benz-300-sl",
+    brand: "mercedes-benz",
+    name: "300 SL",
+    years: "1954-1963",
+    category: "sports",
+    layout: "Front-engine, rear-wheel drive",
+    engine: "3.0 L naturally aspirated inline-six",
+    blurb:
+      "The first production car with mechanical fuel injection, and the reason for the gullwing doors: the spaceframe chassis has such deep side members that a conventional door could not be cut into it. A racing car adapted for the road rather than the other way round.",
+    powerHp: mfr(215, "with fuel injection; figures of the period were measured differently"),
+    torqueLbFt: mfr(203),
+    weightKg: mfr(1295, "coupe, dry"),
+    zeroTo60S: null,
+    topSpeedMph: mfr(161, "with the highest of the four available final drives"),
+    produced: { count: 1400, note: "gullwing coupes; a further 1,858 roadsters followed" },
+    sources: [
+      { publisher: "Mercedes-Benz", title: "300 SL historical model information" },
+    ],
+  },
+  {
+    slug: "aston-martin-vantage",
+    brand: "aston-martin",
+    name: "Vantage",
+    years: "2018-present",
+    category: "sports",
+    layout: "Front-engine, rear-wheel drive",
+    engine: "4.0 L twin-turbocharged V8, built by Mercedes-AMG",
+    blurb:
+      "Aston Martin's smallest and least grand car, and the one meant to be driven hard rather than driven far. Its engine comes from AMG under a long-running technical partnership; the chassis, body and calibration are Aston's own.",
+    powerHp: mfr(656, "2024 onwards; the 2018 car made 503 hp"),
+    torqueLbFt: mfr(590),
+    weightKg: mfr(1745, "dry weight"),
+    zeroTo60S: mfr(3.4),
+    topSpeedMph: mfr(202),
+    produced: null,
+    sources: [
+      { publisher: "Aston Martin", title: "Vantage technical specifications" },
+    ],
+  },
+  {
+    slug: "bmw-m3-e30",
+    brand: "bmw",
+    name: "M3 (E30)",
+    years: "1986-1991",
+    category: "sports",
+    layout: "Front-engine, rear-wheel drive",
+    engine: "2.3 L naturally aspirated inline-four",
+    blurb:
+      "Built because touring car racing required a production version to exist, which is why almost every panel differs from the ordinary E30 and why it has a four-cylinder engine rather than the six the range was known for. It went on to be one of the most successful touring cars ever raced.",
+    powerHp: mfr(192, "European specification; later Evolution versions made more"),
+    torqueLbFt: mfr(170),
+    weightKg: mfr(1200, "kerb weight, varies by market and year"),
+    zeroTo60S: null,
+    topSpeedMph: mfr(146),
+    produced: null,
+    review:
+      "Production totals for the E30 M3 are quoted inconsistently depending on whether convertibles and the Evolution specials are counted, so no number is given here.",
+    sources: [
+      { publisher: "BMW", title: "M3 (E30) historical model information" },
+    ],
+  },
+  {
+    slug: "volkswagen-golf-gti-mk1",
+    brand: "volkswagen",
+    name: "Golf GTI (Mk1)",
+    years: "1976-1983",
+    category: "sports",
+    layout: "Front-engine, front-wheel drive",
+    engine: "1.6 L naturally aspirated inline-four with fuel injection",
+    blurb:
+      "Began as an after-hours project by a handful of Volkswagen engineers who thought a quick Golf might sell a few thousand. It invented the hot hatch: ordinary car, ordinary price, enough power and grip to be genuinely fast, and no loss of the practicality that made it worth owning.",
+    powerHp: mfr(110),
+    torqueLbFt: mfr(103),
+    weightKg: mfr(810, "kerb weight"),
+    zeroTo60S: mfr(9.0),
+    topSpeedMph: mfr(112),
+    produced: null,
+    sources: [
+      { publisher: "Volkswagen", title: "Golf GTI historical model information" },
+    ],
+  },
+  {
+    slug: "chevrolet-corvette-z06-c8",
+    brand: "chevrolet",
+    name: "Corvette Z06 (C8)",
+    years: "2023-present",
+    category: "sports",
+    layout: "Mid-engine, rear-wheel drive",
+    engine: "5.5 L naturally aspirated flat-plane-crank V8",
+    blurb:
+      "Uses a flat-plane crankshaft, which is a Ferrari habit rather than an American one: it lets the engine rev to 8,600 rpm and changes the exhaust note completely, at the cost of the secondary balance a cross-plane V8 gets for free.",
+    powerHp: mfr(670),
+    torqueLbFt: mfr(460),
+    weightKg: mfr(1560, "kerb weight"),
+    zeroTo60S: mfr(2.6),
+    topSpeedMph: mfr(195),
+    produced: null,
+    sources: [
+      { publisher: "Chevrolet", title: "Corvette Z06 technical specifications" },
+    ],
+  },
+  {
+    slug: "tesla-model-s-plaid",
+    brand: "tesla",
+    name: "Model S Plaid",
+    years: "2021-present",
+    category: "sports",
+    layout: "Three motors, all-wheel drive",
+    engine: "Three electric motors, roughly 100 kWh battery",
+    blurb:
+      "A five-seat saloon with the acceleration of a hypercar, which is the clearest demonstration of what electric drive changes: there is no gearbox to interrupt, no turbo to spool, and all of the torque is available from a standstill.",
+    powerHp: mfr(1020),
+    torqueLbFt: null,
+    weightKg: mfr(2162, "kerb weight"),
+    zeroTo60S: mfr(1.99, "the maker's figure is quoted with a one-foot rollout"),
+    topSpeedMph: mfr(200, "requires specific tyres and hardware"),
+    produced: null,
+    sources: [
+      { publisher: "Tesla", title: "Model S specifications" },
+    ],
+  },
+  {
+    slug: "hyundai-ioniq-5-n",
+    brand: "hyundai",
+    name: "Ioniq 5 N",
+    years: "2024-present",
+    category: "sports",
+    layout: "Two motors, all-wheel drive",
+    engine: "Two electric motors, 84 kWh battery",
+    blurb:
+      "The first electric car built to be enjoyable rather than merely quick. It simulates an eight-speed gearbox and an engine note on purpose, which sounds absurd until you understand the problem it solves: without shift points, a fast car gives the driver almost nothing to do.",
+    powerHp: mfr(641, "with the temporary N Grin Boost engaged; 601 hp otherwise"),
+    torqueLbFt: mfr(568),
+    weightKg: mfr(2230, "kerb weight"),
+    zeroTo60S: mfr(3.4),
+    topSpeedMph: mfr(161),
+    produced: null,
+    sources: [
+      { publisher: "Hyundai", title: "Ioniq 5 N technical specifications" },
+    ],
+  },
+  {
+    slug: "alpine-a110-original",
+    brand: "alpine",
+    name: "A110 (original)",
+    years: "1961-1977",
+    category: "sports",
+    layout: "Rear-engine, rear-wheel drive",
+    engine: "Renault-derived naturally aspirated inline-fours, 1.1 to 1.8 L",
+    blurb:
+      "Won the first World Rally Championship in 1973 with an engine most of its rivals would have called inadequate. It worked because the car weighed around 700 kg and put that weight over the driven wheels, which is the whole argument the modern A110 inherited.",
+    powerHp: mfr(138, "1600S specification; output varied widely across the run"),
+    torqueLbFt: null,
+    weightKg: mfr(730, "approximately, 1600S"),
+    zeroTo60S: null,
+    topSpeedMph: mfr(130),
+    produced: null,
+    review:
+      "The A110 ran for sixteen years with many engines and two factories; the figures here describe the 1600S and do not generalise to the rest.",
+    sources: [
+      { publisher: "Alpine", title: "A110 historical model information" },
+    ],
+  },
+  {
+    slug: "lotus-elise-s1",
+    brand: "lotus",
+    name: "Elise (Series 1)",
+    years: "1996-2001",
+    category: "sports",
+    layout: "Mid-engine, rear-wheel drive",
+    engine: "1.8 L naturally aspirated inline-four, supplied by Rover",
+    blurb:
+      "Weighs 725 kg, which is less than a modern supermini, and gets there with a chassis of aluminium extrusions bonded rather than welded together. With 118 hp it is not fast by any current measure and is still regarded as one of the best-steering cars ever built.",
+    powerHp: mfr(118),
+    torqueLbFt: mfr(122),
+    weightKg: mfr(725, "kerb weight"),
+    zeroTo60S: mfr(5.9),
+    topSpeedMph: mfr(124),
+    produced: null,
+    sources: [
+      { publisher: "Lotus", title: "Elise historical model information" },
+    ],
+  },
+  {
+    slug: "cadillac-ct5-v-blackwing",
+    brand: "cadillac",
+    name: "CT5-V Blackwing",
+    years: "2022-present",
+    category: "sports",
+    layout: "Front-engine, rear-wheel drive",
+    engine: "6.2 L supercharged V8",
+    blurb:
+      "A large American saloon with a supercharged V8 and a six-speed manual, sold at a point when every German rival had dropped both. Cadillac has said it is the last of its kind from the brand, which makes it a deliberate full stop rather than an oversight.",
+    powerHp: mfr(668),
+    torqueLbFt: mfr(659),
+    weightKg: mfr(1944, "kerb weight"),
+    zeroTo60S: mfr(3.4, "with the automatic transmission"),
+    topSpeedMph: mfr(200),
+    produced: null,
+    sources: [
+      { publisher: "Cadillac", title: "CT5-V Blackwing technical specifications" },
+    ],
+  },
+  {
+    slug: "peugeot-205-gti",
+    brand: "peugeot",
+    name: "205 GTI",
+    years: "1984-1994",
+    category: "sports",
+    layout: "Front-engine, front-wheel drive",
+    engine: "1.6 L or 1.9 L naturally aspirated inline-four",
+    blurb:
+      "The hot hatch at its sharpest, and its most alarming: around 880 kg, a stiff rear beam axle, and a habit of lifting an inside rear wheel through fast corners that made it quick in the right hands and unforgiving in the wrong ones.",
+    powerHp: mfr(128, "1.9 L specification; the 1.6 made 115 hp"),
+    torqueLbFt: mfr(119),
+    weightKg: mfr(880, "kerb weight, 1.9"),
+    zeroTo60S: mfr(7.8),
+    topSpeedMph: mfr(124),
+    produced: null,
+    sources: [
+      { publisher: "Peugeot", title: "205 GTI historical model information" },
+    ],
   },
 ];

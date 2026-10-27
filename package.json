@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:links": "vite-node scripts/check-links.mjs",
+    "check:payload": "vite-node scripts/check-payload.mjs"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.13",

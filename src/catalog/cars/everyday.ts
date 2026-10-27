@@ -23,7 +23,9 @@ export const EVERYDAY_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Toyota technical specifications for the Corolla"],
+    sources: [
+      { publisher: "Toyota", title: "Technical specifications for the Corolla" },
+    ],
   },
   {
     slug: "honda-civic",
@@ -41,7 +43,9 @@ export const EVERYDAY_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Honda technical specifications for the Civic"],
+    sources: [
+      { publisher: "Honda", title: "Technical specifications for the Civic" },
+    ],
   },
   {
     slug: "volkswagen-golf",
@@ -53,13 +57,15 @@ export const EVERYDAY_CARS: Car[] = [
     engine: "Petrol, diesel, mild-hybrid and plug-in four-cylinders",
     blurb:
       "Defined the modern hatchback in 1974: a transverse engine driving the front wheels, a hatch at the back, and folding rear seats. Nearly every small car since has used the same basic arrangement, which is why the Golf is a reference point rather than just a product.",
-    powerHp: null,
-    torqueLbFt: null,
+    powerHp: mfr(148, "1.5 TSI, 150 PS; the range runs from 114 hp to 328 hp in the Golf R"),
+    torqueLbFt: mfr(184, "1.5 TSI"),
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Volkswagen model information for the Golf"],
+    sources: [
+      { publisher: "Volkswagen", title: "Model information for the Golf" },
+    ],
   },
   {
     slug: "ford-f-150",
@@ -71,13 +77,15 @@ export const EVERYDAY_CARS: Car[] = [
     engine: "V6, V8, hybrid and electric variants",
     blurb:
       "The best-selling vehicle in the United States for over four decades. Its switch to an aluminium body in 2015 was a serious piece of engineering: around 300 kg saved on a vehicle class where buyers measure everything in towing capacity.",
-    powerHp: null,
-    torqueLbFt: null,
+    powerHp: mfr(325, "2.7 L EcoBoost V6; the range runs to 720 hp in the Raptor R"),
+    torqueLbFt: mfr(400, "2.7 L EcoBoost V6"),
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Ford model information for the F-150"],
+    sources: [
+      { publisher: "Ford", title: "Model information for the F-150" },
+    ],
   },
   {
     slug: "toyota-rav4",
@@ -95,7 +103,9 @@ export const EVERYDAY_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Toyota technical specifications for the RAV4"],
+    sources: [
+      { publisher: "Toyota", title: "Technical specifications for the RAV4" },
+    ],
   },
   {
     slug: "honda-cr-v",
@@ -113,7 +123,9 @@ export const EVERYDAY_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Honda technical specifications for the CR-V"],
+    sources: [
+      { publisher: "Honda", title: "Technical specifications for the CR-V" },
+    ],
   },
   {
     slug: "tesla-model-3",
@@ -128,10 +140,12 @@ export const EVERYDAY_CARS: Car[] = [
     powerHp: null,
     torqueLbFt: null,
     weightKg: null,
-    zeroTo60S: null,
+    zeroTo60S: mfr(4.2, "Long Range all-wheel drive, quoted with a one-foot rollout"),
     topSpeedMph: null,
     produced: null,
-    sources: ["Tesla model information for the Model 3"],
+    sources: [
+      { publisher: "Tesla", title: "Model information for the Model 3" },
+    ],
   },
   {
     slug: "hyundai-elantra",
@@ -149,7 +163,9 @@ export const EVERYDAY_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Hyundai technical specifications for the Elantra"],
+    sources: [
+      { publisher: "Hyundai", title: "Technical specifications for the Elantra" },
+    ],
   },
   {
     slug: "mazda3",
@@ -167,7 +183,9 @@ export const EVERYDAY_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Mazda technical specifications for the Mazda3"],
+    sources: [
+      { publisher: "Mazda", title: "Technical specifications for the Mazda3" },
+    ],
   },
   {
     slug: "subaru-outback",
@@ -185,6 +203,8 @@ export const EVERYDAY_CARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Subaru technical specifications for the Outback"],
+    sources: [
+      { publisher: "Subaru", title: "Technical specifications for the Outback" },
+    ],
   },
 ];

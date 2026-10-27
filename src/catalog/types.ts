@@ -59,6 +59,37 @@ export const CATEGORY_BLURBS: Record<Category, string> = {
     "The cars most people actually own. Unglamorous, enormously refined, and the place almost every piece of safety and efficiency technology ends up.",
 };
 
+/**
+ * Where a figure came from, structured so a reader can actually go and look.
+ *
+ * NOTE ON URLs. There is deliberately no url on most of these. Manufacturer
+ * deep links rot faster than almost anything else on the web — a model page
+ * moves the moment the model is replaced — and a dead link on a reference work
+ * is worse than no link, because it looks like a citation and isn't one. More
+ * to the point, the container this catalogue was written in cannot reach any
+ * car manufacturer's site, so a URL added here could not have been checked by
+ * the person adding it. Writing one anyway would be manufacturing the
+ * appearance of verifiability, which is the exact thing this project exists
+ * not to do.
+ *
+ * What is here instead is enough to find the document: who published it, what
+ * it is called, and when. The brand's own site is linked separately, and is
+ * the place to start looking.
+ *
+ * `scripts/check-links.mjs` verifies any url that IS present. Run it somewhere
+ * with open network access before trusting one.
+ */
+export type Source = {
+  /** The organisation that published it. */
+  publisher: string;
+  /** The document, named as precisely as possible. */
+  title: string;
+  /** Year of publication, where it is known. */
+  year?: number;
+  /** Only ever set to a link that has been checked. */
+  url?: string;
+};
+
 export type Brand = {
   slug: string;
   name: string;
@@ -101,8 +132,15 @@ export type Car = {
    * we did not look it up.
    */
   produced: { count: number; note?: string } | null;
-  /** Where the figures above came from, in plain words. */
-  sources: string[];
+  /** Where the figures above came from. At least one, always. */
+  sources: Source[];
+  /**
+   * Set when something on this entry is known to need checking: a figure that
+   * could not be pinned to a specific trim, a production number that different
+   * accounts disagree on. Surfaced on the page rather than hidden, because a
+   * reference work that quietly carries doubt is worse than one that says so.
+   */
+  review?: string;
 };
 
 /* --- Small constructors, so the data files stay readable ----------------- */

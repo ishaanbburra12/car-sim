@@ -17,7 +17,9 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: mfr(2.4),
     topSpeedMph: mfr(261, "electronically limited; a modified Chiron exceeded 300 mph in a one-way run"),
     produced: { count: 500 },
-    sources: ["Bugatti press material for the Chiron"],
+    sources: [
+      { publisher: "Bugatti", title: "Press material for the Chiron" },
+    ],
   },
   {
     slug: "koenigsegg-jesko",
@@ -35,7 +37,9 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: { count: 125 },
-    sources: ["Koenigsegg technical specifications for the Jesko"],
+    sources: [
+      { publisher: "Koenigsegg", title: "Technical specifications for the Jesko" },
+    ],
   },
   {
     slug: "rimac-nevera",
@@ -53,7 +57,9 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: mfr(1.85, "with one foot of rollout, the US magazine convention"),
     topSpeedMph: mfr(258),
     produced: { count: 150 },
-    sources: ["Rimac technical specifications for the Nevera"],
+    sources: [
+      { publisher: "Rimac", title: "Technical specifications for the Nevera" },
+    ],
   },
   {
     slug: "mclaren-p1",
@@ -71,7 +77,9 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: mfr(2.8),
     topSpeedMph: mfr(217, "electronically limited"),
     produced: { count: 375 },
-    sources: ["McLaren press material for the P1"],
+    sources: [
+      { publisher: "McLaren", title: "Press material for the P1" },
+    ],
   },
   {
     slug: "ferrari-laferrari",
@@ -89,7 +97,9 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: mfr(2.9, "quoted as under 3 seconds"),
     topSpeedMph: mfr(217, "quoted as over 350 km/h"),
     produced: { count: 499, note: "coupes; a further 210 open-top Aperta followed" },
-    sources: ["Ferrari press material for LaFerrari"],
+    sources: [
+      { publisher: "Ferrari", title: "Press material for LaFerrari" },
+    ],
   },
   {
     slug: "porsche-918-spyder",
@@ -107,7 +117,9 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: mfr(2.5),
     topSpeedMph: mfr(214),
     produced: { count: 918 },
-    sources: ["Porsche press material for the 918 Spyder"],
+    sources: [
+      { publisher: "Porsche", title: "Press material for the 918 Spyder" },
+    ],
   },
   {
     slug: "pagani-huayra",
@@ -125,7 +137,9 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: mfr(230),
     produced: { count: 100, note: "coupes; roadster and special versions additional" },
-    sources: ["Pagani technical specifications for the Huayra"],
+    sources: [
+      { publisher: "Pagani", title: "Technical specifications for the Huayra" },
+    ],
   },
   {
     slug: "aston-martin-valkyrie",
@@ -143,7 +157,9 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: { count: 150, note: "road cars; the track-only AMR Pro is additional" },
-    sources: ["Aston Martin press material for the Valkyrie"],
+    sources: [
+      { publisher: "Aston Martin", title: "Press material for the Valkyrie" },
+    ],
   },
   {
     slug: "lamborghini-revuelto",
@@ -161,7 +177,9 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: mfr(2.5, "quoted as 0-100 km/h in 2.5 s"),
     topSpeedMph: mfr(217),
     produced: null,
-    sources: ["Lamborghini technical specifications for the Revuelto"],
+    sources: [
+      { publisher: "Lamborghini", title: "Technical specifications for the Revuelto" },
+    ],
   },
   {
     slug: "mercedes-amg-one",
@@ -179,6 +197,90 @@ export const HYPERCARS: Car[] = [
     zeroTo60S: mfr(2.9, "quoted as 0-100 km/h in 2.9 s"),
     topSpeedMph: mfr(219),
     produced: { count: 275 },
-    sources: ["Mercedes-AMG press material for the One"],
+    sources: [
+      { publisher: "Mercedes-AMG", title: "Press material for the One" },
+    ],
+  },
+  {
+    slug: "bugatti-veyron",
+    brand: "bugatti",
+    name: "Veyron 16.4",
+    years: "2005-2015",
+    category: "hypercar",
+    layout: "Mid-engine, all-wheel drive",
+    engine: "8.0 L quad-turbocharged W16",
+    blurb:
+      "The car that made 1,000 hp and 250 mph into road-car numbers, and it took Volkswagen years to get there: the problems were cooling, tyres and brakes rather than power. At full speed it empties its fuel tank in about twelve minutes, which is the clearest illustration there is of how drag scales with velocity.",
+    powerHp: mfr(1001),
+    torqueLbFt: mfr(922),
+    weightKg: mfr(1888, "kerb weight"),
+    zeroTo60S: mfr(2.5),
+    topSpeedMph: mfr(253, "requires a second key to unlock the top-speed mode"),
+    produced: { count: 450, note: "coupes and roadsters across all versions" },
+    sources: [
+      { publisher: "Bugatti", title: "Veyron 16.4 technical specifications" },
+    ],
+  },
+  {
+    slug: "koenigsegg-regera",
+    brand: "koenigsegg",
+    name: "Regera",
+    years: "2016-2022",
+    category: "hypercar",
+    layout: "Mid-engine, rear-wheel drive",
+    engine: "5.0 L twin-turbocharged V8 with three electric motors",
+    blurb:
+      "Has no gearbox at all. Koenigsegg's Direct Drive system couples the engine to the back axle through a single fixed ratio and uses electric motors to cover everything a set of gears would normally do, which removes the weight and the shift interruptions together.",
+    powerHp: mfr(1500, "combined, limited by the battery's output"),
+    torqueLbFt: mfr(1475, "combined"),
+    weightKg: mfr(1628, "kerb weight"),
+    zeroTo60S: null,
+    topSpeedMph: mfr(255),
+    produced: { count: 80 },
+    sources: [
+      { publisher: "Koenigsegg", title: "Regera technical specifications" },
+    ],
+  },
+  {
+    slug: "rimac-concept-one",
+    brand: "rimac",
+    name: "Concept_One",
+    years: "2013-2018",
+    category: "hypercar",
+    layout: "Four motors, all-wheel drive",
+    engine: "Four electric motors, 82 kWh battery",
+    blurb:
+      "The first electric hypercar, and effectively the prototype for the company Rimac became. Eight were built, which is fewer than most press fleets, and its real legacy is the battery and motor technology other manufacturers now buy from the firm that made it.",
+    powerHp: mfr(1224),
+    torqueLbFt: mfr(1180),
+    weightKg: mfr(1850),
+    zeroTo60S: mfr(2.5),
+    topSpeedMph: mfr(221),
+    produced: { count: 8 },
+    sources: [
+      { publisher: "Rimac", title: "Concept_One technical specifications" },
+    ],
+  },
+  {
+    slug: "pagani-zonda-f",
+    brand: "pagani",
+    name: "Zonda F",
+    years: "2005-2009",
+    category: "hypercar",
+    layout: "Mid-engine, rear-wheel drive",
+    engine: "7.3 L naturally aspirated V12, built by Mercedes-AMG",
+    blurb:
+      "Named after Juan Manuel Fangio, who helped Horacio Pagani get the AMG engine deal in the first place. The Zonda ran for eighteen years in a stream of one-off variants, long after it should have been replaced, largely because customers kept commissioning them.",
+    powerHp: mfr(602),
+    torqueLbFt: mfr(575),
+    weightKg: mfr(1230, "dry weight"),
+    zeroTo60S: mfr(3.6),
+    topSpeedMph: mfr(214),
+    produced: { count: 25, note: "F coupes; the wider Zonda family ran to roughly 140 cars" },
+    review:
+      "The 25 figure covers the Zonda F coupe only. Pagani built a long tail of one-off and special-series Zondas and the total is reported differently in different places.",
+    sources: [
+      { publisher: "Pagani", title: "Zonda F technical specifications" },
+    ],
   },
 ];

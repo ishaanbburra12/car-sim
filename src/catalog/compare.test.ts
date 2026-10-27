@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CARS, CAR_BY_SLUG } from "./index";
-import { compareWithinCategory, rankPhrase } from "./compare";
+import { compareWithinCategory, coverage, coverageOf, rankPhrase } from "./compare";
 import type { Car } from "./types";
 
 const car = (over: Partial<Car>): Car => ({
@@ -18,7 +18,7 @@ const car = (over: Partial<Car>): Car => ({
   zeroTo60S: null,
   topSpeedMph: null,
   produced: null,
-  sources: ["s"],
+  sources: [{ publisher: "p", title: "t" }],
   ...over,
 });
 
@@ -117,6 +117,104 @@ describe("comparing a car with its own category", () => {
     expect(rows.length).toBeGreaterThanOrEqual(3);
     const power = rows.find((r) => r.key === "powerHp");
     expect(power?.rank).toBe(1); // the most powerful hypercar in the catalogue
+  });
+});
+
+describe("a runaway top figure does not flatten everyone else", () => {
+  const spread = (...v: number[]) => v.map((n, i) => car({ slug: "c" + i, powerHp: hp(n) }));
+
+  it("clips the axis at the runner-up when the leader is far clear", () => {
+    const pool = spread(100, 180, 200, 900);
+    const [r] = compareWithinCategory(pool[1], pool);
+    expect(r.max).toBe(900);
+    expect(r.scaleMax).toBe(200); // the field, not the freak
+    expect(r.overScale).toBe(false);
+  });
+
+  it("marks the car that runs off the end of its own track", () => {
+    const pool = spread(100, 180, 200, 900);
+    const [r] = compareWithinCategory(pool[3], pool);
+    expect(r.overScale).toBe(true);
+    expect(r.value).toBeGreaterThan(r.scaleMax);
+    expect(r.rank).toBe(1);
+  });
+
+  it("leaves an ordinary spread alone", () => {
+    const pool = spread(400, 500, 600, 650);
+    const [r] = compareWithinCategory(pool[0], pool);
+    expect(r.scaleMax).toBe(r.max);
+    expect(r.overScale).toBe(false);
+  });
+
+  it("will not clip a field too small to tell an outlier from a spread", () => {
+    const pool = spread(100, 200, 900);
+    const [r] = compareWithinCategory(pool[0], pool);
+    expect(r.scaleMax).toBe(900);
+  });
+
+  // The examples above use their own pools on purpose. WHICH real rows clip is
+  // a property of the data and moves every time a car is added -- the hypercar
+  // torque row stopped clipping the moment the Regera went in -- so the real
+  // catalogue is checked for the invariant instead of for a named car.
+  it("always marks the car that ran off the end, whenever a track is clipped", () => {
+    for (const c of CARS) {
+      for (const cmp of compareWithinCategory(c)) {
+        if (cmp.scaleMax >= cmp.max) {
+          expect(cmp.overScale, `${c.slug}.${cmp.key}`).toBe(false);
+          continue;
+        }
+        // A clipped track must leave the top figure visibly past its end, and
+        // only the car holding that figure may be the one marked.
+        expect(cmp.max, `${c.slug}.${cmp.key}`).toBeGreaterThan(cmp.scaleMax);
+        expect(cmp.overScale, `${c.slug}.${cmp.key}`).toBe(cmp.value > cmp.scaleMax);
+        if (cmp.overScale) expect(cmp.rank, `${c.slug}.${cmp.key}`).toBe(1);
+      }
+    }
+  });
+
+  it("never clips so hard that the median falls off the track", () => {
+    // The median notch is positioned against scaleMax; if clipping could push
+    // it past the end it would silently pile up on the right-hand edge.
+    for (const c of CARS) {
+      for (const cmp of compareWithinCategory(c)) {
+        expect(cmp.median, `${c.slug}.${cmp.key}`).toBeLessThanOrEqual(cmp.scaleMax);
+      }
+    }
+  });
+});
+
+describe("rankings say when they mix kinds of figure", () => {
+  it("flags a peer set with both a maker's claim and a measured test", () => {
+    const pool = [
+      car({ slug: "a", zeroTo60S: { value: 4, source: "manufacturer" } }),
+      car({ slug: "b", zeroTo60S: { value: 5, source: "independent" } }),
+      car({ slug: "c", zeroTo60S: { value: 6, source: "manufacturer" } }),
+    ];
+    expect(compareWithinCategory(pool[0], pool)[0].mixedSources).toBe(true);
+  });
+
+  it("does not flag a peer set that is all one kind", () => {
+    const pool = [
+      car({ slug: "a", powerHp: hp(100) }),
+      car({ slug: "b", powerHp: hp(200) }),
+      car({ slug: "c", powerHp: hp(300) }),
+    ];
+    expect(compareWithinCategory(pool[0], pool)[0].mixedSources).toBe(false);
+  });
+});
+
+describe("coverage", () => {
+  it("counts how many of the five figures a car actually has", () => {
+    expect(coverage(car({})).have).toBe(0);
+    expect(coverage(car({ powerHp: hp(100), weightKg: hp(900) })).have).toBe(2);
+    expect(coverage(car({})).of).toBe(5);
+  });
+
+  it("reports a percentage across a set, and prototypes come out sparse", () => {
+    const protos = CARS.filter((c) => c.category === "prototype");
+    const sports = CARS.filter((c) => c.category === "sports");
+    expect(coverageOf(protos).pct).toBeLessThan(coverageOf(sports).pct);
+    expect(coverageOf([]).pct).toBe(0);
   });
 });
 

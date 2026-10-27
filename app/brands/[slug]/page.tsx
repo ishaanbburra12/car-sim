@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BRANDS, BRAND_BY_SLUG, CATEGORIES, CATEGORY_LABELS, carsOfBrand } from "@/src/catalog";
 import { CarIndex } from "@/app/components/catalog-ui";
+import { toRow } from "@/app/components/to-row";
 
 export function generateStaticParams() {
   return BRANDS.map((brand) => ({ slug: brand.slug }));
@@ -72,7 +73,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
             <section key={category}>
               <h2 className="text-[15px] font-semibold">{CATEGORY_LABELS[category]}</h2>
               <div className="mt-3">
-                <CarIndex cars={cars.filter((c) => c.category === category)} showBrand={false} />
+                <CarIndex cars={cars.filter((c) => c.category === category).map(toRow)} showBrand={false} />
               </div>
             </section>
           ))}

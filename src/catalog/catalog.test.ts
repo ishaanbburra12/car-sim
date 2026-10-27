@@ -50,7 +50,12 @@ describe("catalogue integrity", () => {
   it("cites a source for every car", () => {
     for (const car of CARS) {
       expect(car.sources.length, `${car.slug} has no sources`).toBeGreaterThan(0);
-      for (const s of car.sources) expect(s.trim().length).toBeGreaterThan(0);
+      for (const s of car.sources) {
+        expect(s.publisher.trim().length, `${car.slug}`).toBeGreaterThan(0);
+        expect(s.title.trim().length, `${car.slug}`).toBeGreaterThan(0);
+        // A url is optional, but if one is there it must be a real https link.
+        if (s.url) expect(s.url).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}/);
+      }
     }
   });
 
@@ -107,6 +112,29 @@ describe("figures are published or absent, never invented", () => {
     for (const car of CARS.filter((c) => c.category === "prototype")) {
       expect(car.zeroTo60S, `${car.slug}`).toBeNull();
       expect(car.topSpeedMph, `${car.slug}`).toBeNull();
+    }
+  });
+});
+
+describe("entries that admit doubt", () => {
+  it("writes a real sentence when it flags something for review", () => {
+    for (const car of CARS) {
+      if (car.review === undefined) continue;
+      expect(car.review.trim().length, `${car.slug}`).toBeGreaterThan(20);
+    }
+  });
+
+  it("only gives a production count where one is actually known", () => {
+    for (const car of CARS) {
+      if (car.produced === null) continue;
+      expect(Number.isInteger(car.produced.count), `${car.slug}`).toBe(true);
+      expect(car.produced.count, `${car.slug}`).toBeGreaterThan(0);
+    }
+  });
+
+  it("gives every brand at least two cars, so a brand page is worth opening", () => {
+    for (const { brand, count } of brandsWithCounts()) {
+      expect(count, `${brand.slug} has only ${count}`).toBeGreaterThanOrEqual(2);
     }
   });
 });

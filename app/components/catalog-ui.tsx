@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { BRAND_BY_SLUG, type Car, type MaybeFigure } from "@/src/catalog";
+// TYPES ONLY from the catalogue, and from `types` rather than the barrel.
+// CarBrowser is a client component and imports CarIndex from this file, so any
+// VALUE imported here is bundled and shipped to the browser. Importing
+// BRAND_BY_SLUG from the barrel here put all 65 blurbs (60 kB of chunk) into
+// the client bundle, which is the exact thing CarSummary exists to prevent --
+// and it did not show up in the served HTML, so the first check missed it.
+// The one function that needs brand data lives in ./to-row.ts for this reason.
+import type { Car, MaybeFigure } from "@/src/catalog/types";
 
 const fmt = (n: number, decimals: number) =>
   n.toLocaleString("en-GB", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-
-const CATEGORY_WORD: Record<Car["category"], string> = {
-  hypercar: "Hypercar",
-  sports: "Sports car",
-  prototype: "Prototype",
-  everyday: "Everyday",
-};
 
 /**
  * A row in the index.
@@ -19,8 +19,20 @@ const CATEGORY_WORD: Record<Car["category"], string> = {
  * one aligned column is a list you can run your eye down, which is what an
  * index is for and what makes a reference work usable.
  */
-export function CarRow({ car, showBrand = true }: { car: Car; showBrand?: boolean }) {
-  const brand = BRAND_BY_SLUG[car.brand];
+/**
+ * The least a row needs. Both a full Car and the trimmed CarSummary the
+ * browser holds can be reduced to this, so the index renders identically
+ * whether the page shipped the prose or not.
+ */
+export type RowCar = {
+  slug: string;
+  brandName: string;
+  name: string;
+  years: string;
+  powerHp: number | null;
+};
+
+export function CarRow({ car, showBrand = true }: { car: RowCar; showBrand?: boolean }) {
   return (
     <li>
       <Link
@@ -31,7 +43,7 @@ export function CarRow({ car, showBrand = true }: { car: Car; showBrand?: boolea
         <span className="min-w-0">
           {showBrand ? (
             <span className="block text-[13px]" style={{ color: "var(--ink-3)" }}>
-              {brand?.name}
+              {car.brandName}
             </span>
           ) : null}
           <span className="block truncate text-[17px] font-medium transition-colors group-hover:text-[var(--signal-ink)]">
@@ -39,18 +51,14 @@ export function CarRow({ car, showBrand = true }: { car: Car; showBrand?: boolea
           </span>
         </span>
 
-        <span
-          className="num hidden text-right text-[13px] sm:block"
-          style={{ color: "var(--ink-3)" }}
-          title={CATEGORY_WORD[car.category]}
-        >
+        <span className="num hidden text-right text-[13px] sm:block" style={{ color: "var(--ink-3)" }}>
           {car.years}
         </span>
 
         <span className="num text-right text-[15px]" style={{ color: "var(--ink-2)" }}>
-          {car.powerHp ? (
+          {car.powerHp !== null ? (
             <>
-              <span style={{ color: "var(--ink)" }}>{fmt(car.powerHp.value, 0)}</span> hp
+              <span style={{ color: "var(--ink)" }}>{fmt(car.powerHp, 0)}</span> hp
             </>
           ) : (
             <span style={{ color: "var(--ink-3)" }}>&mdash;</span>
@@ -61,7 +69,7 @@ export function CarRow({ car, showBrand = true }: { car: Car; showBrand?: boolea
   );
 }
 
-export function CarIndex({ cars, showBrand = true }: { cars: Car[]; showBrand?: boolean }) {
+export function CarIndex({ cars, showBrand = true }: { cars: RowCar[]; showBrand?: boolean }) {
   return (
     <ul className="border-t" style={{ borderColor: "var(--rule-soft)" }}>
       {cars.map((car) => (

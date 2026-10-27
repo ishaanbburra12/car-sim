@@ -19,6 +19,14 @@ import type { Car } from "./types";
 
 const MIN_PEERS = 3;
 
+/**
+ * How far clear of the next car the top figure has to be before the axis is
+ * clipped at the runner-up instead. 1.4 is a judgement call, not a law: low
+ * enough to catch the cases that actually flatten a chart, high enough that an
+ * ordinary spread of fast cars is left alone.
+ */
+const OUTLIER_RATIO = 1.4;
+
 export type Measure = "powerHp" | "torqueLbFt" | "weightKg" | "zeroTo60S" | "topSpeedMph";
 
 type MeasureSpec = {
@@ -52,6 +60,33 @@ export type Comparison = MeasureSpec & {
   fraction: number;
   /** Where the median sits on the same track, for the context tick. */
   medianFraction: number;
+  /**
+   * The top of the bar chart's track. Normally the category's highest figure,
+   * but when one car is far clear of the rest the track stops at the SECOND
+   * highest instead, and anything beyond runs off the end.
+   *
+   * Without this, one extreme value flattens everybody else. The live case is
+   * the everyday rows: a pickup's 400 lb-ft against a next-highest of 186
+   * means scaling to the maximum pushes every hatchback into the left third of
+   * the track, where none of them can be told apart. Clipping the axis and
+   * marking what ran off it is the standard answer, and it stays honest only
+   * as long as the running-off is visible, which is what `overScale` is for.
+   *
+   * This comment named hypercar torque until the Regera was added at 1,475
+   * lb-ft and the gap to the Nevera's 1,741 stopped qualifying. Which rows
+   * clip is a property of the data and moves as cars are added, so the example
+   * above is an illustration, not a fixture — the tests use their own pools.
+   */
+  scaleMax: number;
+  /** True when this car's own figure is past the end of the track. */
+  overScale: boolean;
+  /**
+   * True when the cars being ranked did not all publish the same KIND of
+   * figure — some a maker's claim, some an independent test. A manufacturer's
+   * 0-60 and a magazine's are not the same measurement, so a ranking across
+   * both is a little softer than it looks and the page should say so.
+   */
+  mixedSources: boolean;
 };
 
 function median(sorted: number[]): number {
@@ -83,6 +118,18 @@ export function compareWithinCategory(car: Car, pool: Car[] = CARS): Comparison[
     const max = sorted[sorted.length - 1];
     const med = median(sorted);
 
+    // Clip the axis when the top figure is far clear of the field.
+    const secondMax = sorted[sorted.length - 2] ?? max;
+    const scaleMax =
+      sorted.length >= 4 && secondMax > 0 && max > secondMax * OUTLIER_RATIO ? secondMax : max;
+
+    const kinds = new Set(
+      peers
+        .map((c) => c[spec.key])
+        .filter((f): f is NonNullable<typeof f> => f !== null)
+        .map((f) => f.source),
+    );
+
     // Rank by the direction that counts as "better" for this measure. Ties
     // share the better rank, which is why this counts strictly-better cars.
     const better = values.filter((v) =>
@@ -102,6 +149,9 @@ export function compareWithinCategory(car: Car, pool: Car[] = CARS): Comparison[
       of: values.length,
       fraction: place(own.value),
       medianFraction: place(med),
+      scaleMax,
+      overScale: own.value > scaleMax,
+      mixedSources: kinds.size > 1,
     });
   }
 
@@ -116,4 +166,26 @@ export function rankPhrase(c: Comparison): string {
   };
   if (c.rank === 1) return `the ${c.lowerIsBetter ? "lowest" : "highest"} of ${c.of}`;
   return `${ordinal(c.rank)} of ${c.of}`;
+}
+
+/* ----------------------------------------------------------------- coverage */
+
+/**
+ * How many of the five headline figures a car actually has.
+ *
+ * This exists so the site can state its own completeness instead of letting a
+ * page full of blanks imply that the blanks are the car's fault. For a racing
+ * prototype they genuinely are — nobody publishes a 0-60 time for a Le Mans
+ * car — and for an everyday hatchback they are usually ours.
+ */
+export function coverage(car: Car): { have: number; of: number } {
+  const have = MEASURES.filter((m) => car[m.key] !== null).length;
+  return { have, of: MEASURES.length };
+}
+
+/** The same, across any set of cars, as a percentage. */
+export function coverageOf(cars: Car[]): { have: number; of: number; pct: number } {
+  const have = cars.reduce((n, c) => n + coverage(c).have, 0);
+  const of = cars.length * MEASURES.length;
+  return { have, of, pct: of === 0 ? 0 : Math.round((have / of) * 100) };
 }

@@ -4,8 +4,11 @@ import { SPORTS_CARS } from "./cars/sports";
 import { PROTOTYPES } from "./cars/prototypes";
 import { EVERYDAY_CARS } from "./cars/everyday";
 import { CATEGORY_LABELS, type Car, type Category } from "./types";
+import type { CarSummary } from "./summary";
+import { normalise, squash } from "./text";
 
 export * from "./types";
+export * from "./summary";
 export { BRANDS, BRAND_BY_SLUG } from "./brands";
 
 export const CARS: Car[] = [
@@ -32,36 +35,7 @@ export function brandsWithCounts() {
 
 /* ------------------------------------------------------------------ search */
 
-/**
- * Normalise for matching: lower case, strip accents, and treat anything that
- * is not a letter or digit as a space.
- *
- * The accent stripping is what lets "huracan" find the Huracán and "nurburg"
- * find text containing "Nürburgring". Typing an accent on a keyboard that
- * does not have one is a real obstacle, and a search box that fails there
- * feels broken even though the data is correct.
- */
-function normalise(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
 
-/**
- * The same text with every separator removed, so "mx5" finds the MX-5 and
- * "gt3rs" finds the 911 GT3 RS. Model names are full of hyphens and spaces
- * that nobody types into a search box.
- */
-function squash(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "");
-}
 
 type Indexed = {
   car: Car;
@@ -161,3 +135,28 @@ export function categoryCounts(): Record<Category | "all", number> {
   for (const car of CARS) out[car.category] = (out[car.category] ?? 0) + 1;
   return out;
 }
+
+
+/* ------------------------------------------------- summaries for the client */
+
+/**
+ * Built here, on the server, and handed to the browse page as a prop. See
+ * summary.ts for why this does not live in the module the browser imports.
+ */
+export const CAR_SUMMARIES: CarSummary[] = CARS.map((car) => {
+  const brandName = BRAND_BY_SLUG[car.brand]?.name ?? car.brand;
+  return {
+    slug: car.slug,
+    name: car.name,
+    brand: car.brand,
+    brandName,
+    years: car.years,
+    category: car.category,
+    powerHp: car.powerHp ? car.powerHp.value : null,
+    terms: normalise(
+      [car.name, brandName, car.years, car.layout, car.engine, CATEGORY_LABELS[car.category]].join(
+        " ",
+      ),
+    ),
+  };
+});

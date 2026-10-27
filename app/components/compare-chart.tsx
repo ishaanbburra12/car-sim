@@ -37,10 +37,13 @@ function Bar({ c, peers }: { c: Comparison; peers: string }) {
       maximumFractionDigits: c.decimals,
     });
 
-  // Zero-based: the track is 0 to the category's highest, and the bar is the
-  // car's share of it.
-  const width = c.max === 0 ? 0 : (c.value / c.max) * 100;
-  const medianAt = c.max === 0 ? 0 : (c.median / c.max) * 100;
+  // Zero-based, with the track running to scaleMax rather than to the raw
+  // highest figure — see Comparison.scaleMax for why one runaway car would
+  // otherwise flatten the whole category.
+  const top = c.scaleMax || 1;
+  const width = Math.min(100, (c.value / top) * 100);
+  const medianAt = Math.min(100, (c.median / top) * 100);
+  const clipped = c.scaleMax < c.max;
 
   return (
     <li
@@ -72,8 +75,20 @@ function Bar({ c, peers }: { c: Comparison; peers: string }) {
         />
         {/* The bar: square at the baseline, rounded at the data end. */}
         <div
-          className="absolute inset-y-0 left-0 rounded-l-sm rounded-r"
-          style={{ width: `${width}%`, background: SERIES, minWidth: 2 }}
+          className="absolute inset-y-0 left-0 rounded-l-sm"
+          style={{
+            width: `${width}%`,
+            background: SERIES,
+            minWidth: 2,
+            // A bar that runs past the end of the track is drawn with a point
+            // instead of a flat end, so it is obvious it has been cut short
+            // rather than looking like it just happens to be full length.
+            borderTopRightRadius: c.overScale ? 0 : 3,
+            borderBottomRightRadius: c.overScale ? 0 : 3,
+            clipPath: c.overScale
+              ? "polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%)"
+              : undefined,
+          }}
           aria-hidden
         />
         {/* Median of the category, as a reference the bar can be read against.
@@ -90,13 +105,26 @@ function Bar({ c, peers }: { c: Comparison; peers: string }) {
         />
       </div>
 
-      <div
-        className="num mt-1.5 flex justify-between text-[12px]"
-        style={{ color: "var(--ink-3)" }}
-      >
-        <span>0</span>
-        <span>{fmt(c.max)}</span>
+      <div className="mt-1.5 flex justify-between gap-4 text-[12px]" style={{ color: "var(--ink-3)" }}>
+        <span className="num">0</span>
+        <span className="text-right">
+          <span className="num">{fmt(c.scaleMax)}</span>
+          {clipped ? (
+            <span>
+              {" "}
+              — scale stops here; the highest is{" "}
+              <span className="num">{fmt(c.max)}</span>
+            </span>
+          ) : null}
+        </span>
       </div>
+
+      {c.mixedSources ? (
+        <p className="mt-1 text-[12px]" style={{ color: "var(--ink-3)" }}>
+          This row ranks maker&rsquo;s figures against independent tests, which are not quite
+          the same measurement.
+        </p>
+      ) : null}
     </li>
   );
 }
@@ -105,13 +133,17 @@ export function CompareChart({ car }: { car: Car }) {
   const rows = compareWithinCategory(car);
   if (rows.length === 0) return null;
   const peers = CATEGORY_LABELS[car.category].toLowerCase();
+  const anyClipped = rows.some((r) => r.scaleMax < r.max);
 
   return (
     <section className="mt-12">
       <h2 className="text-[15px] font-semibold">Against the other {peers}</h2>
       <p className="prose-serif mt-1.5 text-[15px]" style={{ color: "var(--ink-2)" }}>
-        Each bar runs from zero to the highest figure published by any of the {peers} here. Only
-        cars that published a given figure are counted, so the totals differ from row to row.
+        Each bar starts at zero and runs along a track scaled to the {peers} here. Only cars
+        that published a given figure are counted, so the totals differ from row to row.
+        {anyClipped
+          ? " Where one car is far clear of the rest, the track stops at the runner-up and that row says so underneath."
+          : ""}
       </p>
 
       {/* A key. The bar is one series and would not need naming on its own, but

@@ -8,7 +8,9 @@ import {
   carsOfBrand,
 } from "@/src/catalog";
 import { CarIndex, SpecTable } from "@/app/components/catalog-ui";
+import { toRow } from "@/app/components/to-row";
 import { CompareChart } from "@/app/components/compare-chart";
+import { coverage } from "@/src/catalog/compare";
 
 export function generateStaticParams() {
   return CARS.map((car) => ({ slug: car.slug }));
@@ -75,6 +77,20 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
 
       <p className="prose-serif mt-7 text-[18px]">{car.blurb}</p>
 
+      {car.review ? (
+        <p
+          className="mt-5 rounded-md px-4 py-3 text-[14px] leading-relaxed"
+          style={{
+            background: "var(--raised)",
+            boxShadow: "inset 0 0 0 1px var(--rule)",
+            color: "var(--ink-2)",
+          }}
+        >
+          <span style={{ color: "var(--ink)" }}>Needs checking. </span>
+          {car.review}
+        </p>
+      ) : null}
+
       <dl
         className="mt-8 grid gap-x-8 gap-y-4 border-t pt-6 sm:grid-cols-2"
         style={{ borderColor: "var(--rule)" }}
@@ -94,7 +110,13 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
       </dl>
 
       <section className="mt-12">
-        <h2 className="text-[15px] font-semibold">Published figures</h2>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <h2 className="text-[15px] font-semibold">Published figures</h2>
+          <span className="text-[13px]" style={{ color: "var(--ink-3)" }}>
+            <span className="num">{coverage(car).have}</span> of{" "}
+            <span className="num">{coverage(car).of}</span> filled in
+          </span>
+        </div>
         <p className="prose-serif mt-1.5 text-[15px]" style={{ color: "var(--ink-2)" }}>
           A maker&rsquo;s figure is what the company printed. An independent test is what
           somebody else measured, usually on a public road with a full tank, which is normally
@@ -109,9 +131,26 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
 
       <section className="mt-12 border-t pt-6" style={{ borderColor: "var(--rule)" }}>
         <h2 className="text-[15px] font-semibold">Sources</h2>
-        <ul className="mt-2 space-y-1 text-[14px]" style={{ color: "var(--ink-2)" }}>
-          {car.sources.map((s) => (
-            <li key={s}>{s}</li>
+        <ul className="mt-2 space-y-1.5 text-[14px]" style={{ color: "var(--ink-2)" }}>
+          {car.sources.map((src) => (
+            <li key={`${src.publisher}-${src.title}`}>
+              <span style={{ color: "var(--ink)" }}>{src.publisher}</span>
+              {", "}
+              {src.url ? (
+                <a
+                  href={src.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-4 transition-colors hover:text-[var(--signal-ink)]"
+                  style={{ textDecorationColor: "var(--rule)" }}
+                >
+                  {src.title}
+                </a>
+              ) : (
+                src.title
+              )}
+              {src.year ? <span className="num"> ({src.year})</span> : null}
+            </li>
           ))}
         </ul>
         {brand ? (
@@ -143,7 +182,7 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
             </Link>
           </div>
           <div className="mt-3">
-            <CarIndex cars={siblings.slice(0, 4)} showBrand={false} />
+            <CarIndex cars={siblings.slice(0, 4).map(toRow)} showBrand={false} />
           </div>
         </section>
       ) : null}

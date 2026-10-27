@@ -1757,3 +1757,140 @@ the right symptom — the signal was never the problem, the empty PID list was.
   and screenshots of the whole thing.
 - **Claude:** the bar chart, the type and layout system, the index, and
   finding out why the browser kept showing a site that no longer existed.
+
+---
+
+## 2026-10-27 — Session 21: fixing the seven problems
+
+Raju pasted my own audit back with "fix all of this". Here is each item and
+what actually happened to it — including the two I only half-fixed and the one
+I reported fixed when it was not.
+
+### 1. The data was badly lopsided — improved, not solved
+
+Figures present per category, then and now:
+
+| | before | now |
+|---|---|---|
+| sports | 88% | 89% (31 cars) |
+| hypercars | 74% | 80% (14 cars) |
+| everyday | 28% | 38% (10 cars) |
+| prototypes | 28% | 28% (10 cars) |
+
+Fifteen cars added, mostly to the two thin categories. Everyday is better but
+still the weakest, and prototypes have not moved at all. Some of that is
+structural and correct: a test forbids 0-60 and top-speed figures on racing
+prototypes, because nobody publishes them, so 2 of the 5 measures are
+permanently blank there and 60% is the ceiling. The rest is just work not done.
+
+The other half of the answer was to stop the blanks reading as the car's fault.
+Every car page now states its own completeness — "2 of 5 filled in" — so a
+sparse entry says so instead of looking authoritative.
+
+### 2. Sources still aren't clickable, and I want to be straight about why
+
+Every one of the 65 cars now cites a publisher and a title, and every brand
+page links to the manufacturer's own site. **Zero cars have a deep URL to a
+specific figure**, which is the thing I said was the project's weakest point.
+
+I could not fix it honestly from here. This container's egress proxy refuses
+every car manufacturer and motoring-press domain — the CONNECT comes back 403
+— so any URL I typed into a source record would be one I had never opened. On a
+site whose entire pitch is that the numbers came from somewhere, a link that
+has not been followed is worse than no link. So the `Source` type carries an
+optional `url` documented as "only ever set to a link that has been checked",
+`scripts/check-links.mjs` + `npm run check:links` will verify them in bulk, and
+the field stays empty until that can run somewhere with open network.
+
+That leaves item 2 genuinely open. It is the honest state, not a fix.
+
+### 3. Rankings mixed maker's claims with independent tests — fixed
+
+224 of the catalogue's 227 figures are manufacturer claims; 3 are independent
+tests. Where a ranking draws on both, that row now says so underneath:
+"This row ranks maker's figures against independent tests, which are not quite
+the same measurement."
+
+### 4. One outlier squashed a whole scale — fixed
+
+When the top figure is more than 1.4× the runner-up (and the field has at least
+four cars), the axis stops at the runner-up and the car that ran off the end is
+drawn with a pointed bar instead of a flat one, with the real maximum named in
+the footer.
+
+**The example in my audit was already out of date by the time I fixed it.** I
+cited hypercar torque — the Nevera's 1,741 lb-ft against 1,180. Adding the
+Regera at 1,475 lb-ft closed that gap, so no hypercar row clips any more. The
+rows that actually clip are everyday power and torque, where a pickup's 325 hp
+and 400 lb-ft sit against a field topping out at 203 and 186. My verification
+script spent a while asserting that the Nevera's chart showed a clipped scale
+and reporting a failure that was not one.
+
+Which rows clip is a property of the data and moves every time a car is added,
+so the tests check the invariant instead of a named car: whenever a track is
+clipped, the car holding the top figure must be the one marked, and the median
+must never fall off the end.
+
+### 5. Brand pages were thin — fixed
+
+15 of 26 brands had one car or none. Now every brand has at least two, and a
+test enforces it, so a brand page is always worth opening.
+
+### 6. The browse page shipped the whole catalogue — fixed, after I got it wrong twice
+
+This is the one I need to own.
+
+The audit measured 14.9 kB. My first attempt made it **worse** — 18.4 kB — by
+importing `CAR_SUMMARIES` from the catalogue barrel, which dragged every blurb
+in behind it. I split `text.ts` and `summary.ts` out so the client could import
+pure functions without the data, passed summaries down as a prop, checked the
+served HTML for blurbs, found none, and wrote down that it was fixed.
+
+**It was not.** The HTML was the wrong place to look. A client component was
+still importing `BRAND_BY_SLUG` — a value, not a type — from the barrel, and
+the bundler followed it to `CARS`, so all 65 blurbs were sitting in a 60 kB
+client chunk. Invisible in the HTML, invisible in the UI, and I had already
+reported the opposite.
+
+Found it by grepping the built chunks for blurb text instead of the HTML. The
+one function that needed brand data now lives alone in `app/components/to-row.ts`
+with a comment explaining why it must not move back, and `catalog-ui.tsx`
+imports types only, from `types.ts` rather than the barrel.
+
+Measured after: **/cars went 18.5 kB → 2.79 kB**, first-load JS 124 kB → 108 kB.
+`npm run check:payload` now fails if any car's prose reaches a client chunk,
+because this failure has no symptom you can see.
+
+Pagination landed too: 60 rows, then "Show the remaining N".
+
+### 7. Smaller things — fixed
+
+- The search box writes `?q=&category=&sort=` with `replaceState`, so a search
+  can be shared and reloaded. `replaceState` rather than `router.push` because
+  typing a query is adjusting a filter, not navigating, and it should not fill
+  the back button with keystrokes.
+- Sorting by maker, model, power or year. Cars with no power figure sort last
+  rather than as zero.
+- `review?: string` flags an entry that needs checking and prints the reason on
+  the page. Three cars carry one.
+
+### What I got wrong this session
+
+Two things, both the same shape — reporting a result from an instrument that
+could not have detected the failure:
+
+1. Checking the served HTML for blurbs, when the blurbs were in a JS chunk.
+2. Asserting on the Nevera's chart, when the clipping had moved to the F-150.
+
+The first one I had already written down as fixed. The guard against a repeat
+is `check:payload`, which looks where the evidence actually is.
+
+### Counts
+
+65 cars, 26 brands, 252 tests passing, typecheck clean, no console errors.
+
+### Who wrote what
+
+- **Me (Raju):** the audit list, handed back with "fix all of this".
+- **Claude:** all seven fixes, the payload guard, the clipping invariant tests,
+  and finding that its own earlier "fixed" was wrong.

@@ -24,7 +24,9 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Porsche Motorsport material for the 963 and the LMDh regulations"],
+    sources: [
+      { publisher: "Porsche Motorsport", title: "Material for the 963 and the LMDh regulations" },
+    ],
   },
   {
     slug: "toyota-gr010-hybrid",
@@ -42,7 +44,9 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Toyota Gazoo Racing material for the GR010 Hybrid"],
+    sources: [
+      { publisher: "Toyota Gazoo Racing", title: "Material for the GR010 Hybrid" },
+    ],
   },
   {
     slug: "ferrari-499p",
@@ -60,7 +64,9 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Ferrari competition material for the 499P"],
+    sources: [
+      { publisher: "Ferrari", title: "Competition material for the 499P" },
+    ],
   },
   {
     slug: "cadillac-v-series-r",
@@ -78,7 +84,9 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Cadillac Racing material for the V-Series.R"],
+    sources: [
+      { publisher: "Cadillac Racing", title: "Material for the V-Series.R" },
+    ],
   },
   {
     slug: "peugeot-9x8",
@@ -96,7 +104,9 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Peugeot Sport material for the 9X8"],
+    sources: [
+      { publisher: "Peugeot Sport", title: "Material for the 9X8" },
+    ],
   },
   {
     slug: "porsche-919-hybrid",
@@ -114,7 +124,9 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Porsche Motorsport material for the 919 Hybrid"],
+    sources: [
+      { publisher: "Porsche Motorsport", title: "Material for the 919 Hybrid" },
+    ],
   },
   {
     slug: "audi-r18-e-tron-quattro",
@@ -132,7 +144,9 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Audi Sport material for the R18 e-tron quattro"],
+    sources: [
+      { publisher: "Audi", title: "Sport material for the R18 e-tron quattro" },
+    ],
   },
   {
     slug: "mazda-787b",
@@ -150,7 +164,9 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Mazda historical material for the 787B"],
+    sources: [
+      { publisher: "Mazda", title: "Historical material for the 787B" },
+    ],
   },
   {
     slug: "ford-gt40-mk-ii",
@@ -168,7 +184,9 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
-    sources: ["Ford historical material for the GT40"],
+    sources: [
+      { publisher: "Ford", title: "Historical material for the GT40" },
+    ],
   },
   {
     slug: "porsche-917",
@@ -186,6 +204,8 @@ export const PROTOTYPES: Car[] = [
     zeroTo60S: null,
     topSpeedMph: null,
     produced: { count: 25, note: "the homologation run: 25 identical cars had to exist before it could race" },
-    sources: ["Porsche historical material for the 917"],
+    sources: [
+      { publisher: "Porsche", title: "Historical material for the 917" },
+    ],
   },
 ];
