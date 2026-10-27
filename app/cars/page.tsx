@@ -6,7 +6,7 @@ import CarBrowser from "./CarBrowser";
 export const metadata: Metadata = {
   title: "Cars",
   description:
-    "A hand-written reference of real cars: sports cars, hypercars, racing prototypes and everyday cars, with published figures and their sources.",
+    "A written reference of real cars: sports cars, hypercars, racing prototypes and everyday cars, with published figures and their sources.",
 };
 
 type Filter = Category | "all";
@@ -16,8 +16,6 @@ export default async function CarsPage({
 }: {
   searchParams: Promise<{ q?: string; category?: string }>;
 }) {
-  // Read the query string on the server so a shared link opens on the right
-  // results; the client takes over from there and filters without reloading.
   const sp = await searchParams;
   const initialQuery = typeof sp.q === "string" ? sp.q : "";
   const raw = typeof sp.category === "string" ? sp.category : "all";
@@ -26,17 +24,16 @@ export default async function CarsPage({
     : "all";
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Cars</h1>
-        <p className="mt-2 max-w-3xl text-slate-400">
-          {CARS.length} cars, written up by hand. Every figure on these pages was published by
-          the manufacturer or measured by an independent tester, and each one says which. Where
-          a number could not be sourced it says <span className="italic">not listed</span> rather
-          than guessing.
-        </p>
-      </header>
-      <CarBrowser initialQuery={initialQuery} initialCategory={initialCategory} />
+    <main className="mx-auto max-w-5xl px-6 py-12">
+      <h1 className="text-[34px] font-semibold leading-tight tracking-tight">Cars</h1>
+      <p className="prose-serif mt-3 text-[17px]" style={{ color: "var(--ink-2)" }}>
+        {CARS.length} cars, written up one at a time. Every figure was published by the
+        manufacturer or measured by an independent tester, and each one says which. Where a
+        number could not be sourced it says so instead of guessing.
+      </p>
+      <div className="mt-9">
+        <CarBrowser initialQuery={initialQuery} initialCategory={initialCategory} />
+      </div>
     </main>
   );
 }

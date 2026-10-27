@@ -137,7 +137,15 @@ export function searchCars(query: string, options: SearchOptions = {}): Car[] {
 
   const terms = normalise(query).split(" ").filter(Boolean);
   if (terms.length === 0) {
-    return CARS.filter(inCategory).sort((a, b) => a.name.localeCompare(b.name));
+    // No query: this is an index, so order it the way an index is ordered —
+    // by maker, then by model. Sorting 50 cars by model name alone scatters
+    // each brand's cars across the whole list, which is useless for browsing.
+    return CARS.filter(inCategory).sort(
+      (a, b) =>
+        (BRAND_BY_SLUG[a.brand]?.name ?? a.brand).localeCompare(
+          BRAND_BY_SLUG[b.brand]?.name ?? b.brand,
+        ) || a.name.localeCompare(b.name),
+    );
   }
 
   return INDEX.filter((e) => inCategory(e.car))

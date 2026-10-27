@@ -1672,3 +1672,88 @@ Three decisions worth recording:
 Eleven tests cover the comparison maths, including the ones that matter most:
 ties share the better rank, ranking inverts for weight and 0-60, and no row is
 ever produced for a figure the car does not have.
+
+---
+
+## 2026-10-27 — Session 20: bars, and a proper design pass
+
+### What I asked for
+
+Make the chart a bar graph, make the UI cleaner and more professional, and
+show screenshots of the whole site.
+
+### The chart
+
+I had argued against bars last time, on the grounds that a bar must grow from
+zero and zero-based bars for 0-60 among hypercars would all come out the same
+length. Asked again, so bars it is — built properly rather than grudgingly,
+and the objection written into the code where the next person will find it.
+
+The objection turned out to be true and fine. Every hypercar's 0-60 falls
+between 1.9 and 2.9 seconds, so those bars really are nearly identical. That
+is not the chart failing, it is the chart being honest: hypercars are all
+about as quick off the line and the differences live in the second decimal.
+The rank beside each bar carries what the length cannot.
+
+Two measures are better when smaller — weight and 0-60 — so a long bar there
+means a worse car. That is the one real trap in this form, so those rows say
+"lower is better" in words rather than leaving the reader to work it out.
+
+### The design pass
+
+The frontend-design guidance was blunt, and correct: the old UI was three
+documented AI-design tells at once. Tracked-out ALL-CAPS eyebrow labels above
+every heading. Meta strings joined with middle dots. An arrow appended to
+every link. Everything chopped into identical rounded cards with the same
+border and the same hover lift. I had built the generic default and called it
+clean.
+
+What replaced it, grounded in what this site actually is — half encyclopaedia
+entry, half spec sheet:
+
+- **Two typefaces split by job.** Source Serif 4 for the writing you read,
+  Archivo with tabular figures for the data you scan. Not one family doing
+  both jobs badly.
+- **The catalogue is an index, not a card wall.** Fifty cars in a
+  three-column grid of identical boxes is a wall to wade through. Fifty rows
+  with the figures in one aligned column is a list you can run your eye down,
+  which is what an index is for. It also sorts by maker then model now —
+  sorting by model name alone scattered each brand across the list.
+- **One surface, used only for data.** Prose sits directly on the ground, so
+  hierarchy comes from whether a thing is raised at all rather than from
+  everything wearing the same card.
+- **Provenance got its own column.** You can run down it and see at a glance
+  how much of a car is the maker's claim, how much somebody measured, and how
+  much nobody has published. That column is the entire argument of this site,
+  so it was given room to be read instead of being a footnote.
+- A neutral graphite ground rather than the blue-tinted near-black it
+  replaced, and the ochre spent only on data marks and active state.
+
+### The bug underneath all of it
+
+Partway through, screenshots started coming back from a build that no longer
+existed: the served HTML referenced a CSS file and a JS chunk that were not on
+disk. I had assumed a stale server and killed it with
+`lsof -ti tcp:3000 | xargs kill`.
+
+**`lsof` reports nothing on this container.** So `xargs -r` received an empty
+list and killed nothing, every time, silently. The server had been running
+since before several rebuilds, and some of what I called "verified in the app"
+earlier in this session was verified against a build that was already gone.
+
+Replaced with `pkill -9 -f "[n]ext-server"` plus a guard that compares the CSS
+hash the server emits against the one on disk and refuses to continue if they
+differ, so a stale server can never again be mistaken for a working one. It is
+in the scratchpad as `serve.sh`. After a genuine restart: zero console errors
+on every page, zero horizontal overflow at 1200px and at 390px.
+
+I had actually diagnosed this symptom once before, two sessions ago, and wrote
+"SIGTERM wasn't enough, use -9" in the log. That was the wrong conclusion from
+the right symptom — the signal was never the problem, the empty PID list was.
+
+### Who wrote what
+
+- **Me (Raju):** asked for bars, a cleaner and more professional interface,
+  and screenshots of the whole thing.
+- **Claude:** the bar chart, the type and layout system, the index, and
+  finding out why the browser kept showing a site that no longer existed.

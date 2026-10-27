@@ -1,44 +1,84 @@
 import Link from "next/link";
-import {
-  BRAND_BY_SLUG,
-  CATEGORY_LABELS,
-  type Car,
-  type Category,
-  type MaybeFigure,
-} from "@/src/catalog";
+import { BRAND_BY_SLUG, type Car, type MaybeFigure } from "@/src/catalog";
 
-const CATEGORY_STYLE: Record<Category, string> = {
-  hypercar: "bg-rose-500/10 text-rose-300 ring-rose-400/20",
-  sports: "bg-amber-500/10 text-amber-300 ring-amber-400/20",
-  prototype: "bg-sky-500/10 text-sky-300 ring-sky-400/20",
-  everyday: "bg-emerald-500/10 text-emerald-300 ring-emerald-400/20",
-};
+const fmt = (n: number, decimals: number) =>
+  n.toLocaleString("en-GB", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
-/** The singular form, for a chip on a single car. */
-const CATEGORY_ONE: Record<Category, string> = {
+const CATEGORY_WORD: Record<Car["category"], string> = {
   hypercar: "Hypercar",
   sports: "Sports car",
   prototype: "Prototype",
   everyday: "Everyday",
 };
 
-export function CategoryChip({ category }: { category: Category }) {
+/**
+ * A row in the index.
+ *
+ * Deliberately not a card. Fifty cars in a three-column grid of identical
+ * rounded boxes is a wall to be waded through; fifty rows with the figures in
+ * one aligned column is a list you can run your eye down, which is what an
+ * index is for and what makes a reference work usable.
+ */
+export function CarRow({ car, showBrand = true }: { car: Car; showBrand?: boolean }) {
+  const brand = BRAND_BY_SLUG[car.brand];
   return (
-    <span
-      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${CATEGORY_STYLE[category]}`}
-    >
-      {CATEGORY_ONE[category]}
-    </span>
+    <li>
+      <Link
+        href={`/cars/${car.slug}`}
+        className="group grid grid-cols-[1fr_auto] items-baseline gap-x-8 gap-y-0.5 border-b py-3.5 transition-colors sm:grid-cols-[1fr_7.5rem_5.5rem]"
+        style={{ borderColor: "var(--rule-soft)" }}
+      >
+        <span className="min-w-0">
+          {showBrand ? (
+            <span className="block text-[13px]" style={{ color: "var(--ink-3)" }}>
+              {brand?.name}
+            </span>
+          ) : null}
+          <span className="block truncate text-[17px] font-medium transition-colors group-hover:text-[var(--signal-ink)]">
+            {car.name}
+          </span>
+        </span>
+
+        <span
+          className="num hidden text-right text-[13px] sm:block"
+          style={{ color: "var(--ink-3)" }}
+          title={CATEGORY_WORD[car.category]}
+        >
+          {car.years}
+        </span>
+
+        <span className="num text-right text-[15px]" style={{ color: "var(--ink-2)" }}>
+          {car.powerHp ? (
+            <>
+              <span style={{ color: "var(--ink)" }}>{fmt(car.powerHp.value, 0)}</span> hp
+            </>
+          ) : (
+            <span style={{ color: "var(--ink-3)" }}>&mdash;</span>
+          )}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+export function CarIndex({ cars, showBrand = true }: { cars: Car[]; showBrand?: boolean }) {
+  return (
+    <ul className="border-t" style={{ borderColor: "var(--rule-soft)" }}>
+      {cars.map((car) => (
+        <CarRow key={car.slug} car={car} showBrand={showBrand} />
+      ))}
+    </ul>
   );
 }
 
 /**
- * One row of the spec table.
+ * The spec block — the one raised surface on the page, because it is the one
+ * thing here that is an object rather than a passage of text.
  *
- * The whole point of this component is the `null` branch. A reference site
- * that quietly omits a row it has no data for looks complete; one that prints
- * "Not listed" is telling the reader something true, which is that we did not
- * find a figure we were willing to stand behind.
+ * Provenance gets its own column rather than a footnote, so you can run down
+ * it and see at a glance how much of a car is the maker's own claim, how much
+ * someone else measured, and how much nobody has published. That column is the
+ * entire argument of this site, so it is given the room to be read.
  */
 function SpecRow({
   label,
@@ -52,23 +92,45 @@ function SpecRow({
   decimals?: number;
 }) {
   return (
-    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-white/5 py-3 last:border-0">
-      <dt className="text-sm text-slate-400">{label}</dt>
+    <div
+      className="grid grid-cols-[1fr_auto] items-baseline gap-x-5 gap-y-0.5 border-b py-3 last:border-0 sm:grid-cols-[7.5rem_1fr_8.5rem]"
+      style={{ borderColor: "var(--rule)" }}
+    >
+      <dt className="text-[14px]" style={{ color: "var(--ink-2)" }}>
+        {label}
+      </dt>
       {figure === null ? (
-        <dd className="text-sm italic text-slate-500">Not listed</dd>
+        <>
+          <dd className="num text-right text-[15px]" style={{ color: "var(--ink-3)" }}>
+            &mdash;
+          </dd>
+          <dd
+            className="col-span-2 text-[13px] sm:col-span-1 sm:text-left"
+            style={{ color: "var(--ink-3)" }}
+          >
+            not listed
+          </dd>
+        </>
       ) : (
-        <dd className="text-right">
-          <span className="text-lg font-semibold tabular-nums text-slate-100">
-            {figure.value.toFixed(decimals)}
-          </span>
-          <span className="ml-1 text-sm text-slate-400">{unit}</span>
-          <span className="ml-2 text-xs text-slate-500">
+        <>
+          <dd className="text-right">
+            <span className="num text-[21px] font-semibold leading-none">
+              {fmt(figure.value, decimals)}
+            </span>
+            <span className="ml-1.5 text-[13px]" style={{ color: "var(--ink-2)" }}>
+              {unit}
+            </span>
+          </dd>
+          <dd
+            className="col-span-2 text-[13px] sm:col-span-1 sm:text-left"
+            style={{ color: "var(--ink-3)" }}
+          >
             {figure.source === "manufacturer" ? "maker's figure" : "independent test"}
-          </span>
-          {figure.note ? (
-            <span className="mt-0.5 block max-w-sm text-xs text-slate-500">{figure.note}</span>
-          ) : null}
-        </dd>
+            {figure.note ? (
+              <span className="mt-0.5 block leading-snug">{figure.note}</span>
+            ) : null}
+          </dd>
+        </>
       )}
     </div>
   );
@@ -76,59 +138,15 @@ function SpecRow({
 
 export function SpecTable({ car }: { car: Car }) {
   return (
-    <dl className="rounded-lg border border-white/10 bg-white/[0.02] px-4">
+    <dl
+      className="rounded-md px-5 py-1"
+      style={{ background: "var(--raised)", boxShadow: "inset 0 0 0 1px var(--rule)" }}
+    >
       <SpecRow label="Power" figure={car.powerHp} unit="hp" />
       <SpecRow label="Torque" figure={car.torqueLbFt} unit="lb-ft" />
       <SpecRow label="Weight" figure={car.weightKg} unit="kg" />
-      <SpecRow label="0-60 mph" figure={car.zeroTo60S} unit="s" decimals={1} />
+      <SpecRow label="0&ndash;60 mph" figure={car.zeroTo60S} unit="s" decimals={1} />
       <SpecRow label="Top speed" figure={car.topSpeedMph} unit="mph" />
     </dl>
-  );
-}
-
-export function CarCard({ car }: { car: Car }) {
-  const brand = BRAND_BY_SLUG[car.brand];
-  return (
-    <Link
-      href={`/cars/${car.slug}`}
-      className="group flex flex-col gap-2 rounded-lg border border-white/10 bg-white/[0.02] p-4 transition hover:border-amber-400/40 hover:bg-white/[0.05]"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wide text-slate-500">{brand?.name}</p>
-          <h3 className="truncate text-base font-semibold text-slate-100 group-hover:text-amber-300">
-            {car.name}
-          </h3>
-        </div>
-        <CategoryChip category={car.category} />
-      </div>
-      <p className="text-xs text-slate-500">
-        {car.years}
-        {car.produced ? (
-          <span className="text-slate-400">
-            {" "}
-            · {car.produced.count.toLocaleString("en-GB")} built
-          </span>
-        ) : null}
-      </p>
-      <p className="text-sm text-slate-400">{car.engine}</p>
-      <p className="mt-auto pt-2 text-sm tabular-nums text-slate-300">
-        {car.powerHp ? (
-          <>
-            {car.powerHp.value} hp
-          </>
-        ) : (
-          <span className="italic text-slate-500">Power not listed</span>
-        )}
-      </p>
-    </Link>
-  );
-}
-
-export function CategoryHeading({ category }: { category: Category }) {
-  return (
-    <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-      {CATEGORY_LABELS[category]}
-    </h2>
   );
 }

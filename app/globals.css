@@ -1,10 +1,71 @@
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   A reference work, not a dashboard.
+
+   One surface, used only for blocks of data. Prose sits directly on the
+   ground, so hierarchy comes from whether a thing is raised at all rather
+   than from every element wearing the same rounded card.
+
+   The ground is a neutral graphite rather than the blue-tinted near-black it
+   replaced; the signal is the one ochre that passed the palette validator
+   against this surface, and it is spent only on data marks and active state.
+   --------------------------------------------------------------------------- */
+
 :root {
   color-scheme: dark;
+
+  --ground: #121316;
+  --raised: #191b1f;
+  --rule: #292c32;
+  --rule-soft: #1f2227;
+
+  --ink: #e9e7e2;
+  --ink-2: #9b9b95;
+  --ink-3: #6d6e6a;
+
+  --signal: #c98500;
+  --signal-ink: #e9a62b;
 }
 
 body {
-  background: #0b0f14;
-  color: #e6edf3;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "tnum" 1;
+}
+
+/* The writing. Longer measure, more leading, and the one place a serif
+   appears — an entry is something you read, not something you scan. */
+.prose-serif {
+  font-family: var(--font-prose), Georgia, serif;
+  font-feature-settings: normal;
+  line-height: 1.65;
+  max-width: 68ch;
+}
+
+/* Figures line up in a column whatever their width. */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+::selection {
+  background: var(--signal);
+  color: #0e0f11;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--signal-ink);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

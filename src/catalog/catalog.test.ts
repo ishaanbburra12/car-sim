@@ -117,6 +117,15 @@ describe("search", () => {
     expect(searchCars("   ").length).toBe(CARS.length);
   });
 
+  it("orders the unfiltered index by maker, then model", () => {
+    const all = searchCars("");
+    const makers = all.map((c) => BRAND_BY_SLUG[c.brand].name);
+    expect([...makers].sort((a, b) => a.localeCompare(b))).toEqual(makers);
+    // and a brand's own cars stay together and in order
+    const porsches = all.filter((c) => c.brand === "porsche").map((c) => c.name);
+    expect([...porsches].sort((a, b) => a.localeCompare(b))).toEqual(porsches);
+  });
+
   it("finds a car by its own name", () => {
     expect(searchCars("nevera")[0].slug).toBe("rimac-nevera");
     expect(searchCars("Corolla")[0].slug).toBe("toyota-corolla");

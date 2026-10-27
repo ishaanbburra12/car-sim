@@ -3,7 +3,7 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { CARS, CATEGORIES, CATEGORY_BLURBS, CATEGORY_LABELS, searchCars } from "@/src/catalog";
 import type { Category } from "@/src/catalog";
-import { CarCard } from "@/app/components/catalog-ui";
+import { CarIndex } from "@/app/components/catalog-ui";
 
 type Filter = Category | "all";
 
@@ -12,6 +12,9 @@ const COUNTS: Record<Filter, number> = (() => {
   for (const c of CATEGORIES) out[c] = CARS.filter((car) => car.category === c).length;
   return out;
 })();
+
+const field =
+  "w-full rounded-md border px-3.5 py-2.5 text-[15px] transition-colors focus:outline-none";
 
 export default function CarBrowser({
   initialQuery,
@@ -23,15 +26,13 @@ export default function CarBrowser({
   const [query, setQuery] = useState(initialQuery);
   const [category, setCategory] = useState<Filter>(initialCategory);
 
-  // The whole catalogue is already in memory, so filtering is instant. The
-  // deferred value keeps typing smooth anyway if the list grows a lot.
   const deferred = useDeferredValue(query);
   const results = useMemo(() => searchCars(deferred, { category }), [deferred, category]);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div>
       <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
+        <div className="flex-1">
           <label htmlFor="car-search" className="sr-only">
             Search cars
           </label>
@@ -40,12 +41,17 @@ export default function CarBrowser({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search any car, brand or engine — try “gt3rs”, “rotary”, “hybrid”"
+            placeholder="Search a car, a brand, an engine"
             autoComplete="off"
-            className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-slate-100 placeholder:text-slate-500 focus:border-amber-400/60 focus:outline-none focus:ring-1 focus:ring-amber-400/40"
+            className={field}
+            style={{
+              background: "var(--raised)",
+              borderColor: "var(--rule)",
+              color: "var(--ink)",
+            }}
           />
         </div>
-        <div>
+        <div className="sm:w-60">
           <label htmlFor="car-category" className="sr-only">
             Filter by category
           </label>
@@ -53,7 +59,12 @@ export default function CarBrowser({
             id="car-category"
             value={category}
             onChange={(e) => setCategory(e.target.value as Filter)}
-            className="w-full rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-slate-100 focus:border-amber-400/60 focus:outline-none focus:ring-1 focus:ring-amber-400/40 sm:w-64"
+            className={field}
+            style={{
+              background: "var(--raised)",
+              borderColor: "var(--rule)",
+              color: "var(--ink)",
+            }}
           >
             <option value="all">All categories ({COUNTS.all})</option>
             {CATEGORIES.map((c) => (
@@ -66,39 +77,45 @@ export default function CarBrowser({
       </div>
 
       {category !== "all" ? (
-        <p className="max-w-3xl text-sm text-slate-400">{CATEGORY_BLURBS[category]}</p>
+        <p className="prose-serif mt-5 text-[15px]" style={{ color: "var(--ink-2)" }}>
+          {CATEGORY_BLURBS[category]}
+        </p>
       ) : null}
 
-      <p className="text-sm text-slate-500" aria-live="polite">
+      <p className="mt-6 text-[13px]" style={{ color: "var(--ink-3)" }} aria-live="polite">
         {results.length === 0
-          ? "No matches"
+          ? "Nothing found"
           : `${results.length} ${results.length === 1 ? "car" : "cars"}`}
-        {query.trim() ? ` for “${query.trim()}”` : ""}
+        {query.trim() ? ` matching ${query.trim()}` : ""}
       </p>
 
       {results.length === 0 ? (
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-8 text-center">
-          <p className="text-slate-300">Nothing in the catalogue matches that.</p>
-          <p className="mt-2 text-sm text-slate-500">
-            This is a hand-written catalogue of {CARS.length} cars, not a database of every car
-            ever made — so a miss usually means it has not been written up yet rather than that
-            you spelled it wrong.
+        <div
+          className="mt-4 rounded-md px-6 py-10 text-center"
+          style={{ background: "var(--raised)", boxShadow: "inset 0 0 0 1px var(--rule)" }}
+        >
+          <p className="text-[15px]">No car here matches that.</p>
+          <p
+            className="prose-serif mx-auto mt-2 text-[15px]"
+            style={{ color: "var(--ink-2)" }}
+          >
+            This is a written catalogue of {CARS.length} cars rather than a database of every
+            car ever made, so a miss usually means it has not been written up yet.
           </p>
           {category !== "all" ? (
             <button
               type="button"
               onClick={() => setCategory("all")}
-              className="mt-4 rounded-md border border-white/15 px-3 py-1.5 text-sm text-slate-200 hover:border-amber-400/50 hover:text-amber-300"
+              className="mt-5 rounded-md border px-3.5 py-2 text-[14px] transition-colors hover:text-[var(--signal-ink)]"
+              style={{ borderColor: "var(--rule)" }}
             >
-              Search all categories instead
+              Search every category
             </button>
           ) : null}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {results.map((car) => (
-            <CarCard key={car.slug} car={car} />
-          ))}
+        <div className="mt-2">
+          <CarIndex cars={results} />
         </div>
       )}
     </div>

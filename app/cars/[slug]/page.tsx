@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { BRAND_BY_SLUG, CARS, CAR_BY_SLUG, carsOfBrand } from "@/src/catalog";
-import { CarCard, CategoryChip, SpecTable } from "@/app/components/catalog-ui";
+import {
+  BRAND_BY_SLUG,
+  CARS,
+  CAR_BY_SLUG,
+  carsOfBrand,
+} from "@/src/catalog";
+import { CarIndex, SpecTable } from "@/app/components/catalog-ui";
 import { CompareChart } from "@/app/components/compare-chart";
 
 export function generateStaticParams() {
@@ -16,12 +21,18 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const car = CAR_BY_SLUG[(await params).slug];
   if (!car) return { title: "Car not found" };
-  const brand = BRAND_BY_SLUG[car.brand];
   return {
-    title: `${brand?.name} ${car.name}`,
+    title: `${BRAND_BY_SLUG[car.brand]?.name} ${car.name}`,
     description: car.blurb.slice(0, 160),
   };
 }
+
+const CATEGORY_WORD: Record<string, string> = {
+  hypercar: "Hypercar",
+  sports: "Sports car",
+  prototype: "Racing prototype",
+  everyday: "Everyday car",
+};
 
 export default async function CarPage({ params }: { params: Promise<{ slug: string }> }) {
   const car = CAR_BY_SLUG[(await params).slug];
@@ -30,88 +41,88 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
   const siblings = carsOfBrand(car.brand).filter((c) => c.slug !== car.slug);
 
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
-      <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-        <Link href="/cars" className="hover:text-slate-200">
-          Cars
-        </Link>
-        <span aria-hidden>/</span>
-        <Link href={`/brands/${car.brand}`} className="hover:text-slate-200">
-          {brand?.name}
-        </Link>
-      </nav>
+    <main className="mx-auto max-w-3xl px-6 py-12">
+      <Link
+        href={`/brands/${car.brand}`}
+        className="text-[14px] transition-colors hover:text-[var(--signal-ink)]"
+        style={{ color: "var(--ink-2)" }}
+      >
+        {brand?.name}
+      </Link>
 
-      <header className="mb-8">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-3xl font-semibold tracking-tight">
-            <span className="text-slate-400">{brand?.name}</span> {car.name}
-          </h1>
-          <CategoryChip category={car.category} />
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
-          <span>{car.years}</span>
-          {car.produced ? (
-            <>
-              <span aria-hidden>·</span>
-              <span className="text-slate-300">
-                <span className="font-semibold tabular-nums">
-                  {car.produced.count.toLocaleString("en-GB")}
-                </span>{" "}
-                built
-              </span>
-            </>
-          ) : null}
-        </div>
-        {car.produced?.note ? (
-          <p className="mt-1 text-xs text-slate-500">{car.produced.note}</p>
+      <h1 className="mt-1 text-[38px] font-semibold leading-[1.1] tracking-tight">{car.name}</h1>
+
+      <div
+        className="mt-4 flex flex-wrap items-baseline gap-x-8 gap-y-1 text-[14px]"
+        style={{ color: "var(--ink-2)" }}
+      >
+        <span>{car.years}</span>
+        <span>{CATEGORY_WORD[car.category]}</span>
+        {car.produced ? (
+          <span>
+            <span className="num font-semibold" style={{ color: "var(--ink)" }}>
+              {car.produced.count.toLocaleString("en-GB")}
+            </span>{" "}
+            built
+          </span>
         ) : null}
-      </header>
-
-      <p className="max-w-3xl text-lg leading-relaxed text-slate-300">{car.blurb}</p>
-
-      <div className="mt-8 grid gap-6 sm:grid-cols-2">
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Layout</h2>
-          <p className="mt-1 text-slate-200">{car.layout}</p>
-        </div>
-        <div className="rounded-lg border border-white/10 bg-white/[0.02] p-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Engine</h2>
-          <p className="mt-1 text-slate-200">{car.engine}</p>
-        </div>
       </div>
-
-      <section className="mt-8">
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-          Published figures
-        </h2>
-        <SpecTable car={car} />
-        <p className="mt-3 text-xs leading-relaxed text-slate-500">
-          A maker&rsquo;s figure is what the company printed. An independent test is what someone
-          else measured, usually on a public road with a full tank, which is normally a little
-          slower. Neither is adjusted here, and nothing on this page is estimated — if we could
-          not source a number, the row says so.
+      {car.produced?.note ? (
+        <p className="mt-1.5 text-[13px]" style={{ color: "var(--ink-3)" }}>
+          {car.produced.note}
         </p>
+      ) : null}
+
+      <p className="prose-serif mt-7 text-[18px]">{car.blurb}</p>
+
+      <dl
+        className="mt-8 grid gap-x-8 gap-y-4 border-t pt-6 sm:grid-cols-2"
+        style={{ borderColor: "var(--rule)" }}
+      >
+        <div>
+          <dt className="text-[13px]" style={{ color: "var(--ink-3)" }}>
+            Layout
+          </dt>
+          <dd className="mt-0.5 text-[15px]">{car.layout}</dd>
+        </div>
+        <div>
+          <dt className="text-[13px]" style={{ color: "var(--ink-3)" }}>
+            Engine
+          </dt>
+          <dd className="mt-0.5 text-[15px]">{car.engine}</dd>
+        </div>
+      </dl>
+
+      <section className="mt-12">
+        <h2 className="text-[15px] font-semibold">Published figures</h2>
+        <p className="prose-serif mt-1.5 text-[15px]" style={{ color: "var(--ink-2)" }}>
+          A maker&rsquo;s figure is what the company printed. An independent test is what
+          somebody else measured, usually on a public road with a full tank, which is normally
+          a little slower. Neither is adjusted here, and nothing is estimated.
+        </p>
+        <div className="mt-5">
+          <SpecTable car={car} />
+        </div>
       </section>
 
       <CompareChart car={car} />
 
-      <section className="mt-8">
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-          Where these came from
-        </h2>
-        <ul className="list-inside list-disc space-y-1 text-sm text-slate-400">
+      <section className="mt-12 border-t pt-6" style={{ borderColor: "var(--rule)" }}>
+        <h2 className="text-[15px] font-semibold">Sources</h2>
+        <ul className="mt-2 space-y-1 text-[14px]" style={{ color: "var(--ink-2)" }}>
           {car.sources.map((s) => (
             <li key={s}>{s}</li>
           ))}
         </ul>
         {brand ? (
-          <p className="mt-3 text-sm text-slate-400">
+          <p className="mt-4 text-[14px]" style={{ color: "var(--ink-2)" }}>
             {brand.name}&rsquo;s own site:{" "}
             <a
               href={brand.site}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-amber-300 underline underline-offset-2 hover:text-amber-200"
+              className="underline underline-offset-4 transition-colors hover:text-[var(--signal-ink)]"
+              style={{ textDecorationColor: "var(--rule)" }}
             >
               {brand.site.replace("https://", "")}
             </a>
@@ -121,21 +132,18 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
 
       {siblings.length > 0 ? (
         <section className="mt-12">
-          <div className="mb-4 flex items-baseline justify-between gap-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-              More from {brand?.name}
-            </h2>
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 className="text-[15px] font-semibold">More from {brand?.name}</h2>
             <Link
               href={`/brands/${car.brand}`}
-              className="text-sm text-amber-300 hover:text-amber-200"
+              className="text-[14px] transition-colors hover:text-[var(--signal-ink)]"
+              style={{ color: "var(--ink-2)" }}
             >
-              All {siblings.length + 1} &rarr;
+              All {siblings.length + 1}
             </Link>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {siblings.slice(0, 3).map((c) => (
-              <CarCard key={c.slug} car={c} />
-            ))}
+          <div className="mt-3">
+            <CarIndex cars={siblings.slice(0, 4)} showBrand={false} />
           </div>
         </section>
       ) : null}
