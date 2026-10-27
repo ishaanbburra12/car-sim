@@ -102,7 +102,15 @@ export function CarCard({ car }: { car: Car }) {
         </div>
         <CategoryChip category={car.category} />
       </div>
-      <p className="text-xs text-slate-500">{car.years}</p>
+      <p className="text-xs text-slate-500">
+        {car.years}
+        {car.produced ? (
+          <span className="text-slate-400">
+            {" "}
+            · {car.produced.count.toLocaleString("en-GB")} built
+          </span>
+        ) : null}
+      </p>
       <p className="text-sm text-slate-400">{car.engine}</p>
       <p className="mt-auto pt-2 text-sm tabular-nums text-slate-300">
         {car.powerHp ? (

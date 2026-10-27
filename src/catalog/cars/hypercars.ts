@@ -16,6 +16,7 @@ export const HYPERCARS: Car[] = [
     weightKg: mfr(1996, "kerb weight"),
     zeroTo60S: mfr(2.4),
     topSpeedMph: mfr(261, "electronically limited; a modified Chiron exceeded 300 mph in a one-way run"),
+    produced: { count: 500 },
     sources: ["Bugatti press material for the Chiron"],
   },
   {
@@ -33,6 +34,7 @@ export const HYPERCARS: Car[] = [
     weightKg: mfr(1420, "dry weight"),
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: { count: 125 },
     sources: ["Koenigsegg technical specifications for the Jesko"],
   },
   {
@@ -50,6 +52,7 @@ export const HYPERCARS: Car[] = [
     weightKg: mfr(2150),
     zeroTo60S: mfr(1.85, "with one foot of rollout, the US magazine convention"),
     topSpeedMph: mfr(258),
+    produced: { count: 150 },
     sources: ["Rimac technical specifications for the Nevera"],
   },
   {
@@ -67,6 +70,7 @@ export const HYPERCARS: Car[] = [
     weightKg: mfr(1490, "kerb weight"),
     zeroTo60S: mfr(2.8),
     topSpeedMph: mfr(217, "electronically limited"),
+    produced: { count: 375 },
     sources: ["McLaren press material for the P1"],
   },
   {
@@ -84,6 +88,7 @@ export const HYPERCARS: Car[] = [
     weightKg: null,
     zeroTo60S: mfr(2.9, "quoted as under 3 seconds"),
     topSpeedMph: mfr(217, "quoted as over 350 km/h"),
+    produced: { count: 499, note: "coupes; a further 210 open-top Aperta followed" },
     sources: ["Ferrari press material for LaFerrari"],
   },
   {
@@ -101,6 +106,7 @@ export const HYPERCARS: Car[] = [
     weightKg: mfr(1674, "kerb weight, Weissach package lighter"),
     zeroTo60S: mfr(2.5),
     topSpeedMph: mfr(214),
+    produced: { count: 918 },
     sources: ["Porsche press material for the 918 Spyder"],
   },
   {
@@ -118,6 +124,7 @@ export const HYPERCARS: Car[] = [
     weightKg: mfr(1350, "dry weight"),
     zeroTo60S: null,
     topSpeedMph: mfr(230),
+    produced: { count: 100, note: "coupes; roadster and special versions additional" },
     sources: ["Pagani technical specifications for the Huayra"],
   },
   {
@@ -135,6 +142,7 @@ export const HYPERCARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: { count: 150, note: "road cars; the track-only AMR Pro is additional" },
     sources: ["Aston Martin press material for the Valkyrie"],
   },
   {
@@ -152,6 +160,7 @@ export const HYPERCARS: Car[] = [
     weightKg: mfr(1772, "dry weight"),
     zeroTo60S: mfr(2.5, "quoted as 0-100 km/h in 2.5 s"),
     topSpeedMph: mfr(217),
+    produced: null,
     sources: ["Lamborghini technical specifications for the Revuelto"],
   },
   {
@@ -169,6 +178,7 @@ export const HYPERCARS: Car[] = [
     weightKg: null,
     zeroTo60S: mfr(2.9, "quoted as 0-100 km/h in 2.9 s"),
     topSpeedMph: mfr(219),
+    produced: { count: 275 },
     sources: ["Mercedes-AMG press material for the One"],
   },
 ];

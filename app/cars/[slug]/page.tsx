@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BRAND_BY_SLUG, CARS, CAR_BY_SLUG, carsOfBrand } from "@/src/catalog";
 import { CarCard, CategoryChip, SpecTable } from "@/app/components/catalog-ui";
+import { CompareChart } from "@/app/components/compare-chart";
 
 export function generateStaticParams() {
   return CARS.map((car) => ({ slug: car.slug }));
@@ -47,7 +48,23 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
           </h1>
           <CategoryChip category={car.category} />
         </div>
-        <p className="mt-2 text-slate-500">{car.years}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
+          <span>{car.years}</span>
+          {car.produced ? (
+            <>
+              <span aria-hidden>·</span>
+              <span className="text-slate-300">
+                <span className="font-semibold tabular-nums">
+                  {car.produced.count.toLocaleString("en-GB")}
+                </span>{" "}
+                built
+              </span>
+            </>
+          ) : null}
+        </div>
+        {car.produced?.note ? (
+          <p className="mt-1 text-xs text-slate-500">{car.produced.note}</p>
+        ) : null}
       </header>
 
       <p className="max-w-3xl text-lg leading-relaxed text-slate-300">{car.blurb}</p>
@@ -75,6 +92,8 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
           not source a number, the row says so.
         </p>
       </section>
+
+      <CompareChart car={car} />
 
       <section className="mt-8">
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">

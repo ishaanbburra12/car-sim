@@ -23,6 +23,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: mfr(1030, "minimum weight set by the regulations"),
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Porsche Motorsport material for the 963 and the LMDh regulations"],
   },
   {
@@ -40,6 +41,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: mfr(1040, "minimum weight set by the regulations"),
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Toyota Gazoo Racing material for the GR010 Hybrid"],
   },
   {
@@ -57,6 +59,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Ferrari competition material for the 499P"],
   },
   {
@@ -74,6 +77,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Cadillac Racing material for the V-Series.R"],
   },
   {
@@ -91,6 +95,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Peugeot Sport material for the 9X8"],
   },
   {
@@ -108,6 +113,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: mfr(875, "minimum weight under the regulations of the period"),
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Porsche Motorsport material for the 919 Hybrid"],
   },
   {
@@ -125,6 +131,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Audi Sport material for the R18 e-tron quattro"],
   },
   {
@@ -142,6 +149,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: mfr(830),
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Mazda historical material for the 787B"],
   },
   {
@@ -159,6 +167,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Ford historical material for the GT40"],
   },
   {
@@ -176,6 +185,7 @@ export const PROTOTYPES: Car[] = [
     weightKg: mfr(800, "approximately"),
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: { count: 25, note: "the homologation run: 25 identical cars had to exist before it could race" },
     sources: ["Porsche historical material for the 917"],
   },
 ];

@@ -16,6 +16,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1450, "DIN kerb weight"),
     zeroTo60S: mfr(3.0),
     topSpeedMph: mfr(184),
+    produced: null,
     sources: ["Porsche technical specifications for the 911 GT3 RS (992)"],
   },
   {
@@ -33,6 +34,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1415, "DIN kerb weight"),
     zeroTo60S: mfr(3.2),
     topSpeedMph: mfr(196),
+    produced: null,
     sources: ["Porsche technical specifications for the 718 Cayman GT4 RS"],
   },
   {
@@ -50,6 +52,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1058, "kerb weight, varies by market and roof"),
     zeroTo60S: ind(5.7),
     topSpeedMph: mfr(136),
+    produced: null,
     sources: [
       "Mazda technical specifications for the MX-5 (ND)",
       "Independent road tests for the acceleration figure",
@@ -70,6 +73,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1270, "manual, varies by market"),
     zeroTo60S: mfr(6.1, "manual transmission"),
     topSpeedMph: null,
+    produced: null,
     sources: ["Toyota technical specifications for the GR86"],
   },
   {
@@ -87,6 +91,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1270, "manual, varies by market"),
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Subaru technical specifications for the BRZ"],
   },
   {
@@ -104,6 +109,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Nissan technical specifications for the Z"],
   },
   {
@@ -121,6 +127,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1542, "kerb weight, varies by market"),
     zeroTo60S: mfr(3.9, "automatic"),
     topSpeedMph: mfr(155, "electronically limited"),
+    produced: null,
     sources: ["Toyota technical specifications for the GR Supra"],
   },
   {
@@ -138,6 +145,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1725, "DIN kerb weight"),
     zeroTo60S: mfr(4.1, "manual"),
     topSpeedMph: mfr(155, "limited; 177 mph with the M Driver's Package"),
+    produced: null,
     sources: ["BMW technical specifications for the M2"],
   },
   {
@@ -155,6 +163,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1527, "kerb weight"),
     zeroTo60S: mfr(2.9, "with the Z51 package"),
     topSpeedMph: mfr(194),
+    produced: null,
     sources: ["Chevrolet technical specifications for the Corvette Stingray"],
   },
   {
@@ -172,6 +181,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Ford technical specifications for the Mustang GT"],
   },
   {
@@ -189,6 +199,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1429, "kerb weight, varies by market"),
     zeroTo60S: ind(5.0),
     topSpeedMph: mfr(171),
+    produced: null,
     sources: [
       "Honda technical specifications for the Civic Type R",
       "Independent road tests for the acceleration figure",
@@ -209,6 +220,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1102, "dry weight"),
     zeroTo60S: mfr(4.5, "quoted as 0-100 km/h in 4.5 s"),
     topSpeedMph: mfr(155),
+    produced: null,
     sources: ["Alpine technical specifications for the A110"],
   },
   {
@@ -226,6 +238,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1458, "V6, dry weight"),
     zeroTo60S: mfr(4.2),
     topSpeedMph: mfr(180),
+    produced: null,
     sources: ["Lotus technical specifications for the Emira"],
   },
   {
@@ -243,6 +256,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1660, "DIN kerb weight"),
     zeroTo60S: mfr(3.1),
     topSpeedMph: mfr(205),
+    produced: null,
     sources: ["Audi technical specifications for the R8 V10 performance"],
   },
   {
@@ -260,6 +274,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1752, "kerb weight, varies by market"),
     zeroTo60S: ind(2.9),
     topSpeedMph: mfr(196),
+    produced: null,
     sources: [
       "Nissan technical specifications for the GT-R",
       "Independent road tests for the acceleration figure",
@@ -280,6 +295,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1470, "dry weight"),
     zeroTo60S: mfr(2.9),
     topSpeedMph: mfr(205),
+    produced: null,
     sources: ["Ferrari technical specifications for the 296 GTB"],
   },
   {
@@ -297,6 +313,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1277, "dry weight"),
     zeroTo60S: mfr(2.7),
     topSpeedMph: mfr(206),
+    produced: null,
     sources: ["McLaren technical specifications for the 750S"],
   },
   {
@@ -314,6 +331,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1339, "dry weight"),
     zeroTo60S: mfr(3.0, "quoted as 0-100 km/h in 3.0 s"),
     topSpeedMph: mfr(193),
+    produced: null,
     sources: ["Lamborghini technical specifications for the Huracán STO"],
   },
   {
@@ -331,6 +349,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1270, "varies considerably by market and year"),
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Mazda specifications for the third-generation RX-7"],
   },
   {
@@ -348,6 +367,7 @@ export const SPORTS_CARS: Car[] = [
     weightKg: mfr(1370, "varies by market and year"),
     zeroTo60S: null,
     topSpeedMph: mfr(168),
+    produced: null,
     sources: ["Honda specifications for the first-generation NSX"],
   },
 ];

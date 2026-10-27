@@ -54,7 +54,7 @@ export const CATEGORY_BLURBS: Record<Category, string> = {
   sports:
     "Built to be enjoyed on a road or a track. Some are fast, some are not; what they share is that handling came before practicality.",
   prototype:
-    "Purpose-built racing cars and concepts. They have no price and no options list, and most of them are the reason a road car works the way it does.",
+    "Purpose-built racing cars: designed from a blank sheet to a rulebook rather than developed from something you could buy. In racing, \u201cprototype\u201d is the name of a class, not a stage of development \u2014 these are finished machines, not test mules.",
   everyday:
     "The cars most people actually own. Unglamorous, enormously refined, and the place almost every piece of safety and efficiency technology ends up.",
 };
@@ -90,6 +90,17 @@ export type Car = {
   weightKg: MaybeFigure;
   zeroTo60S: MaybeFigure;
   topSpeedMph: MaybeFigure;
+  /**
+   * How many were built, where that is a real, knowable number: a deliberate
+   * production cap, or a homologation run.
+   *
+   * `null` is the normal case and means two different things that are worth
+   * keeping apart in your head: either the car was simply mass-produced and no
+   * cap exists, or a cap exists and we could not source it. Both print the
+   * same way, because inventing the difference would be worse than admitting
+   * we did not look it up.
+   */
+  produced: { count: number; note?: string } | null;
   /** Where the figures above came from, in plain words. */
   sources: string[];
 };

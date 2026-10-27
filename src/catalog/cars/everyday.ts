@@ -22,6 +22,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Toyota technical specifications for the Corolla"],
   },
   {
@@ -39,6 +40,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Honda technical specifications for the Civic"],
   },
   {
@@ -56,6 +58,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Volkswagen model information for the Golf"],
   },
   {
@@ -73,6 +76,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Ford model information for the F-150"],
   },
   {
@@ -90,6 +94,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Toyota technical specifications for the RAV4"],
   },
   {
@@ -107,6 +112,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Honda technical specifications for the CR-V"],
   },
   {
@@ -124,6 +130,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Tesla model information for the Model 3"],
   },
   {
@@ -141,6 +148,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Hyundai technical specifications for the Elantra"],
   },
   {
@@ -158,6 +166,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Mazda technical specifications for the Mazda3"],
   },
   {
@@ -175,6 +184,7 @@ export const EVERYDAY_CARS: Car[] = [
     weightKg: null,
     zeroTo60S: null,
     topSpeedMph: null,
+    produced: null,
     sources: ["Subaru technical specifications for the Outback"],
   },
 ];

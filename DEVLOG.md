@@ -1619,3 +1619,56 @@ Say the word and I will retire them properly.
   and its real site.
 - **Claude:** the catalogue, the search, the pages and the tests, plus the two
   judgement calls above about sourcing and trademarks.
+
+### Addendum: are those actually prototypes, and a comparison chart
+
+Two things asked for: check whether the cars in the "prototype" category are
+really prototypes or just limited-production cars, and put a graph on each car
+page.
+
+**On the category.** All ten are genuine racing prototypes, and the word is
+being used in its motorsport sense rather than its everyday one. In racing,
+"prototype" is the name of a CLASS — a car designed from a blank sheet to a
+rulebook, as opposed to a GT car developed from something you can buy. Le Mans
+Prototype, Group C, Group 6: none of these are test mules or pre-production
+concepts. The category blurb now says this outright, because the ambiguity is
+a fair thing to trip over and explaining it is exactly what a learning site is
+for.
+
+One of the ten is a real boundary case, though, and the question found it. The
+**Porsche 917** was homologated as a Sports Car, not a prototype, and that rule
+required twenty-five identical cars to exist before it could race — which is
+why Porsche famously lined up twenty-five of them for inspection in 1969. So it
+genuinely is a limited-production car: 25 built. That is now on its page.
+
+**Production numbers.** Added as a required field on every car, which forces a
+decision per entry rather than letting an omission pass as an answer. Ten cars
+have a number: the deliberate caps (P1 375, LaFerrari 499, 918 Spyder 918,
+Chiron 500, Jesko 125, Nevera 150, Huayra 100, Valkyrie 150, AMG One 275) and
+the 917's homologation run. Everything else is null, and null means two things
+that are worth keeping apart: either no cap exists, or one does and we could
+not source it. Both print the same way, because inventing the difference would
+be worse than admitting we did not look it up.
+
+**The chart.** One strip per measure, showing where this car sits among the
+others IN ITS OWN CATEGORY — comparing a Corolla against a Le Mans car would be
+a category error dressed up as a graph.
+
+Three decisions worth recording:
+
+- **A dot, not a bar.** A bar has to grow from zero, and a zero-based bar is
+  useless here: every hypercar's 0-60 sits between 1.8 and 2.9 seconds, so five
+  near-identical bars would say nothing. A dot encodes position rather than
+  length, so it can span min-to-max honestly — and it sidesteps the trap where
+  a longer bar means a *worse* car on the two measures where smaller is better.
+- **The colour was chosen by a validator, not by eye.** The site's own amber
+  (#fbbf24) was the obvious pick and failed: lightness 0.837, outside the
+  0.48-0.67 band for marks on a dark surface. #c98500 passes all six checks.
+- **Only cars that published a figure are counted.** "3rd of 10" when only four
+  of the ten listed a weight would be a lie, so each row carries its own total
+  and a measure with fewer than three peers is dropped entirely — "2nd of 2" is
+  not information.
+
+Eleven tests cover the comparison maths, including the ones that matter most:
+ties share the better rank, ranking inverts for weight and 0-60, and no row is
+ever produced for a figure the car does not have.
