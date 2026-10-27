@@ -110,10 +110,36 @@ export function CompareChart({ car }: { car: Car }) {
     <section className="mt-12">
       <h2 className="text-[15px] font-semibold">Against the other {peers}</h2>
       <p className="prose-serif mt-1.5 text-[15px]" style={{ color: "var(--ink-2)" }}>
-        Each bar runs from zero to the highest figure published by any of the {peers} here, with
-        a mark at the median. Only cars that published a given figure are counted, so the totals
-        differ from row to row.
+        Each bar runs from zero to the highest figure published by any of the {peers} here. Only
+        cars that published a given figure are counted, so the totals differ from row to row.
       </p>
+
+      {/* A key. The bar is one series and would not need naming on its own, but
+          the median notch is a second mark with a different meaning, and a
+          reader has no way to guess what it is. */}
+      <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-[13px]" style={{ color: "var(--ink-2)" }}>
+        <li className="flex items-center gap-2">
+          <span
+            className="inline-block h-2.5 w-7 rounded-l-sm rounded-r"
+            style={{ background: SERIES }}
+            aria-hidden
+          />
+          this car
+        </li>
+        <li className="flex items-center gap-2">
+          <span className="relative inline-block h-3.5 w-7" aria-hidden>
+            <span
+              className="absolute inset-y-[3px] inset-x-0 rounded-sm"
+              style={{ background: "var(--rule-soft)" }}
+            />
+            <span
+              className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2"
+              style={{ background: "var(--ink-2)" }}
+            />
+          </span>
+          the median of the {peers} counted in that row
+        </li>
+      </ul>
       <ul
         className="mt-5 flex flex-col gap-6 rounded-md px-5 py-5"
         style={{ background: "var(--raised)", boxShadow: "inset 0 0 0 1px var(--rule)" }}
