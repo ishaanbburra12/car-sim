@@ -3,7 +3,7 @@ import { HYPERCARS } from "./cars/hypercars";
 import { SPORTS_CARS } from "./cars/sports";
 import { PROTOTYPES } from "./cars/prototypes";
 import { EVERYDAY_CARS } from "./cars/everyday";
-import { CATEGORY_LABELS, type Car, type Category } from "./types";
+import { CATEGORY_LABELS, type Car, type Category, isFigure } from "./types";
 import type { CarSummary } from "./summary";
 import { normalise, squash } from "./text";
 
@@ -152,7 +152,7 @@ export const CAR_SUMMARIES: CarSummary[] = CARS.map((car) => {
     brandName,
     years: car.years,
     category: car.category,
-    powerHp: car.powerHp ? car.powerHp.value : null,
+    powerHp: isFigure(car.powerHp) ? car.powerHp.value : null,
     terms: normalise(
       [car.name, brandName, car.years, car.layout, car.engine, CATEGORY_LABELS[car.category]].join(
         " ",

@@ -208,13 +208,45 @@ describe("coverage", () => {
     expect(coverage(car({})).have).toBe(0);
     expect(coverage(car({ powerHp: hp(100), weightKg: hp(900) })).have).toBe(2);
     expect(coverage(car({})).of).toBe(5);
+    // An absence with a reason leaves the denominator; a plain null does not.
+    expect(coverage(car({ powerHp: { absent: "varies", why: "x" } })).of).toBe(4);
+    expect(coverage(car({ powerHp: null })).of).toBe(5);
   });
 
-  it("reports a percentage across a set, and prototypes come out sparse", () => {
+  it("scores a car on what could be known, not on a flat five", () => {
+    // This test used to assert that prototypes "come out sparse". They did --
+    // 28% -- but only because they were being marked out of five measures when
+    // two or three of those five are things nobody on earth publishes for a
+    // Le Mans car. Counted against what is actually obtainable, prototypes are
+    // among the best-documented things here, and the old number was measuring
+    // the denominator rather than the catalogue.
     const protos = CARS.filter((c) => c.category === "prototype");
-    const sports = CARS.filter((c) => c.category === "sports");
-    expect(coverageOf(protos).pct).toBeLessThan(coverageOf(sports).pct);
+    expect(coverageOf(protos).pct).toBeGreaterThan(80);
     expect(coverageOf([]).pct).toBe(0);
+  });
+
+  it("drops a measure from the denominator only when a reason is recorded", () => {
+    for (const c of CARS) {
+      const cov = coverage(c);
+      expect(cov.of + cov.structural, c.slug).toBe(cov.measures);
+      expect(cov.have, c.slug).toBeLessThanOrEqual(cov.of);
+      expect(cov.of, c.slug).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("counts a car with nothing obtainable as complete rather than as zero", () => {
+    // A car whose every measure is structurally absent is 0 of 0. Reporting
+    // that as 0% would say we failed at something that cannot be done.
+    expect(coverageOf([]).pct).toBe(0);
+    const allAbsent = car({
+      powerHp: { absent: "unpublished", why: "x" },
+      torqueLbFt: { absent: "unpublished", why: "x" },
+      weightKg: { absent: "unpublished", why: "x" },
+      zeroTo60S: { absent: "unpublished", why: "x" },
+      topSpeedMph: { absent: "unpublished", why: "x" },
+    });
+    expect(coverage(allAbsent)).toEqual({ have: 0, of: 0, measures: 5, structural: 5 });
+    expect(coverageOf([allAbsent]).pct).toBe(0);
   });
 });
 

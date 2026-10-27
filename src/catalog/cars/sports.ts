@@ -20,6 +20,9 @@ export const SPORTS_CARS: Car[] = [
     sources: [
       { publisher: "Porsche", title: "Technical specifications for the 911 GT3 RS (992)" },
     ],
+    review:
+      "Published kerb weights for the 992 GT3 RS differ by source: 1,450 kg with fluids " +
+      "and 1,482 kg both appear. The figure here needs pinning to a stated standard.",
   },
   {
     slug: "porsche-718-cayman-gt4-rs",

@@ -1,4 +1,4 @@
-import { type Car, mfr } from "../types";
+import { unpublished, varies, type Car, mfr } from "../types";
 
 // Everyday cars are harder to pin down than exotics, for a dull reason: they
 // come in many trims, in many markets, with different engines, and the same
@@ -19,7 +19,11 @@ export const EVERYDAY_CARS: Car[] = [
       "The best-selling car nameplate in history, past fifty million units across twelve generations since 1966. It is worth studying precisely because it is unremarkable: it represents what the industry has decided a car should be when nobody is trying to make a statement.",
     powerHp: mfr(169, "2.0 L petrol, US specification; hybrid and 1.8 L versions differ"),
     torqueLbFt: mfr(151, "2.0 L petrol"),
-    weightKg: null,
+    weightKg: varies(
+      "Published kerb weight for the E210 runs from about 1,315 kg to 1,515 kg across " +
+        "trims and drivetrains, and the DIN and EU standards differ by roughly 75 kg on " +
+        "the same car. One number here would be a choice dressed up as a measurement.",
+    ),
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
@@ -59,7 +63,10 @@ export const EVERYDAY_CARS: Car[] = [
       "Defined the modern hatchback in 1974: a transverse engine driving the front wheels, a hatch at the back, and folding rear seats. Nearly every small car since has used the same basic arrangement, which is why the Golf is a reference point rather than just a product.",
     powerHp: mfr(148, "1.5 TSI, 150 PS; the range runs from 114 hp to 328 hp in the Golf R"),
     torqueLbFt: mfr(184, "1.5 TSI"),
-    weightKg: null,
+    weightKg: varies(
+      "Volkswagen publishes kerb weight per gearbox, body style and equipment level. " +
+        "Figures for the 1.5 TSI 150 run from about 1,317 kg to 1,376 kg.",
+    ),
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
@@ -79,7 +86,11 @@ export const EVERYDAY_CARS: Car[] = [
       "The best-selling vehicle in the United States for over four decades. Its switch to an aluminium body in 2015 was a serious piece of engineering: around 300 kg saved on a vehicle class where buyers measure everything in towing capacity.",
     powerHp: mfr(325, "2.7 L EcoBoost V6; the range runs to 720 hp in the Raptor R"),
     torqueLbFt: mfr(400, "2.7 L EcoBoost V6"),
-    weightKg: null,
+    weightKg: varies(
+      "Ford publishes curb weight per cab, bed length and drivetrain combination rather " +
+        "than for the truck as a whole, and the spread across configurations is well over " +
+        "500 kg -- wider than the gap between a Golf and a Range Rover.",
+    ),
     zeroTo60S: null,
     topSpeedMph: null,
     produced: null,
@@ -137,8 +148,15 @@ export const EVERYDAY_CARS: Car[] = [
     engine: "Electric; battery capacity varies by version",
     blurb:
       "The first electric car to sell in genuinely mass-market numbers, and the one that made over-the-air software updates normal. It also made other manufacturers take charging infrastructure seriously, which mattered as much as the car itself.",
-    powerHp: null,
-    torqueLbFt: null,
+    powerHp: unpublished(
+      "Tesla stopped publishing power figures in 2015, after being challenged over its " +
+        "earlier ones, and has not resumed. Independent dyno runs of the Performance put " +
+        "it near 470-480 hp at the wheels, which is not the same measurement as the crank " +
+        "figure every other car on this site quotes.",
+    ),
+    torqueLbFt: unpublished(
+      "Not published either, for the same reason Tesla no longer publishes power.",
+    ),
     weightKg: null,
     zeroTo60S: mfr(4.2, "Long Range all-wheel drive, quoted with a one-foot rollout"),
     topSpeedMph: null,

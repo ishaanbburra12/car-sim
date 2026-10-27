@@ -19,6 +19,12 @@ export const HYPERCARS: Car[] = [
     produced: { count: 500 },
     sources: [
       { publisher: "Bugatti", title: "Press material for the Chiron" },
+      {
+        publisher: "Bugatti",
+        title: "Chiron model page, technical data",
+        url: "https://www.bugatti.com/en/models/chiron",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
   },
   {
@@ -39,6 +45,12 @@ export const HYPERCARS: Car[] = [
     produced: { count: 125 },
     sources: [
       { publisher: "Koenigsegg", title: "Technical specifications for the Jesko" },
+      {
+        publisher: "Koenigsegg",
+        title: "Jesko Attack technical specifications",
+        url: "https://www.koenigsegg.com/technical-specifications-jesko-attack",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
   },
   {
@@ -59,7 +71,17 @@ export const HYPERCARS: Car[] = [
     produced: { count: 150 },
     sources: [
       { publisher: "Rimac", title: "Technical specifications for the Nevera" },
+      {
+        publisher: "Rimac Automobili",
+        title: "Nevera technical specifications",
+        url: "https://web-cdn.rimac-automobili.com/wp-content/uploads/2023/11/20171226/Nevera_Technical-specifications.pdf",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
+    review:
+      "Rimac's own technical-specifications PDF gives 2,340 Nm, while several Rimac "+
+      "press releases give 2,360 Nm. The 1,741 lb-ft here is the press-release figure; "+
+      "the spec sheet works out at 1,726 lb-ft. Rimac has not reconciled the two.",
   },
   {
     slug: "mclaren-p1",
@@ -119,6 +141,12 @@ export const HYPERCARS: Car[] = [
     produced: { count: 918 },
     sources: [
       { publisher: "Porsche", title: "Press material for the 918 Spyder" },
+      {
+        publisher: "Porsche",
+        title: "918 Spyder press kit, Porsche Museum",
+        url: "https://newsroom.porsche.com/en/press-kits/Porsche-Museum/Porsche-918-Spyder.html",
+        checked: { on: "2026-10-27", how: "search" },
+      },
     ],
   },
   {

@@ -220,6 +220,47 @@ export default function MethodsPage() {
         </ul>
       </Section>
 
+      <Section title="How the catalogue is sourced">
+        <p>
+          The catalogue and the simulator work to opposite rules, and it is worth
+          being clear which you are looking at. The simulator estimates, and labels
+          every estimate. The catalogue does not estimate at all: a figure is there
+          because somebody published it, or it is not there.
+        </p>
+        <p>
+          That makes the blanks meaningful, so the catalogue distinguishes four
+          kinds of them rather than printing &ldquo;not listed&rdquo; for all four.{" "}
+          <strong className="font-medium text-slate-300">Not published</strong>{" "}
+          means the people who would know have not said &mdash; Tesla has published
+          no power figure for the Model 3 since 2015.{" "}
+          <strong className="font-medium text-slate-300">No single figure</strong>{" "}
+          means none exists: a Le Mans car&rsquo;s weight is a Balance of Performance
+          number the organisers reset between races.{" "}
+          <strong className="font-medium text-slate-300">Sources disagree</strong>{" "}
+          means published figures contradict each other and we are not going to pick
+          a winner by coin-toss. A plain{" "}
+          <strong className="font-medium text-slate-300">not listed</strong> is the
+          only one that is our own gap.
+        </p>
+        <p>
+          Completeness is scored against what could be known about a given car, not
+          against a flat five figures. Marking a prototype out of five when three of
+          the five are things nobody publishes reported our denominator as the
+          car&rsquo;s incompleteness.
+        </p>
+        <p className="rounded-md border border-amber-400/20 bg-amber-400/5 p-3 text-amber-100/80">
+          <strong className="font-medium text-amber-100">On links.</strong> Where a
+          source carries a link, the page says the date it was checked and how. Most
+          say <em>found by search</em>, which is weaker than it sounds: a web search
+          returned that page and the content it returned matched the figure cited
+          here, but nobody opened it in a browser and read around it. The machine
+          this catalogue is written on has no route to any manufacturer or motoring
+          press domain, so search is the only channel out. Sources without a link
+          name the document instead; a link nobody has followed would look like a
+          citation without being one.
+        </p>
+      </Section>
+
       <Section title="Where the car data came from">
         <p>
           Values in the car data are tagged in the source as one of three kinds.{" "}

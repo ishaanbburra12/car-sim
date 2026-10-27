@@ -1894,3 +1894,132 @@ is `check:payload`, which looks where the evidence actually is.
 - **Me (Raju):** the audit list, handed back with "fix all of this".
 - **Claude:** all seven fixes, the payload guard, the clipping invariant tests,
   and finding that its own earlier "fixed" was wrong.
+
+---
+
+## 2026-10-27 — Session 22: the two items I had left open
+
+Raju read back the two items I had reported as not-fixed and said: how to fix,
+then do that. The answer to both turned out to be different from what I
+expected, so this entry is mostly about what the research changed.
+
+### First: what can this machine actually reach?
+
+I had been saying "the proxy blocks manufacturer domains". I had not checked
+what else exists. Measured, properly this time:
+
+| route | result |
+|---|---|
+| container `curl` | 000 to everything, Wikipedia included. Fully sealed. |
+| `WebFetch` | DNS fails for every host, `example.com` included. Unusable. |
+| `WebSearch` | **works**, and returns real retrieved page content with URLs. |
+
+So there was a channel out the whole time, and the honest version of item 2
+depended on knowing that. One tool working is the difference between "cannot
+be fixed here" and "can be fixed partially, by a weaker method, if the method
+is named".
+
+### Item 1: the blanks were mostly right, and that was the bug
+
+I had assumed the everyday and prototype gaps were research I owed. I went to
+fill them and the sources said otherwise:
+
+- **Golf Mk8 1.5 TSI kerb weight:** published between 1,317 and 1,376 kg
+  depending on gearbox, body and equipment.
+- **Corolla E210:** 1,315 to 1,515 kg across trims, and the DIN and EU
+  standards differ by about 75 kg on the same car.
+- **F-150 2.7:** Ford publishes curb weight per cab, bed and drivetrain. No
+  single figure, and no official top speed anywhere.
+- **Tesla Model 3 power:** Tesla stopped publishing it in 2015 and has not
+  resumed. Independent dynos put the Performance near 470-480 hp at the
+  wheels, which is not a crank figure and not comparable with anything else
+  on the site.
+- **Porsche 963 weight:** a Balance of Performance number the organisers reset
+  between races. It ran 1,048 kg and then 1,045 kg inside one 2023 season.
+  Our entry carried 1,030 kg, which is the class floor, not the car.
+- **Porsche 917 weight:** given as 820, 830 and 896 kg by different sources.
+  Our entry carried 800 kg, which was the least supported figure of the lot.
+- **Mazda 787B torque:** either 448 lb-ft or 620 lb-ft depending on who you
+  read. Nothing from Mazda settles it.
+
+Filling those with point values would have made the site less honest, not
+more. The actual defect was that every one of those situations printed the
+identical words "not listed", so a figure nobody on earth publishes looked
+exactly like one we had been too lazy to look up.
+
+**So a blank now says which kind it is.** `Absence` carries a reason and the
+page prints it:
+
+- **not published** — the people who would know have not said.
+- **no single figure** — none exists: trim, market, or a rulebook that moves.
+- **sources disagree** — published figures contradict, and we are not picking
+  a winner by coin-toss.
+- plain **not listed** — ours, and the only one that is.
+
+43 figures now carry a reason; 58 are still plain nulls, which is our backlog
+and now legible as such. `Figure.high` was added for the cases where the
+published figure genuinely is a range.
+
+**The coverage metric was also wrong, in our favour's opposite direction.**
+Scoring every car out of five when three of a Le Mans car's five are things
+nobody publishes reported our denominator as the car's incompleteness.
+Counted against what can actually be sourced:
+
+| | before | now |
+|---|---|---|
+| prototypes | 28% | **92%** |
+| sports | 88% | 89% |
+| hypercars | 74% | 80% |
+| everyday | 28% | 42% |
+| all | 70% | 79% |
+
+Prototypes were never sparse. They were the best-documented thing here and
+the metric was hiding it. A test asserted the old behaviour — "prototypes come
+out sparse" — and failing it is how the change proved itself.
+
+### Item 2: fixed as a mechanism, partially as content
+
+A `url` can no longer be written without a `checked` date beside it: the
+`Source` type is a union, so the compiler rejects one without the other. A
+rule in a comment was what let the old unchecked-link risk exist at all.
+
+`checked.how` records the strength of the check, and the page prints it.
+Everything here says **found by search**, which is weaker than it sounds and
+is meant to: a web search returned that page and the content matched the
+figure cited, but nobody opened it in a browser. Five cars now carry checked
+links to canonical sources — Bugatti's Chiron page, Koenigsegg's Jesko
+technical specification, Rimac's own spec PDF, Porsche's 918 press kit and
+the 919 Hybrid media guide. The other 60 name the document without a link.
+
+So: the mechanism is fixed and enforced, the standard is written on the
+Methods page, and the content is 5 of 65. That is progress, not completion.
+
+### Two corrections the research forced
+
+- **Rimac Nevera torque.** Rimac's own specification PDF says 2,340 Nm; Rimac
+  press releases say 2,360 Nm. Our 1,741 lb-ft is the press-release figure;
+  the spec sheet works out at 1,726. Flagged for review rather than silently
+  changed.
+- **992 GT3 RS weight.** 1,450 kg with fluids and 1,482 kg both circulate.
+  Flagged.
+
+### What I got wrong this session
+
+Reported "maker's figures 221, independent tests 46" from a probe that counted
+an `Absence` as an independent test, because it checked `f.source ===
+"manufacturer"` on a value that no longer has a `source`. The real split is
+221 / 3. Caught it because 3 to 46 is not a thing my edits could have done.
+Same shape as last session's two: an instrument that could not detect what it
+was being asked about.
+
+### Counts
+
+65 cars, 26 brands, 256 tests, typecheck clean, no console errors.
+`/cars` client payload still 2.79 kB.
+
+### Who wrote what
+
+- **Me (Raju):** pointed at the two open items and said fix them.
+- **Claude:** the reachability measurement, the research that turned item 1
+  inside out, the `Absence` vocabulary, the coverage metric, the type-enforced
+  link checking, and the Methods write-up.

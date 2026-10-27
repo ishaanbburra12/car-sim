@@ -1,5 +1,5 @@
 import { CARS } from "./index";
-import type { Car } from "./types";
+import { isAbsence, isFigure, type Car } from "./types";
 
 // ---------------------------------------------------------------------------
 // Where does this car sit among its own kind?
@@ -105,11 +105,14 @@ export function compareWithinCategory(car: Car, pool: Car[] = CARS): Comparison[
 
   for (const spec of MEASURES) {
     const own = car[spec.key];
-    if (own === null) continue;
+    if (!isFigure(own)) continue;
 
+    // A figure published as a range contributes its LOW end to a ranking, so
+    // a car is never ranked above its peers on the strength of the widest
+    // possible reading of its own spec sheet.
     const values = peers
       .map((c) => c[spec.key])
-      .filter((f): f is NonNullable<typeof f> => f !== null)
+      .filter(isFigure)
       .map((f) => f.value);
     if (values.length < MIN_PEERS) continue;
 
@@ -123,12 +126,7 @@ export function compareWithinCategory(car: Car, pool: Car[] = CARS): Comparison[
     const scaleMax =
       sorted.length >= 4 && secondMax > 0 && max > secondMax * OUTLIER_RATIO ? secondMax : max;
 
-    const kinds = new Set(
-      peers
-        .map((c) => c[spec.key])
-        .filter((f): f is NonNullable<typeof f> => f !== null)
-        .map((f) => f.source),
-    );
+    const kinds = new Set(peers.map((c) => c[spec.key]).filter(isFigure).map((f) => f.source));
 
     // Rank by the direction that counts as "better" for this measure. Ties
     // share the better rank, which is why this counts strictly-better cars.
@@ -178,14 +176,44 @@ export function rankPhrase(c: Comparison): string {
  * prototype they genuinely are — nobody publishes a 0-60 time for a Le Mans
  * car — and for an everyday hatchback they are usually ours.
  */
-export function coverage(car: Car): { have: number; of: number } {
-  const have = MEASURES.filter((m) => car[m.key] !== null).length;
-  return { have, of: MEASURES.length };
+export type Coverage = {
+  /** Figures actually present. */
+  have: number;
+  /** Figures that could be present: the five, less the ones nobody publishes. */
+  of: number;
+  /** Always MEASURES.length, for a page that wants to say "of five". */
+  measures: number;
+  /** Measures marked absent for a stated reason. */
+  structural: number;
+};
+
+export function coverage(car: Car): Coverage {
+  let have = 0;
+  let structural = 0;
+  for (const m of MEASURES) {
+    const f = car[m.key];
+    if (isFigure(f)) have++;
+    else if (isAbsence(f)) structural++;
+  }
+  return { have, of: MEASURES.length - structural, measures: MEASURES.length, structural };
 }
 
-/** The same, across any set of cars, as a percentage. */
+/**
+ * The same across a set of cars.
+ *
+ * `pct` counts only the figures that COULD be filled in. Scoring a Le Mans
+ * prototype out of five when two of those five are things nobody publishes
+ * reports our completeness as the car's incompleteness, which is backwards:
+ * it made prototypes look 28% documented when almost everything obtainable
+ * about them was already here.
+ */
 export function coverageOf(cars: Car[]): { have: number; of: number; pct: number } {
-  const have = cars.reduce((n, c) => n + coverage(c).have, 0);
-  const of = cars.length * MEASURES.length;
+  let have = 0;
+  let of = 0;
+  for (const c of cars) {
+    const cov = coverage(c);
+    have += cov.have;
+    of += cov.of;
+  }
   return { have, of, pct: of === 0 ? 0 : Math.round((have / of) * 100) };
 }

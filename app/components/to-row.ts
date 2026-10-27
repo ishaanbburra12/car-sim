@@ -1,5 +1,5 @@
 import { BRAND_BY_SLUG } from "@/src/catalog";
-import type { Car } from "@/src/catalog/types";
+import { isFigure, type Car } from "@/src/catalog/types";
 import type { RowCar } from "./catalog-ui";
 
 // ---------------------------------------------------------------------------
@@ -21,5 +21,5 @@ export const toRow = (car: Car): RowCar => ({
   brandName: BRAND_BY_SLUG[car.brand]?.name ?? car.brand,
   name: car.name,
   years: car.years,
-  powerHp: car.powerHp ? car.powerHp.value : null,
+  powerHp: isFigure(car.powerHp) ? car.powerHp.value : null,
 });

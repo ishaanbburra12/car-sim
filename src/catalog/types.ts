@@ -26,17 +26,71 @@ export type Provenance =
 
 export type Figure = {
   value: number;
+  /**
+   * The upper end, where the published figure is genuinely a RANGE rather than
+   * a number. Kerb weight is the usual case: a Golf Mk8 1.5 TSI is published
+   * between 1,317 and 1,376 kg depending on gearbox and equipment, and picking
+   * one of those to print would be inventing a precision the maker never
+   * claimed. A range is not a hedge here; it is what was published.
+   */
+  high?: number;
   source: Provenance;
   /** Qualifier: which trim, which market, which measurement standard. */
   note?: string;
 };
 
 /**
+ * A figure that is missing for a REASON, as distinct from one nobody has
+ * looked up yet.
+ *
+ * This distinction is the whole point. Before it existed, three very different
+ * situations printed the identical words "not listed":
+ *
+ *   - Tesla does not publish a power figure for the Model 3 at all, and has
+ *     not since 2015. No amount of research will produce one.
+ *   - A Le Mans prototype's weight is a Balance of Performance number that the
+ *     organisers reset between races -- the Porsche 963 ran at 1,048 kg and
+ *     then 1,045 kg inside one season -- so there is no single weight that is
+ *     a property of the car.
+ *   - Nobody has got round to looking up the Mazda3's kerb weight.
+ *
+ * Only the last one is our failing, and a reader could not tell which was
+ * which. `null` now means exactly that last case and nothing else; the other
+ * two carry a reason, and the page prints it.
+ *
+ * The same observation is already written down about `produced` below, where
+ * it was noticed and not acted on.
+ */
+export type Absence = {
+  absent:
+    /** The people who would know have not published it, and say so or simply do not. */
+    | "unpublished"
+    /** No single value exists for this car: trim, market, or a rulebook that moves it. */
+    | "varies"
+    /**
+     * Published figures contradict each other and we are not going to pick a
+     * winner. Period racing cars are full of this -- the Porsche 917's weight
+     * is given as 820, 830 and 896 kg by different sources, and the Mazda
+     * 787B's torque as either 448 or 620 lb-ft. Printing one of those as fact
+     * would be choosing by coin-toss and presenting it as research.
+     */
+    | "disputed";
+  /** Printed on the page, so say something a reader learns from. */
+  why: string;
+};
+
+/**
  * A spec we do not have a trustworthy figure for. Deliberately NOT optional:
  * writing `null` is a decision, leaving a field out is an accident, and this
  * way the type system makes you make the decision for every car.
+ *
+ * `null` means "we have not researched this". Anything structural gets an
+ * `Absence` with a reason instead.
  */
-export type MaybeFigure = Figure | null;
+export type MaybeFigure = Figure | Absence | null;
+
+export const isFigure = (f: MaybeFigure): f is Figure => f !== null && !("absent" in f);
+export const isAbsence = (f: MaybeFigure): f is Absence => f !== null && "absent" in f;
 
 export const CATEGORIES = ["hypercar", "sports", "prototype", "everyday"] as const;
 export type Category = (typeof CATEGORIES)[number];
@@ -59,25 +113,42 @@ export const CATEGORY_BLURBS: Record<Category, string> = {
     "The cars most people actually own. Unglamorous, enormously refined, and the place almost every piece of safety and efficiency technology ends up.",
 };
 
+export type Checked = {
+  /** ISO date the link was last confirmed. */
+  on: string;
+  /**
+   * How it was confirmed, because the two are not the same strength and the
+   * site says which it has.
+   *
+   * "search" -- a web search returned this page, and the content it returned
+   * matched the figure cited here. The page was really retrieved and really
+   * said this, but nobody loaded it in a browser and read around it.
+   *
+   * "opened" -- somebody opened the page and read it.
+   *
+   * Everything in this catalogue is currently "search": the container it is
+   * written in has no route to any manufacturer or motoring-press domain
+   * (DNS fails, and the egress proxy refuses the rest), so web search is the
+   * only channel out. Saying so is the point of this field.
+   */
+  how: "search" | "opened";
+};
+
 /**
  * Where a figure came from, structured so a reader can actually go and look.
  *
- * NOTE ON URLs. There is deliberately no url on most of these. Manufacturer
- * deep links rot faster than almost anything else on the web — a model page
- * moves the moment the model is replaced — and a dead link on a reference work
- * is worse than no link, because it looks like a citation and isn't one. More
- * to the point, the container this catalogue was written in cannot reach any
- * car manufacturer's site, so a URL added here could not have been checked by
- * the person adding it. Writing one anyway would be manufacturing the
- * appearance of verifiability, which is the exact thing this project exists
- * not to do.
+ * A `url` cannot be written without a `checked` beside it -- the type below is
+ * a union, so the compiler rejects one without the other. That is deliberate:
+ * an unchecked link on a reference work is worse than no link, because it
+ * looks like a citation and isn't one, and the easiest way to end up with one
+ * is to paste a plausible address from memory. Making it impossible to do
+ * quietly is better than a rule in a comment.
  *
- * What is here instead is enough to find the document: who published it, what
- * it is called, and when. The brand's own site is linked separately, and is
- * the place to start looking.
+ * Where there is no url, what is here still names the document: who published
+ * it, what it is called, and when. The brand's own site is linked separately.
  *
- * `scripts/check-links.mjs` verifies any url that IS present. Run it somewhere
- * with open network access before trusting one.
+ * `scripts/check-links.mjs` re-verifies every url that IS present. Run it
+ * somewhere with open network access to refresh the `checked` dates.
  */
 export type Source = {
   /** The organisation that published it. */
@@ -86,9 +157,7 @@ export type Source = {
   title: string;
   /** Year of publication, where it is known. */
   year?: number;
-  /** Only ever set to a link that has been checked. */
-  url?: string;
-};
+} & ({ url: string; checked: Checked } | { url?: undefined; checked?: undefined });
 
 export type Brand = {
   slug: string;
@@ -156,3 +225,27 @@ export const ind = (value: number, note?: string): Figure => ({
   source: "independent",
   ...(note ? { note } : {}),
 });
+
+/** A published range, e.g. a kerb weight that depends on gearbox and trim. */
+export const mfrRange = (low: number, high: number, note?: string): Figure => ({
+  value: low,
+  high,
+  source: "manufacturer",
+  ...(note ? { note } : {}),
+});
+
+export const indRange = (low: number, high: number, note?: string): Figure => ({
+  value: low,
+  high,
+  source: "independent",
+  ...(note ? { note } : {}),
+});
+
+/** Nobody who would know has published this figure. */
+export const unpublished = (why: string): Absence => ({ absent: "unpublished", why });
+
+/** No single value exists for this car -- trim, market, or a moving rulebook. */
+export const varies = (why: string): Absence => ({ absent: "varies", why });
+
+/** Published figures contradict each other; say so rather than pick one. */
+export const disputed = (why: string): Absence => ({ absent: "disputed", why });

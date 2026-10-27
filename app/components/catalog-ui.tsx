@@ -6,7 +6,7 @@ import Link from "next/link";
 // the client bundle, which is the exact thing CarSummary exists to prevent --
 // and it did not show up in the served HTML, so the first check missed it.
 // The one function that needs brand data lives in ./to-row.ts for this reason.
-import type { Car, MaybeFigure } from "@/src/catalog/types";
+import { isAbsence, type Car, type MaybeFigure } from "@/src/catalog/types";
 
 const fmt = (n: number, decimals: number) =>
   n.toLocaleString("en-GB", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
@@ -119,11 +119,45 @@ function SpecRow({
             not listed
           </dd>
         </>
+      ) : isAbsence(figure) ? (
+        // Absent for a reason, and the reason is the useful part. A figure
+        // nobody publishes used to print the same "not listed" as one we had
+        // simply never researched, which quietly blamed the car for our gap.
+        <>
+          <dd className="num text-right text-[15px]" style={{ color: "var(--ink-3)" }}>
+            &mdash;
+          </dd>
+          <dd
+            className="text-[13px] sm:col-span-1 sm:text-left"
+            style={{ color: "var(--ink-3)" }}
+          >
+            {figure.absent === "unpublished"
+              ? "not published"
+              : figure.absent === "varies"
+                ? "no single figure"
+                : "sources disagree"}
+          </dd>
+          {/* The reason runs full width on its own line. Squeezed into the
+              8.5rem provenance column it came out four words to a line and
+              eight lines tall, which is not a thing anybody reads. */}
+          <dd
+            className="prose-serif col-span-2 text-[13px] leading-snug sm:col-span-2 sm:col-start-2"
+            style={{ color: "var(--ink-3)" }}
+          >
+            {figure.why}
+          </dd>
+        </>
       ) : (
         <>
           <dd className="text-right">
             <span className="num text-[21px] font-semibold leading-none">
               {fmt(figure.value, decimals)}
+              {figure.high !== undefined ? (
+                <>
+                  <span style={{ color: "var(--ink-3)" }}>&ndash;</span>
+                  {fmt(figure.high, decimals)}
+                </>
+              ) : null}
             </span>
             <span className="ml-1.5 text-[13px]" style={{ color: "var(--ink-2)" }}>
               {unit}
@@ -134,6 +168,7 @@ function SpecRow({
             style={{ color: "var(--ink-3)" }}
           >
             {figure.source === "manufacturer" ? "maker's figure" : "independent test"}
+            {figure.high !== undefined ? ", published as a range" : ""}
             {figure.note ? (
               <span className="mt-0.5 block leading-snug">{figure.note}</span>
             ) : null}

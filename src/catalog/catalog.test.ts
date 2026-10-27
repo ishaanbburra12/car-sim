@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isAbsence, isFigure } from "./types";
 import {
   BRANDS,
   BRAND_BY_SLUG,
@@ -53,8 +54,16 @@ describe("catalogue integrity", () => {
       for (const s of car.sources) {
         expect(s.publisher.trim().length, `${car.slug}`).toBeGreaterThan(0);
         expect(s.title.trim().length, `${car.slug}`).toBeGreaterThan(0);
-        // A url is optional, but if one is there it must be a real https link.
-        if (s.url) expect(s.url).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}/);
+        // A url is optional, but if one is there it must be a real https link
+        // AND carry the date it was last confirmed. The type already forbids
+        // one without the other; this catches data that got past it by a cast.
+        if (s.url) {
+          expect(s.url).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}/);
+          expect(s.checked, `${car.slug}: ${s.url} has no checked date`).toBeDefined();
+          expect(s.checked!.on).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+          expect(["search", "opened"]).toContain(s.checked!.how);
+          expect(new Date(s.checked!.on).getTime()).toBeLessThanOrEqual(Date.now());
+        }
       }
     }
   });
@@ -78,10 +87,34 @@ describe("figures are published or absent, never invented", () => {
     for (const car of CARS) {
       for (const field of FIELDS) {
         const f = car[field];
-        if (f === null) continue; // "not listed" is a legitimate answer
+        if (!isFigure(f)) continue; // absent is a legitimate answer
         expect(["manufacturer", "independent"], `${car.slug}.${field}`).toContain(f.source);
         expect(Number.isFinite(f.value), `${car.slug}.${field}`).toBe(true);
         expect(f.value, `${car.slug}.${field}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("writes a real reason whenever it says a figure is missing on purpose", () => {
+    // The whole value of an Absence is the sentence a reader gets instead of
+    // the number. An empty one would be worse than null, because it claims a
+    // reason exists and then does not give it.
+    for (const car of CARS) {
+      for (const field of FIELDS) {
+        const f = car[field];
+        if (!isAbsence(f)) continue;
+        expect(["unpublished", "varies", "disputed"], `${car.slug}.${field}`).toContain(f.absent);
+        expect(f.why.trim().length, `${car.slug}.${field}`).toBeGreaterThan(20);
+      }
+    }
+  });
+
+  it("keeps a published range the right way round", () => {
+    for (const car of CARS) {
+      for (const field of FIELDS) {
+        const f = car[field];
+        if (!isFigure(f) || f.high === undefined) continue;
+        expect(f.high, `${car.slug}.${field}`).toBeGreaterThan(f.value);
       }
     }
   });
@@ -90,28 +123,30 @@ describe("figures are published or absent, never invented", () => {
     // Not a test of accuracy - nothing here can check that - but a trap for
     // a misplaced decimal point or a kW figure pasted into an hp field.
     for (const car of CARS) {
-      if (car.powerHp) expect(car.powerHp.value).toBeLessThan(2500);
-      if (car.weightKg) {
-        expect(car.weightKg.value).toBeGreaterThan(500);
-        expect(car.weightKg.value).toBeLessThan(4000);
-      }
-      if (car.zeroTo60S) {
-        expect(car.zeroTo60S.value).toBeGreaterThan(1);
-        expect(car.zeroTo60S.value).toBeLessThan(30);
-      }
-      if (car.topSpeedMph) {
-        expect(car.topSpeedMph.value).toBeGreaterThan(50);
-        expect(car.topSpeedMph.value).toBeLessThan(350);
-      }
+      const band = (f: (typeof CARS)[number][typeof FIELDS[number]], lo: number, hi: number) => {
+        if (!isFigure(f)) return;
+        for (const v of [f.value, f.high ?? f.value]) {
+          expect(v).toBeGreaterThan(lo);
+          expect(v).toBeLessThan(hi);
+        }
+      };
+      band(car.powerHp, 0, 2500);
+      band(car.weightKg, 500, 4000);
+      band(car.zeroTo60S, 1, 30);
+      band(car.topSpeedMph, 50, 350);
     }
   });
 
   it("leaves racing prototypes' road-car figures unset", () => {
     // Nobody publishes a 0-60 time for a Le Mans car, so if one appears here
     // it was invented, which is the exact failure this project exists to avoid.
+    // Stronger than "must be null": these must be marked absent WITH a reason,
+    // so the page explains why rather than looking unfinished.
     for (const car of CARS.filter((c) => c.category === "prototype")) {
-      expect(car.zeroTo60S, `${car.slug}`).toBeNull();
-      expect(car.topSpeedMph, `${car.slug}`).toBeNull();
+      expect(isFigure(car.zeroTo60S), `${car.slug}.zeroTo60S`).toBe(false);
+      expect(isFigure(car.topSpeedMph), `${car.slug}.topSpeedMph`).toBe(false);
+      expect(isAbsence(car.zeroTo60S), `${car.slug} must SAY why it has no 0-60`).toBe(true);
+      expect(isAbsence(car.topSpeedMph), `${car.slug} must SAY why it has no top speed`).toBe(true);
     }
   });
 });
