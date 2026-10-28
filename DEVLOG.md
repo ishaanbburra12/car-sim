@@ -2281,3 +2281,83 @@ the bottom for power, torque and top speed; the top for weight and 0-60.
 - **Me (Raju):** asked for one car done properly instead of another sweep.
 - **Claude:** the research, the writing, the two new fields and their tests,
   and the range-ranking bug the car flushed out.
+
+---
+
+## 2026-10-28 — Session 27: Practise
+
+Raju: "no i want them to acc learn abt cars, like duoling but for cars". So
+the reference work is the material, not the product. Built `/learn`.
+
+### Questions are generated, not written
+
+The important decision. A hand-written question bank goes stale the moment a
+figure is corrected, and this catalogue corrects figures constantly — nine
+0-60 times turned out to be wrong in a single session. A question asserting
+one of the old numbers would then be teaching something the rest of the site
+contradicts, and nothing would catch it.
+
+So every question is derived from the catalogue at request time. Change a
+figure and the question changes with it. Remove a figure and questions about
+it stop being generated. The answer to every question is, by construction,
+whatever the sourced data says.
+
+Six kinds, all drawn from work already done:
+
+- **Which is more?** two cars of the same category on one measure
+- **Where does this number come from?** a maker's claim or a measured test
+- **What was actually measured?** 0-60 mph, 0-100 km/h, or rollout-adjusted
+- **This figure is missing. Why?** not published, no single figure, or disputed
+- **Who built it?**
+- **Which idea is this an example of?** straight from the concept pages
+
+Four units: Reading the numbers, Knowing the cars, The ideas, Everything.
+Eight questions a lesson.
+
+### The quiz respects the site's own rules
+
+Two constraints fell out of the catalogue rather than being designed in.
+
+A "which is quicker" question refuses to be generated if the two cars
+published different sprints. The site has a whole page on why that comparison
+is invalid; setting it as a question would be teaching the mistake, and a
+test enforces it.
+
+A comparison also needs an 8% gap to be asked at all. Below that it is a coin
+toss dressed as a question.
+
+### Testing a quiz
+
+A quiz that marks a right answer wrong is worse than no quiz, because the
+learner cannot tell. So the tests re-derive each correct answer from the
+catalogue and check it against the key, across every unit and sixty seeds —
+about 1,900 generated questions per run. They also check determinism, that
+the answer is always among the choices, that no lesson repeats a question,
+and that every explanation is a real one rather than a stub.
+
+The streak is separate and pure: `apply` folds one finished lesson into stored
+progress, and its tests cover same-day, consecutive-day, missed-day, month
+boundaries, and a clock that went backwards.
+
+### Small things that matter
+
+Keys 1-4 answer and Enter continues, because eight questions with a mouse is
+tedious. Progress saves only when a lesson finishes, so an abandoned one does
+not wreck an accuracy figure the learner never saw. The seed lives in the URL,
+so a lesson can be linked and argued with. And the end screen lists what you
+got wrong with the full explanation and a link, which is the part that
+actually teaches.
+
+Progress is localStorage and the page says so plainly: this browser only, not
+sent anywhere, will not follow you to another device.
+
+### Counts
+
+308 tests. `/learn` ships 1.41 kB, the lesson page 2.55 kB; the catalogue
+stays on the server.
+
+### Who wrote what
+
+- **Me (Raju):** said the site should teach, not just document.
+- **Claude:** the question engine, the four units, the quiz, the progress
+  store, and the tests that check the answer key against the data.
