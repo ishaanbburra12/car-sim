@@ -134,13 +134,19 @@ export function compareWithinCategory(car: Car, pool: Car[] = CARS): Comparison[
     const own = car[spec.key];
     if (!isFigure(own)) continue;
 
-    // A figure published as a range contributes its LOW end to a ranking, so
-    // a car is never ranked above its peers on the strength of the widest
-    // possible reading of its own spec sheet.
-    const values = peers
-      .map((c) => c[spec.key])
-      .filter(isFigure)
-      .map((f) => f.value);
+    // A figure published as a range is ranked at its LEAST FLATTERING end, so
+    // no car climbs the order on the strength of the best reading of its own
+    // spec sheet. Which end that is depends on the measure: for power it is
+    // the bottom of the range, and for weight and 0-60 it is the top.
+    //
+    // This started out taking the low end for everything, with a comment
+    // claiming it was the conservative choice. For weight it was the exact
+    // opposite: the 918 Spyder, published at 1,674 kg as standard and 1,634 kg
+    // with a lightweight package, was being ranked as though every one of them
+    // had the package fitted.
+    const rank = (f: Figure) => (spec.lowerIsBetter ? (f.high ?? f.value) : f.value);
+
+    const values = peers.map((c) => c[spec.key]).filter(isFigure).map(rank);
     if (values.length < MIN_PEERS) continue;
 
     const sorted = [...values].sort((a, b) => a - b);
@@ -167,8 +173,9 @@ export function compareWithinCategory(car: Car, pool: Car[] = CARS): Comparison[
 
     // Rank by the direction that counts as "better" for this measure. Ties
     // share the better rank, which is why this counts strictly-better cars.
+    const ownValue = rank(own);
     const better = values.filter((v) =>
-      spec.lowerIsBetter ? v < own.value : v > own.value,
+      spec.lowerIsBetter ? v < ownValue : v > ownValue,
     ).length;
 
     const span = max - min;
@@ -176,16 +183,16 @@ export function compareWithinCategory(car: Car, pool: Car[] = CARS): Comparison[
 
     out.push({
       ...spec,
-      value: own.value,
+      value: rank(own),
       min,
       max,
       median: med,
       rank: better + 1,
       of: values.length,
-      fraction: place(own.value),
+      fraction: place(ownValue),
       medianFraction: place(med),
       scaleMax,
-      overScale: own.value > scaleMax,
+      overScale: ownValue > scaleMax,
       mixedSources: kinds.size > 1,
       bases,
     });

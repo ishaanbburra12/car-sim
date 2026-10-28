@@ -159,6 +159,14 @@ export type Source = {
   year?: number;
 } & ({ url: string; checked: Checked } | { url?: undefined; checked?: undefined });
 
+/** A link from one car to another, with the reason stated. */
+export type Related = {
+  /** Slug of a car in this catalogue. Checked by a test. */
+  car: string;
+  /** The connection, in a sentence. Not "also fast". */
+  how: string;
+};
+
 export type Brand = {
   slug: string;
   name: string;
@@ -184,6 +192,26 @@ export type Car = {
   engine: string;
   /** Why this car is worth a page. Two or three sentences, no marketing. */
   blurb: string;
+  /**
+   * The long version: what the car is, what problem it solved, what it led to.
+   *
+   * Optional, because a paragraph written from memory is exactly the failure
+   * this project guards against everywhere else, and 65 half-researched
+   * essays would be worse than 65 honest summaries. An entry gets a `story`
+   * when somebody has actually gone and read the maker's material for it.
+   *
+   * Figures quoted in here are held to the same standard as the ones in the
+   * table: they come from a source in `sources`, and a test checks that a car
+   * with a story has at least one source with a checked link.
+   */
+  story?: string[];
+  /**
+   * Other cars in this catalogue worth reading next, and why. Not "similar
+   * cars" -- a list of things with comparable power teaches nothing. These are
+   * connections: what this car answered, what it borrowed from, what came out
+   * of it.
+   */
+  related?: Related[];
   powerHp: MaybeFigure;
   torqueLbFt: MaybeFigure;
   /** Kerb/curb weight. Standards differ by market, so the note says which. */

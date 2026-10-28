@@ -1,4 +1,4 @@
-import { disputed, unpublished, type Car, ind, mfr } from "../types";
+import { disputed, unpublished, type Car, ind, mfr, mfrRange } from "../types";
 
 export const HYPERCARS: Car[] = [
   {
@@ -151,24 +151,78 @@ export const HYPERCARS: Car[] = [
     layout: "Mid-engine, all-wheel drive",
     engine: "4.6 L V8 with two electric motors",
     blurb:
-      "The most road-usable of the hybrid trio, and the only one with an electric motor driving the front axle, which makes it four-wheel drive and lets it torque-vector across the nose. Its V8 is derived from the RS Spyder racing car and revs to 9,150 rpm.",
-    powerHp: mfr(887, "combined"),
+      "Porsche's answer to the question three manufacturers asked at once in 2013: put the electric motor on the front axle. That made it four-wheel drive, and the only one of the three you could sensibly drive in the rain.",
+    story: [
+      "Three hybrid hypercars arrived within months of each other in 2013, from Porsche, McLaren and Ferrari, and they are usually described as rivals. They are better understood as three different answers to the same question: what is an electric motor actually for in a fast car? McLaren used it for a push of extra power. Ferrari used it to fill the gaps in a V12's delivery. Porsche used it to drive the front wheels, which is the answer that changed the car rather than the engine.",
+      "The combustion half is a 4.6-litre V8 developed from the engine of the RS Spyder, the LMP2 car Porsche had been racing since 2005. That engine was a 3.4-litre V8 designed from scratch for racing, and the road version keeps its character: 447 kW, or 608 PS, arriving at 8,700 rpm, with the limiter at 9,150. Those are racing-engine numbers. Most road V8s of comparable size are finished by 7,000.",
+      "Its exhausts leave through the top. The tailpipes terminate at the upper surface of the rear deck, directly above the engine, which gives the hot gas the shortest possible path out and keeps back pressure low. Porsche says no other production car has used the arrangement. It is also the single detail most people notice first, which is a reminder that the striking parts of a car are usually solving something.",
+      "The electric half is two separate motors. A 115 kW unit sits at the rear, connected to the V8 through a decoupler so the car can drive on electricity alone, and a second motor of around 95 kW drives the front axle on its own. That front motor is the whole argument. It makes the 918 four-wheel drive, it can meter torque across the nose independently of anything the engine is doing, and it is why this car is the one of the three you could sensibly drive in the rain. The battery holds about 6.8 kWh across 312 cells and is good for roughly 30 km on electricity alone.",
+      "Adding the two halves together produces a torque figure that refuses to sit still, and Porsche does something unusually honest about it: it publishes the number per gear. 940 lb-ft for the complete system in seventh, 787 lb-ft in third, and 390 lb-ft for the V8 by itself. An electric motor makes its best effort from rest and a combustion engine makes its own somewhere in the middle of the rev range, so the combined figure depends entirely on where you ask. Most manufacturers pick the flattering one and print it alone.",
+      "In September 2013 it became the first road-legal car to lap the Nurburgring Nordschleife in under seven minutes, at 6:57 with Marc Lieb driving. Porsche's release at the time credited a car fitted with the Weissach package, which takes the kerb weight from 1,674 kg to about 1,634 kg. The 40 kg comes off in small pieces: visible carbon for the roof, wings, mirrors and screen frames, Alcantara in place of leather, less sound insulation, and forged magnesium wheels that save around 14.9 kg a corner against the standard ones.",
+      "Exactly 918 were built, which is the kind of tidiness manufacturers rarely resist. Assembly of the first series car started on 18 September 2013, the first deliveries went out at the end of March 2014, and the last one left Zuffenhausen in mid-2015. The list price started at 768,026 euros including tax and ran to 947,716 with options. The engine outlived the car: Porsche's 963 Le Mans prototype reuses around 80 per cent of the 918's engine components in twin-turbocharged form, so the same basic design has now been an LMP2 racing engine, a road-car engine, and a Hypercar-class racing engine in turn.",
+    ],
+    powerHp: mfr(887, "combined system output, 652 kW; the V8 alone makes 608 PS at 8,700 rpm"),
     torqueLbFt: mfr(
       940,
       "complete system in 7th gear, calculated at the crankshaft; Porsche gives 787 lb-ft " +
         "in 3rd and 390 lb-ft for the V8 alone, so this figure is gear-dependent",
     ),
-    weightKg: mfr(1674, "kerb weight, Weissach package lighter"),
+    weightKg: mfrRange(
+      1634,
+      1674,
+      "kerb weight: 1,674 kg as standard, 1,634 kg with the Weissach package",
+    ),
     zeroTo60S: mfr(2.6, "Porsche quotes 0-100 km/h (62 mph); third-party 0-60 mph times of 2.5 s circulate"),
-    topSpeedMph: mfr(214),
-    produced: { count: 918 },
+    topSpeedMph: mfr(214, "345 km/h"),
+    produced: {
+      count: 918,
+      note: "the run matches the model name; first series car 18 September 2013, last built mid-2015",
+    },
+    related: [
+      {
+        car: "mclaren-p1",
+        how: "The same brief, answered six months earlier and without a driven front axle: McLaren put its electric motor behind the engine and aimed the whole car at a lap time.",
+      },
+      {
+        car: "ferrari-laferrari",
+        how: "The third car of the moment. Ferrari used its motor to fill in the V12 rather than to drive anything on its own, and published the headline figures as bounds instead of numbers.",
+      },
+      {
+        car: "porsche-963",
+        how: "Porsche's current Le Mans prototype reuses about 80 per cent of this engine's components, twin-turbocharged, which closes a loop that began with the RS Spyder.",
+      },
+      {
+        car: "porsche-919-hybrid",
+        how: "Porsche's other hybrid of the period, built to a racing rulebook instead of for the road, and recovering energy from the exhaust as well as the brakes.",
+      },
+    ],
     sources: [
       { publisher: "Porsche", title: "Press material for the 918 Spyder" },
       {
         publisher: "Porsche",
         title: "918 Spyder press kit, Porsche Museum",
         url: "https://newsroom.porsche.com/en/press-kits/Porsche-Museum/Porsche-918-Spyder.html",
-        checked: { on: "2026-10-27", how: "search" },
+        checked: { on: "2026-10-28", how: "search" },
+      },
+      {
+        publisher: "Porsche",
+        title: "Ten years of the Porsche 918 Spyder",
+        year: 2023,
+        url: "https://newsroom.porsche.com/en/press-kits/Media-Drive-Cayenne-E-Performance/10-Jahre-Porsche-918-Spyder.html",
+        checked: { on: "2026-10-28", how: "search" },
+      },
+      {
+        publisher: "Porsche",
+        title: "How much is a Porsche 918 Spyder? (production, pricing and the Weissach package)",
+        url: "https://www.porsche.com/stories/innovation/how-much-is-a-porsche-918-spyder/",
+        checked: { on: "2026-10-28", how: "search" },
+      },
+      {
+        publisher: "Porsche",
+        title: "Number 918 rolls out of the manufactory",
+        year: 2015,
+        url: "https://newsroom.porsche.com/en/products/porsche-918-spyder-manufaktory-end-of-production-11123.html",
+        checked: { on: "2026-10-28", how: "search" },
       },
     ],
   },

@@ -313,3 +313,53 @@ describe("rows say when they are not ranking the same sprint", () => {
     expect(compareWithinCategory(pool[0], pool)[0].bases).toEqual([]);
   });
 });
+
+describe("a published range is ranked at its least flattering end", () => {
+  const ranged = (low: number, high: number) => ({
+    value: low,
+    high,
+    source: "manufacturer" as const,
+  });
+
+  it("ranks a weight range at the heavy end", () => {
+    // Lower is better here, so the light end is the flattering one and must
+    // not be the one that counts. This is the case that was wrong: a car
+    // published at 1,634-1,674 kg was being ranked as its lightest build.
+    const pool = [
+      car({ slug: "a", weightKg: ranged(1634, 1674) }),
+      car({ slug: "b", weightKg: hp(1650) }),
+      car({ slug: "c", weightKg: hp(1700) }),
+    ];
+    const [row] = compareWithinCategory(pool[0], pool);
+    expect(row.value).toBe(1674);
+    expect(row.rank).toBe(2); // behind the 1,650 kg car, not ahead of it
+  });
+
+  it("ranks a power range at the low end", () => {
+    // Higher is better here, so the low end is the unflattering one.
+    const pool = [
+      car({ slug: "a", powerHp: ranged(500, 700) }),
+      car({ slug: "b", powerHp: hp(600) }),
+      car({ slug: "c", powerHp: hp(400) }),
+    ];
+    const [row] = compareWithinCategory(pool[0], pool);
+    expect(row.value).toBe(500);
+    expect(row.rank).toBe(2);
+  });
+
+  it("treats a plain figure the same as before", () => {
+    const pool = [
+      car({ slug: "a", weightKg: hp(1000) }),
+      car({ slug: "b", weightKg: hp(1500) }),
+      car({ slug: "c", weightKg: hp(2000) }),
+    ];
+    expect(compareWithinCategory(pool[0], pool)[0].value).toBe(1000);
+  });
+
+  it("ranks the real 918 on its standard weight, not its lightest build", () => {
+    const row = compareWithinCategory(CAR_BY_SLUG["porsche-918-spyder"]).find(
+      (r) => r.key === "weightKg",
+    );
+    expect(row?.value).toBe(1674);
+  });
+});

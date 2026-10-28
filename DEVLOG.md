@@ -2210,3 +2210,74 @@ idea it illustrates, and the idea pages link back to the cars.
 - **Me (Raju):** said what the site is for.
 - **Claude:** the ten concepts, the pages, and the tests that keep the prose
   honest against the data.
+
+---
+
+## 2026-10-28 — Session 26: one car, properly
+
+Raju asked for a single car done perfectly rather than another sweep. I took
+the Porsche 918 Spyder, because Porsche documents it completely and because
+the other two cars of its moment are already in the catalogue, so it could
+connect outward instead of sitting on its own.
+
+### What "perfectly" turned out to mean
+
+Not just more words. The entry now has:
+
+- **A story**, seven paragraphs, about 950 words. Every figure in it comes
+  from Porsche's own material: the RS Spyder engine lineage, 447 kW at 8,700
+  with the limiter at 9,150, the top-exit exhausts and why they are there,
+  115 kW at the rear and 95 kW on the front axle, 6.8 kWh across 312 cells,
+  the 6:57 Nordschleife lap in September 2013 with Marc Lieb, the Weissach
+  package item by item, and the production run of exactly 918.
+- **Five of five figures**, each with its measurement basis stated.
+- **Four checked source links**, all to porsche.com or its newsroom.
+- **Four connections**, each with the reason written out: the P1 and LaFerrari
+  as the other two answers to the same question, the 963 because it reuses
+  about 80 per cent of this engine's components, and the 919 as Porsche's
+  other hybrid of the period.
+
+The best thing the research turned up is the engine's path: an LMP2 racing V8,
+enlarged for a road car, then twin-turbocharged for a Hypercar-class prototype.
+That is a real thread through three cars on this site.
+
+### Two new fields, and a rule about prose
+
+`story` and `related` are optional, and deliberately so. Sixty-five essays
+written from memory would be far worse than sixty-five honest summaries, and
+prose is where unsourced claims get in, because nothing about a paragraph
+looks like a number that wants citing.
+
+So there is a test: a car with a `story` must have at least one source with a
+link somebody checked. And another that spot-checks the prose against the
+table — if the story says 940 lb-ft and the data says otherwise, or the story
+says 918 built and `produced` disagrees, the build fails. The page is not
+allowed to argue with itself in front of the reader.
+
+That test earned its place immediately: it caught the Weissach paragraph
+discussing a 40 kg saving without ever giving the two weights it was between.
+
+### A bug the car exposed
+
+The 918 is the first entry to use a published range for weight: 1,674 kg as
+standard, 1,634 kg with the Weissach package.
+
+Ranges fed the ranking at their LOW end, under a comment claiming this was the
+conservative choice so that no car climbed the order on the best reading of
+its own spec sheet. For power that is true. **For weight it is exactly
+backwards**, because lower is better, so the 918 was being ranked against
+every other hypercar as though all 918 of them had the lightweight package
+fitted.
+
+Now a range is ranked at whichever end flatters least, chosen per measure:
+the bottom for power, torque and top speed; the top for weight and 0-60.
+
+### Counts
+
+281 tests. The 918's page is 1,283 words against a catalogue median of 42.
+
+### Who wrote what
+
+- **Me (Raju):** asked for one car done properly instead of another sweep.
+- **Claude:** the research, the writing, the two new fields and their tests,
+  and the range-ranking bug the car flushed out.

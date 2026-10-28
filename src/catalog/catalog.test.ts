@@ -310,3 +310,56 @@ describe("0-60 times say which measurement they are", () => {
     expect(withTimes.length).toBeGreaterThan(25);
   });
 });
+
+describe("the long-form entries", () => {
+  const written = CARS.filter((c) => c.story);
+
+  it("writes properly or not at all", () => {
+    for (const car of written) {
+      expect(car.story!.length, `${car.slug} has a one-paragraph story`).toBeGreaterThanOrEqual(3);
+      for (const para of car.story!) {
+        expect(para.length, `${car.slug} has a stub paragraph`).toBeGreaterThan(150);
+        expect(para.trim(), `${car.slug} has a ragged paragraph`).toBe(para);
+      }
+    }
+  });
+
+  it("only lets a car carry a story if somebody checked a source for it", () => {
+    // Prose is where unsourced claims get in, because nothing about a
+    // paragraph looks like a number that wants citing. A car with a story
+    // must have at least one source with a link somebody confirmed.
+    for (const car of written) {
+      const checked = car.sources.filter((s) => s.url && s.checked);
+      expect(
+        checked.length,
+        `${car.slug} has a story but no checked source to stand behind it`,
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it("connects cars to cars that exist, with a reason, and never to itself", () => {
+    for (const car of CARS) {
+      for (const r of car.related ?? []) {
+        expect(CAR_BY_SLUG[r.car], `${car.slug} -> ${r.car}`).toBeDefined();
+        expect(r.car, `${car.slug} links to itself`).not.toBe(car.slug);
+        expect(r.how.length, `${car.slug} -> ${r.car} needs a real reason`).toBeGreaterThan(40);
+      }
+      const seen = (car.related ?? []).map((r) => r.car);
+      expect(new Set(seen).size, `${car.slug} repeats a connection`).toBe(seen.length);
+    }
+  });
+
+  it("does not let a story quietly contradict the table above it", () => {
+    // Spot-check: a figure quoted in prose has to match the figure in the
+    // data, or the page argues with itself in front of the reader.
+    const p918 = CAR_BY_SLUG["porsche-918-spyder"];
+    expect(p918.story).toBeDefined();
+    const prose = p918.story!.join(" ");
+    expect(prose).toContain("940 lb-ft");
+    expect(isFigure(p918.torqueLbFt) && p918.torqueLbFt.value).toBe(940);
+    expect(prose).toContain("918 were built");
+    expect(p918.produced?.count).toBe(918);
+    expect(isFigure(p918.weightKg) && p918.weightKg.high).toBe(1674);
+    expect(prose).toContain("1,674 kg");
+  });
+});

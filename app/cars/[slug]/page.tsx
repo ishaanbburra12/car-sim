@@ -80,6 +80,19 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
 
       <p className="prose-serif mt-7 text-[18px]">{car.blurb}</p>
 
+      {/* The long version, where there is one. Set in a narrower measure than
+          the rest of the page, because a 100-character line is unreadable in
+          a serif at this size and the spec table's full width is wrong here. */}
+      {car.story ? (
+        <div className="mt-8 max-w-[38rem] space-y-5">
+          {car.story.map((para, i) => (
+            <p key={i} className="prose-serif text-[17px] leading-relaxed">
+              {para}
+            </p>
+          ))}
+        </div>
+      ) : null}
+
       {car.review ? (
         <p
           className="mt-5 rounded-md px-4 py-3 text-[14px] leading-relaxed"
@@ -168,6 +181,47 @@ export default async function CarPage({ params }: { params: Promise<{ slug: stri
                 </Link>
               </li>
             ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {car.related && car.related.length > 0 ? (
+        <section className="mt-12">
+          <h2 className="text-[15px] font-semibold">Where to go next</h2>
+          <p className="prose-serif mt-1.5 text-[15px]" style={{ color: "var(--ink-2)" }}>
+            Not a list of similar cars. These are the ones this car is actually connected to.
+          </p>
+          <ul className="mt-3 border-t" style={{ borderColor: "var(--rule-soft)" }}>
+            {car.related.map((r) => {
+              const other = CAR_BY_SLUG[r.car];
+              return (
+                <li key={r.car}>
+                  <Link
+                    href={`/cars/${r.car}`}
+                    className="group block border-b py-4"
+                    style={{ borderColor: "var(--rule-soft)" }}
+                  >
+                    <div className="flex flex-wrap items-baseline gap-x-3">
+                      <span className="text-[13px]" style={{ color: "var(--ink-3)" }}>
+                        {BRAND_BY_SLUG[other.brand]?.name ?? other.brand}
+                      </span>
+                      <span className="text-[17px] font-medium transition-colors group-hover:text-[var(--signal-ink)]">
+                        {other.name}
+                      </span>
+                      <span className="num text-[13px]" style={{ color: "var(--ink-3)" }}>
+                        {other.years}
+                      </span>
+                    </div>
+                    <p
+                      className="prose-serif mt-1.5 max-w-[38rem] text-[15px] leading-snug"
+                      style={{ color: "var(--ink-2)" }}
+                    >
+                      {r.how}
+                    </p>
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}
