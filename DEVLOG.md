@@ -2361,3 +2361,71 @@ stays on the server.
 - **Me (Raju):** said the site should teach, not just document.
 - **Claude:** the question engine, the four units, the quiz, the progress
   store, and the tests that check the answer key against the data.
+
+---
+
+## 2026-10-28 — Session 28: spacing, and the coin toss
+
+Closed the two gaps I had flagged in Practise.
+
+### The two-way question was a coin toss
+
+"Where does this number come from? (a) the maker (b) somebody else" shows the
+learner 215 hp and asks them to guess between two options. Fifty per cent for
+knowing nothing, and the number on screen does half the work.
+
+It now withholds the figure and offers a third answer that is genuinely
+sometimes right: **nobody has published one**, drawn from the figures marked
+unpublished. You have to know the car rather than read the prompt.
+
+One subtlety the tests pin down: "nobody has published one" is only correct
+for an `unpublished` absence. A weight that varies by trim HAS been published,
+just not as a single number, so it must never be the answer — otherwise the
+quiz would be teaching the opposite of the concept page about reading blanks.
+There is also a test that the third option is the answer often enough to be
+live, and not so often that it becomes the giveaway.
+
+### Spaced repetition
+
+The thing that makes this kind of site work, and it had to be built around a
+constraint: the server cannot pick the lesson, because what a given learner
+keeps getting wrong lives in their browser and never leaves it.
+
+So the server sends a **pool** of 28 and the client picks 8 from it against
+its own history. A Leitner box per question: right moves it up and further
+into the future (1, 3, 7, 16, 35 days), wrong knocks it straight back to the
+bottom. Priority is wrong-and-due, then never-seen, then correct-and-due, then
+everything else to pad a thin lesson out.
+
+Measured in a browser rather than asserted: answered a lesson deliberately
+badly, got 7 of 8 wrong, started the next lesson — **all 7 came back first**.
+
+Items are capped at 600 and the oldest dropped, because every question the
+catalogue can generate is a potential key and that grows without limit in
+somebody's browser otherwise.
+
+### The payload guard earned its keep
+
+`Quiz.tsx` needed `LESSON_LENGTH`. Importing it from `questions.ts` — a value
+import from a module that imports `CARS` — put the entire catalogue in the
+client bundle. The lesson page went **2.55 kB to 32.5 kB** and
+`npm run check:payload` failed the build.
+
+This is the third time this exact mistake has been made in this project, and
+the first time it was caught in seconds rather than after shipping. The
+constants now live in `src/learn/config.ts`, which imports nothing. Back down
+to 3.21 kB.
+
+Worth naming the pattern: every time, it was a small, innocent-looking value
+import from a module that happens to touch the data. Types are free; values
+drag their whole graph.
+
+### Counts
+
+321 tests. Lesson page 3.21 kB.
+
+### Who wrote what
+
+- **Me (Raju):** keep going.
+- **Claude:** the three-way question, the Leitner store and selection, and
+  the payload regression caught by the guard built two sessions ago.

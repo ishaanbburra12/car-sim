@@ -158,15 +158,33 @@ describe("the answers are actually right", () => {
     }
   });
 
-  it("gets the provenance of a figure right", () => {
+  it("gets the provenance of a figure right, including when there isn't one", () => {
     const qs = ALL.filter((q) => q.kind === "whose-figure");
     expect(qs.length).toBeGreaterThan(50);
     for (const q of qs) {
       const [, measure, slug] = q.id.split(":") as [string, Measure, string];
       const f = CAR_BY_SLUG[slug][measure];
-      expect(isFigure(f), q.id).toBe(true);
-      expect(q.answer, q.id).toBe((f as Figure).source);
+      if (q.answer === "none") {
+        // "Nobody has published one" is only ever right for a figure marked
+        // unpublished. A weight that varies by trim HAS been published, just
+        // not as one number, so it must never be the answer here.
+        expect(isAbsence(f), q.id).toBe(true);
+        expect((f as { absent: string }).absent, q.id).toBe("unpublished");
+      } else {
+        expect(isFigure(f), q.id).toBe(true);
+        expect(q.answer, q.id).toBe((f as Figure).source);
+      }
     }
+  });
+
+  it("offers 'nobody published one' as a live answer, not scenery", () => {
+    // If the third option were never correct, the question would be the
+    // two-way coin toss it used to be with extra steps.
+    const qs = ALL.filter((q) => q.kind === "whose-figure");
+    const none = qs.filter((q) => q.answer === "none");
+    expect(none.length, "the third option is never the answer").toBeGreaterThan(20);
+    expect(none.length / qs.length, "the third option is the answer too often").toBeLessThan(0.6);
+    for (const q of qs) expect(q.choices.length, q.id).toBe(3);
   });
 
   it("identifies the sprint from the car's own note", () => {

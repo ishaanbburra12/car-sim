@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { UNITS, UNIT_BY_ID, buildLesson, type UnitId } from "@/src/learn/questions";
+import { UNITS, UNIT_BY_ID, buildPool, type UnitId } from "@/src/learn/questions";
 import Quiz from "../Quiz";
 
 export function generateStaticParams() {
@@ -32,13 +32,14 @@ export default async function LessonPage({
   // with. Without one, pick a fresh set per visit.
   const raw = (await searchParams).s;
   const seed = raw && /^\d+$/.test(raw) ? Number(raw) : Math.floor(Math.random() * 1e9);
-  const questions = buildLesson(unitId, seed);
-  if (questions.length === 0) notFound();
+  // A pool, not a lesson: the client picks the eight it most needs from it.
+  const pool = buildPool(unitId, seed);
+  if (pool.length === 0) notFound();
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-12">
       <Quiz
-        questions={questions}
+        pool={pool}
         unitId={unitId}
         unitTitle={unit.title}
         nextHref={`/learn/${unitId}?s=${(seed + 1) % 1_000_000_007}`}

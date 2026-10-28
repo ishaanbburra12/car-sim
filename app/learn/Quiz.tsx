@@ -6,45 +6,61 @@ import Link from "next/link";
 // piece of the learning section that ships to the browser, and the questions
 // arrive as props already built on the server.
 import type { Question } from "@/src/learn/questions";
-import { record } from "./progress";
+import { LESSON_LENGTH } from "@/src/learn/config";
+import { readItems, record, recordItem, selectDue, todayKey } from "./progress";
 
 type Phase = "asking" | "answered" | "done";
 
 const LETTERS = ["1", "2", "3", "4", "5"];
 
 export default function Quiz({
-  questions,
+  pool,
   unitId,
   unitTitle,
   nextHref,
 }: {
-  questions: Question[];
+  pool: Question[];
   unitId: string;
   unitTitle: string;
   nextHref: string;
 }) {
+  // Chosen on the client, because what this learner keeps getting wrong lives
+  // in their browser and the server has never seen it. Null until mounted:
+  // rendering a guess during the server pass and swapping it afterwards would
+  // show one question and then replace it, which is worse than a short wait.
+  const [questions, setQuestions] = useState<Question[] | null>(null);
+  useEffect(() => {
+    setQuestions(selectDue(pool, readItems(), LESSON_LENGTH, todayKey()));
+  }, [pool]);
+
   const [index, setIndex] = useState(0);
   const [chosen, setChosen] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("asking");
   const [right, setRight] = useState(0);
   const [wrongOnes, setWrongOnes] = useState<Question[]>([]);
 
-  const q = questions[index];
+  const q = questions?.[index];
   const correct = chosen !== null && chosen === q?.answer;
 
   const choose = useCallback(
     (id: string) => {
-      if (phase !== "asking") return;
+      if (phase !== "asking" || !questions) return;
+      const current = questions[index];
       setChosen(id);
       setPhase("answered");
-      if (id === questions[index].answer) setRight((n) => n + 1);
-      else setWrongOnes((xs) => [...xs, questions[index]]);
+      const got = id === current.answer;
+      if (got) setRight((n) => n + 1);
+      else setWrongOnes((xs) => [...xs, current]);
+      // Recorded per question, immediately, so the spacing reflects the
+      // answer even if the lesson is abandoned here.
+      recordItem(current.id, got);
     },
     [phase, index, questions],
   );
 
   const next = useCallback(() => {
     if (phase !== "answered") return;
+    if (!questions) return;
     if (index + 1 >= questions.length) {
       setPhase("done");
       return;
@@ -52,13 +68,13 @@ export default function Quiz({
     setIndex((i) => i + 1);
     setChosen(null);
     setPhase("asking");
-  }, [phase, index, questions.length]);
+  }, [phase, index, questions]);
 
   // Save only once the lesson is finished, so an abandoned lesson does not
   // quietly wreck an accuracy figure the learner never saw.
   useEffect(() => {
-    if (phase === "done") record(unitId, right, questions.length);
-  }, [phase, unitId, right, questions.length]);
+    if (phase === "done" && questions) record(unitId, right, questions.length);
+  }, [phase, unitId, right, questions]);
 
   // Keys, because answering eight questions with a mouse is tedious.
   useEffect(() => {
@@ -69,7 +85,7 @@ export default function Quiz({
         next();
         return;
       }
-      if (phase === "asking") {
+      if (phase === "asking" && q) {
         const n = LETTERS.indexOf(e.key);
         if (n >= 0 && n < q.choices.length) {
           e.preventDefault();
@@ -80,6 +96,21 @@ export default function Quiz({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [phase, q, choose, next]);
+
+  if (!questions) {
+    return (
+      <div className="animate-pulse" aria-busy>
+        <div className="h-1 w-full rounded-full" style={{ background: "var(--rule)" }} />
+        <div className="mt-8 h-8 w-2/3 rounded" style={{ background: "var(--raised)" }} />
+        <div className="mt-7 space-y-2.5">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-14 rounded-md" style={{ background: "var(--raised)" }} />
+          ))}
+        </div>
+        <span className="sr-only">Choosing your questions</span>
+      </div>
+    );
+  }
 
   if (phase === "done") {
     const pct = Math.round((right / questions.length) * 100);

@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { read, reset, totals, type Progress } from "./progress";
+import { LESSON_LENGTH } from "@/src/learn/config";
+import {
+  dueCount,
+  read,
+  readItems,
+  reset,
+  resetItems,
+  todayKey,
+  totals,
+  type Progress,
+} from "./progress";
 
 /**
  * The learner's standing, read from their own browser.
@@ -12,7 +22,11 @@ import { read, reset, totals, type Progress } from "./progress";
  */
 export default function Standing({ units }: { units: { id: string; title: string }[] }) {
   const [p, setP] = useState<Progress | null>(null);
-  useEffect(() => setP(read()), []);
+  const [due, setDue] = useState(0);
+  useEffect(() => {
+    setP(read());
+    setDue(dueCount(readItems(), todayKey()));
+  }, []);
 
   if (!p) return <div className="mt-9 h-[4.5rem]" aria-hidden />;
 
@@ -20,7 +34,7 @@ export default function Standing({ units }: { units: { id: string; title: string
   if (t.lessons === 0) {
     return (
       <p className="mt-9 text-[14px]" style={{ color: "var(--ink-3)" }}>
-        Nothing done yet. A lesson is {8} questions and takes a couple of minutes.
+        Nothing done yet. A lesson is {LESSON_LENGTH} questions and takes a couple of minutes.
       </p>
     );
   }
@@ -41,6 +55,7 @@ export default function Standing({ units }: { units: { id: string; title: string
         {stat(p.streak, p.streak === 1 ? "day in a row" : "days in a row")}
         {stat(t.lessons, t.lessons === 1 ? "lesson" : "lessons")}
         {stat(`${pct}%`, `right, of ${t.answered} answered`)}
+        {due > 0 ? stat(due, due === 1 ? "due for review" : "due for review") : null}
       </div>
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px]" style={{ color: "var(--ink-3)" }}>
         {units
@@ -58,7 +73,9 @@ export default function Standing({ units }: { units: { id: string; title: string
           type="button"
           onClick={() => {
             reset();
+            resetItems();
             setP(read());
+            setDue(0);
           }}
           className="underline underline-offset-4 transition-colors hover:text-[var(--signal-ink)]"
           style={{ textDecorationColor: "var(--rule)" }}

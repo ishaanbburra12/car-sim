@@ -2,6 +2,9 @@ import { BRANDS, BRAND_BY_SLUG, CARS, type Car } from "../catalog";
 import { isAbsence, isFigure, type Absence, type Figure } from "../catalog/types";
 import { MEASURES, type Measure } from "../catalog/compare";
 import { CONCEPTS } from "../catalog/concepts";
+import { LESSON_LENGTH, POOL_SIZE } from "./config";
+
+export { LESSON_LENGTH, POOL_SIZE };
 
 // ---------------------------------------------------------------------------
 // Questions, generated from the catalogue rather than written by hand.
@@ -163,29 +166,55 @@ export function biggerQuestion(rand: () => number): Question | null {
   };
 }
 
-/** Did the company print this number, or did somebody else measure it? */
+/**
+ * Who produced this figure -- or did nobody?
+ *
+ * This was a two-way question, which made it a coin toss: showing a learner
+ * "215 hp" and asking maker-or-magazine is guessable at 50% and rewards it.
+ * It now withholds the number and offers a third real answer, drawn from the
+ * figures nobody has published at all. You have to know the car.
+ */
 export function whoseFigureQuestion(rand: () => number): Question | null {
   const measure = pick(rand, MEASURES);
-  const pool = CARS.filter((c) => isFigure(c[measure.key]));
+
+  const published = CARS.filter((c) => isFigure(c[measure.key]));
+  const missing = CARS.filter((c) => {
+    const f = c[measure.key];
+    return isAbsence(f) && f.absent === "unpublished";
+  });
+
+  // Draw from the unpublished side about a third of the time, where there is
+  // one, so "nobody has published one" is a live answer rather than scenery.
+  const useMissing = missing.length > 0 && rand() < 0.34;
+  const pool = useMissing ? missing : published;
   if (pool.length === 0) return null;
   const car = pick(rand, pool);
-  const f = car[measure.key] as Figure;
+  const f = car[measure.key] as Figure | Absence;
+
+  const answer = isAbsence(f) ? "none" : f.source;
 
   return {
     id: `whose:${measure.key}:${car.slug}`,
     kind: "whose-figure",
-    prompt: `Where does this number come from?`,
-    context: `${carLabel(car)} — ${measure.label.toLowerCase()}, ${fmt(measure.key, f)}`,
+    prompt: `Who produced this car's ${measure.label.toLowerCase()} figure?`,
+    context: `${carLabel(car)}, ${car.years}`,
     choices: shuffle(rand, [
       { id: "manufacturer", label: "The company that built it published it" },
       { id: "independent", label: "Somebody else measured it" },
+      { id: "none", label: "Nobody has published one" },
     ]),
-    answer: f.source,
-    explain:
-      f.source === "manufacturer"
-        ? `A maker's figure. It is produced in good conditions and is usually a best case.${f.note ? ` This one notes: ${f.note}.` : ""}`
-        : `An independent test. Normally a little slower than a maker's claim, because it is measured on an ordinary surface with a full tank.${f.note ? ` This one notes: ${f.note}.` : ""}`,
-    link: { href: "/concepts/makers-figures-and-tests", label: "A maker's figure and a measured one" },
+    answer,
+    explain: isAbsence(f)
+      ? `There is no figure. ${f.why}`
+      : f.source === "manufacturer"
+        ? `${fmt(measure.key, f)}, the maker's own figure \u2014 produced in good conditions and usually a best case.${f.note ? ` It notes: ${f.note}.` : ""}`
+        : `${fmt(measure.key, f)}, an independent test \u2014 normally a little slower than a maker's claim, being measured on an ordinary surface with a full tank.${f.note ? ` It notes: ${f.note}.` : ""}`,
+    link: isAbsence(f)
+      ? { href: "/concepts/why-a-blank-is-not-always-a-gap", label: "Reading a blank" }
+      : {
+          href: "/concepts/makers-figures-and-tests",
+          label: "A maker's figure and a measured one",
+        },
   };
 }
 
@@ -349,7 +378,7 @@ export const UNITS: {
 
 export const UNIT_BY_ID = Object.fromEntries(UNITS.map((u) => [u.id, u]));
 
-export const LESSON_LENGTH = 8;
+
 
 /**
  * Build one lesson.
@@ -375,4 +404,20 @@ export function buildLesson(unitId: UnitId, seed: number, length = LESSON_LENGTH
     out.push(q);
   }
   return out;
+}
+
+/**
+ * A larger set to choose a lesson from.
+ *
+ * The server cannot know what a given learner keeps getting wrong -- that
+ * lives in their browser and never leaves it -- so it cannot pick the lesson.
+ * Instead it sends a pool and the client chooses from it against its own
+ * history. A pool of POOL_SIZE is enough for the spacing to have something to
+ * work with while staying small on the wire: a question is a prompt, a few
+ * short choices and a sentence of explanation.
+ */
+
+
+export function buildPool(unitId: UnitId, seed: number, size = POOL_SIZE): Question[] {
+  return buildLesson(unitId, seed, size);
 }
