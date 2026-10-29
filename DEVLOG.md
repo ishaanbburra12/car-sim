@@ -2429,3 +2429,66 @@ drag their whole graph.
 - **Me (Raju):** keep going.
 - **Claude:** the three-way question, the Leitner store and selection, and
   the payload regression caught by the guard built two sessions ago.
+
+---
+
+## 2026-10-29 — Session 29: more kinds of question, and a silent starvation
+
+The weak spot I named last time was breadth: six question kinds over 65 cars
+means a committed learner runs out of genuinely distinct material quickly.
+
+### Ten kinds now, and comparisons got harder
+
+The two-car comparison became a three-or-four-car one. Picking the heaviest of
+four is a different task from picking the heavier of two: you have to hold the
+whole field rather than weigh one pair.
+
+Four new kinds, all from data already in the catalogue:
+
+- **Odd one out** — three share a maker, or a class, and one does not. The
+  first question here that makes you work out what the set is before you can
+  answer it.
+- **When was it built** — the years, against three other real year ranges.
+- **How many were built** — only the fifteen cars with a known production run,
+  and every wrong option is a real production run from elsewhere in the
+  catalogue, so nothing on screen is invented.
+- **Which car has this engine** — and it only asks where the engine
+  description belongs to exactly one car, or the question has two right
+  answers.
+
+### The starvation bug
+
+Worth writing down because nothing failed.
+
+`biggerQuestion` declines well over half its draws: it needs three or four
+cars in one category that all published the same measure, and for everyday
+cars and prototypes that often does not exist. The build loop advanced to the
+next generator on every *attempt*, so the easy generators filled the pool
+before the hard one got going.
+
+Measured: **one comparison question in a pool of twenty-eight, and never
+inside the first eight** — so a new learner never saw one at all. Ten kinds
+advertised, nine delivered. No error, no failing test, nothing in the UI to
+suggest anything was wrong. I only found it because a browser sweep of 24
+lessons listed every question shape it saw and the comparison was missing.
+
+Each slot now belongs to a generator in rotation and that generator gets ten
+goes at filling it before the next is asked, falling through if it genuinely
+cannot draw. The mix comes out even whatever the individual success rates are:
+5/5/5/5/4/4 across the six kinds in Knowing the cars, and the first eight now
+cover one of each.
+
+Tests lock it in: every generator must appear in the pool, the spread between
+the most and least used kinds may not exceed two, and a lesson must cover
+every kind its unit offers.
+
+### Counts
+
+331 tests. Lesson page still 3.21 kB.
+
+### Who wrote what
+
+- **Me (Raju):** continue.
+- **Claude:** four new question kinds, wider comparisons, and finding the
+  generator starvation by sampling the real thing rather than trusting the
+  tests.

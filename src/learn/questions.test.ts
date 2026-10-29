@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CAR_BY_SLUG, BRAND_BY_SLUG } from "../catalog";
+import { CARS, CAR_BY_SLUG, BRAND_BY_SLUG } from "../catalog";
 import { isAbsence, isFigure, type Figure } from "../catalog/types";
 import { MEASURES, type Measure } from "../catalog/compare";
 import { CONCEPT_BY_SLUG } from "../catalog/concepts";
@@ -7,6 +7,7 @@ import {
   LESSON_LENGTH,
   UNITS,
   buildLesson,
+  buildPool,
   rng,
   type Question,
   type UnitId,
@@ -96,7 +97,7 @@ describe("the question engine", () => {
       expect(q.prompt.length, q.id).toBeGreaterThan(10);
       expect(q.explain.length, `${q.id} has a thin explanation`).toBeGreaterThan(30);
       if (q.link) {
-        expect(q.link.href, q.id).toMatch(/^\/(cars|brands|concepts)\//);
+        expect(q.link.href, q.id).toMatch(/^\/(cars|brands|concepts)(\/|\?)/);
         expect(q.link.label.length, q.id).toBeGreaterThan(5);
       }
     }
@@ -104,18 +105,34 @@ describe("the question engine", () => {
 });
 
 describe("the answers are actually right", () => {
-  it("picks the genuinely bigger car, by the measure asked", () => {
+  // The id encodes the measure and the cars, so the key can be re-derived.
+  const biggerParts = (q: Question) => {
+    const [, measure, slugs] = q.id.split(":") as [string, Measure, string];
+    return { measure, cars: slugs.split("+").map((s) => CAR_BY_SLUG[s]) };
+  };
+  const ranked = (measure: Measure, f: Figure) =>
+    SPEC[measure].lowerIsBetter ? (f.high ?? f.value) : f.value;
+
+  it("picks the genuinely best of the field, by the measure asked", () => {
     const qs = ALL.filter((q) => q.kind === "bigger");
     expect(qs.length).toBeGreaterThan(50);
     for (const q of qs) {
-      const [, measure, a, b] = q.id.split(":") as [string, Measure, string, string];
+      const { measure, cars } = biggerParts(q);
       const spec = SPEC[measure];
-      const fa = CAR_BY_SLUG[a][measure] as Figure;
-      const fb = CAR_BY_SLUG[b][measure] as Figure;
-      const va = spec.lowerIsBetter ? (fa.high ?? fa.value) : fa.value;
-      const vb = spec.lowerIsBetter ? (fb.high ?? fb.value) : fb.value;
-      const expected = spec.lowerIsBetter ? (va < vb ? a : b) : va > vb ? a : b;
-      expect(q.answer, `${q.id}: ${va} vs ${vb}`).toBe(expected);
+      const sorted = [...cars].sort((x, y) => {
+        const vx = ranked(measure, x[measure] as Figure);
+        const vy = ranked(measure, y[measure] as Figure);
+        return spec.lowerIsBetter ? vx - vy : vy - vx;
+      });
+      expect(q.answer, q.id).toBe(sorted[0].slug);
+    }
+  });
+
+  it("asks about three or four cars, never two", () => {
+    for (const q of ALL.filter((x) => x.kind === "bigger")) {
+      expect(q.choices.length, q.id).toBeGreaterThanOrEqual(3);
+      expect(q.choices.length, q.id).toBeLessThanOrEqual(4);
+      expect(biggerParts(q).cars.length, q.id).toBe(q.choices.length);
     }
   });
 
@@ -130,31 +147,28 @@ describe("the answers are actually right", () => {
       return null;
     };
     for (const q of ALL.filter((x) => x.kind === "bigger" && x.id.includes(":zeroTo60S:"))) {
-      const [, , a, b] = q.id.split(":");
-      const fa = CAR_BY_SLUG[a].zeroTo60S as Figure;
-      const fb = CAR_BY_SLUG[b].zeroTo60S as Figure;
-      expect(basis(fa), q.id).not.toBeNull();
-      expect(basis(fa), `${q.id} compares different sprints`).toBe(basis(fb));
+      const bases = biggerParts(q).cars.map((c) => basis(c.zeroTo60S as Figure));
+      expect(bases.every((b) => b !== null), q.id).toBe(true);
+      expect(new Set(bases).size, `${q.id} compares different sprints`).toBe(1);
     }
   });
 
-  it("only asks about gaps worth asking about", () => {
+  it("only asks when the winner is clear of the runner-up", () => {
     for (const q of ALL.filter((x) => x.kind === "bigger")) {
-      const [, measure, a, b] = q.id.split(":") as [string, Measure, string, string];
+      const { measure, cars } = biggerParts(q);
       const spec = SPEC[measure];
-      const fa = CAR_BY_SLUG[a][measure] as Figure;
-      const fb = CAR_BY_SLUG[b][measure] as Figure;
-      const va = spec.lowerIsBetter ? (fa.high ?? fa.value) : fa.value;
-      const vb = spec.lowerIsBetter ? (fb.high ?? fb.value) : fb.value;
-      const gap = Math.abs(va - vb) / Math.max(va, vb);
+      const vals = cars
+        .map((c) => ranked(measure, c[measure] as Figure))
+        .sort((a, b) => (spec.lowerIsBetter ? a - b : b - a));
+      const gap = Math.abs(vals[0] - vals[1]) / Math.max(vals[0], vals[1]);
       expect(gap, `${q.id} is a coin toss`).toBeGreaterThanOrEqual(0.08);
     }
   });
 
   it("compares cars of the same kind", () => {
     for (const q of ALL.filter((x) => x.kind === "bigger")) {
-      const [, , a, b] = q.id.split(":");
-      expect(CAR_BY_SLUG[a].category, q.id).toBe(CAR_BY_SLUG[b].category);
+      const cats = new Set(biggerParts(q).cars.map((c) => c.category));
+      expect(cats.size, q.id).toBe(1);
     }
   });
 
@@ -247,6 +261,134 @@ describe("the random number generator", () => {
       const v = r();
       expect(v).toBeGreaterThanOrEqual(0);
       expect(v).toBeLessThan(1);
+    }
+  });
+});
+
+describe("the newer question kinds", () => {
+  it("picks a genuine odd one out, by maker or by class", () => {
+    const qs = ALL.filter((q) => q.kind === "odd-one-out");
+    expect(qs.length).toBeGreaterThan(50);
+    for (const q of qs) {
+      const [, axis, slugs] = q.id.split(":");
+      const cars = slugs.split("+").map((s) => CAR_BY_SLUG[s]);
+      expect(cars.length, q.id).toBe(4);
+      const odd = CAR_BY_SLUG[q.answer];
+      const rest = cars.filter((c) => c.slug !== q.answer);
+      expect(rest.length, q.id).toBe(3);
+      const key = (c: (typeof cars)[number]) => (axis === "brand" ? c.brand : c.category);
+      // the three share the trait
+      expect(new Set(rest.map(key)).size, `${q.id}: the three do not match`).toBe(1);
+      // and the odd one does not
+      expect(key(odd), `${q.id}: the odd one matches the three`).not.toBe(key(rest[0]));
+    }
+  });
+
+  it("never offers two cars with the same label in an odd-one-out", () => {
+    // The brand variant shows bare model names, so two cars called the same
+    // thing from different makers would make the question unanswerable.
+    for (const q of ALL.filter((x) => x.kind === "odd-one-out")) {
+      const labels = q.choices.map((c) => c.label);
+      expect(new Set(labels).size, q.id).toBe(labels.length);
+    }
+  });
+
+  it("gets the years right", () => {
+    const qs = ALL.filter((q) => q.kind === "which-era");
+    expect(qs.length).toBeGreaterThan(20);
+    for (const q of qs) {
+      const car = CAR_BY_SLUG[q.id.split(":")[1]];
+      expect(q.answer, q.id).toBe(car.years);
+      // and no second choice shares the right answer's text
+      expect(q.choices.filter((c) => c.id === car.years).length, q.id).toBe(1);
+    }
+  });
+
+  it("gets the production run right, and offers only real runs as distractors", () => {
+    const real = new Set(CARS.filter((c) => c.produced).map((c) => c.produced!.count));
+    const qs = ALL.filter((q) => q.kind === "how-many");
+    expect(qs.length).toBeGreaterThan(10);
+    for (const q of qs) {
+      const car = CAR_BY_SLUG[q.id.split(":")[1]];
+      expect(car.produced, q.id).not.toBeNull();
+      expect(q.answer, q.id).toBe(String(car.produced!.count));
+      for (const c of q.choices) {
+        expect(real.has(Number(c.id)), `${q.id}: ${c.id} is not a real production run`).toBe(true);
+      }
+    }
+  });
+
+  it("only asks about an engine that belongs to exactly one car", () => {
+    const qs = ALL.filter((q) => q.kind === "which-engine");
+    expect(qs.length).toBeGreaterThan(20);
+    for (const q of qs) {
+      const car = CAR_BY_SLUG[q.id.split(":")[1]];
+      expect(q.answer, q.id).toBe(car.slug);
+      expect(q.context, q.id).toBe(car.engine);
+      expect(CARS.filter((c) => c.engine === car.engine).length, `${q.id} is ambiguous`).toBe(1);
+    }
+  });
+
+  it("covers every kind it advertises", () => {
+    const kinds = new Set(ALL.map((q) => q.kind));
+    for (const k of [
+      "bigger",
+      "whose-figure",
+      "which-sprint",
+      "reading-a-blank",
+      "which-maker",
+      "which-idea",
+      "odd-one-out",
+      "which-era",
+      "how-many",
+      "which-engine",
+    ]) {
+      expect(kinds.has(k as never), `${k} never got generated`).toBe(true);
+    }
+  });
+});
+
+describe("a lesson is a mix, not whatever was easiest to draw", () => {
+  // This is the regression that prompted the test. `biggerQuestion` declines
+  // well over half its draws, because it needs three or four cars in one
+  // category that all published the same measure. With the old loop the easy
+  // generators filled the pool first and comparisons appeared once in
+  // twenty-eight, never inside the first eight. Nothing failed; the lesson
+  // just silently lost a kind of question.
+
+  it("gives every generator in a unit a roughly equal share of the pool", () => {
+    for (const unit of UNITS) {
+      for (const seed of [1, 2, 3, 99, 12345]) {
+        const pool = buildPool(unit.id, seed);
+        const counts = new Map<string, number>();
+        for (const q of pool) counts.set(q.kind, (counts.get(q.kind) ?? 0) + 1);
+        expect(counts.size, `${unit.id} @ ${seed} used too few kinds`).toBe(
+          unit.generators.length,
+        );
+        const n = [...counts.values()];
+        expect(
+          Math.max(...n) - Math.min(...n),
+          `${unit.id} @ ${seed} is lopsided: ${JSON.stringify([...counts])}`,
+        ).toBeLessThanOrEqual(2);
+      }
+    }
+  });
+
+  it("covers every kind the unit offers inside a single lesson, where it can", () => {
+    for (const unit of UNITS) {
+      const expected = Math.min(unit.generators.length, LESSON_LENGTH);
+      for (const seed of [7, 8, 404]) {
+        const kinds = new Set(buildLesson(unit.id, seed).map((q) => q.kind));
+        expect(kinds.size, `${unit.id} @ ${seed}`).toBeGreaterThanOrEqual(expected);
+      }
+    }
+  });
+
+  it("still fills a lesson even when a generator can never draw", () => {
+    // Falling through to the other generators is what keeps a dead one from
+    // stalling the whole lesson.
+    for (const unit of UNITS) {
+      expect(buildLesson(unit.id, 555).length).toBe(LESSON_LENGTH);
     }
   });
 });

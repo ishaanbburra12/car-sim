@@ -1,4 +1,4 @@
-import { BRANDS, BRAND_BY_SLUG, CARS, type Car } from "../catalog";
+import { BRANDS, BRAND_BY_SLUG, CARS, CATEGORY_LABELS, type Car } from "../catalog";
 import { isAbsence, isFigure, type Absence, type Figure } from "../catalog/types";
 import { MEASURES, type Measure } from "../catalog/compare";
 import { CONCEPTS } from "../catalog/concepts";
@@ -33,7 +33,11 @@ export type QuestionKind =
   | "which-sprint"
   | "reading-a-blank"
   | "which-maker"
-  | "which-idea";
+  | "which-idea"
+  | "odd-one-out"
+  | "which-era"
+  | "how-many"
+  | "which-engine";
 
 export type Question = {
   id: string;
@@ -110,59 +114,73 @@ const sourceWords = (f: Figure) =>
  * a 1 hp difference is more powerful.
  */
 
-/** Which of these two is more/less? The bread and butter. */
+/**
+ * Which of these is the most/least? The bread and butter.
+ *
+ * Three or four cars rather than two. A two-way version is a coin toss, and
+ * picking the heaviest of four is a genuinely different task from picking the
+ * heavier of two: you have to hold the whole field in mind.
+ */
 export function biggerQuestion(rand: () => number): Question | null {
   const measure = pick(rand, MEASURES);
   const category = pick(rand, ["hypercar", "sports", "everyday", "prototype"] as const);
+  const want = rand() < 0.5 ? 3 : 4;
 
   const pool = CARS.filter((c) => c.category === category && isFigure(c[measure.key]));
-  if (pool.length < 2) return null;
+  if (pool.length < want) return null;
 
-  const [a, b] = shuffle(rand, pool).slice(0, 2);
-  const fa = a[measure.key] as Figure;
-  const fb = b[measure.key] as Figure;
+  const basis = (f: Figure) => {
+    const n = (f.note ?? "").toLowerCase();
+    if (n.includes("rollout")) return "rollout";
+    if (n.includes("km/h")) return "kmh";
+    if (n.includes("60 mph")) return "mph";
+    return null;
+  };
+
+  let cars = shuffle(rand, pool).slice(0, want);
 
   // A 0-60 question that pits a 0-100 km/h figure against a 0-60 mph one is
   // the exact mistake this site spends a page warning about. Do not set it.
   if (measure.key === "zeroTo60S") {
-    const basis = (f: Figure) => {
-      const n = (f.note ?? "").toLowerCase();
-      if (n.includes("rollout")) return "rollout";
-      if (n.includes("km/h")) return "kmh";
-      if (n.includes("60 mph")) return "mph";
-      return null;
-    };
-    if (basis(fa) === null || basis(fa) !== basis(fb)) return null;
+    const want_basis = basis(cars[0][measure.key] as Figure);
+    if (want_basis === null) return null;
+    cars = cars.filter((c) => basis(c[measure.key] as Figure) === want_basis);
+    if (cars.length < 3) return null;
   }
 
-  const va = comparable(measure.key, fa);
-  const vb = comparable(measure.key, fb);
-  // Needs a gap worth asking about. A 2% difference is a coin toss dressed up.
-  const gap = Math.abs(va - vb) / Math.max(va, vb);
+  const val = (c: Car) => comparable(measure.key, c[measure.key] as Figure);
+  const sorted = [...cars].sort((a, b) =>
+    measure.lowerIsBetter ? val(a) - val(b) : val(b) - val(a),
+  );
+  const winner = sorted[0];
+  const runnerUp = sorted[1];
+
+  // The winner has to be clear of the field, or this is a coin toss with
+  // more options.
+  const gap = Math.abs(val(winner) - val(runnerUp)) / Math.max(val(winner), val(runnerUp));
   if (gap < 0.08) return null;
 
-  const better = measure.lowerIsBetter ? (va < vb ? a : b) : va > vb ? a : b;
   const word = measure.lowerIsBetter
     ? measure.key === "weightKg"
-      ? "is lighter"
-      : "is quicker to 60"
+      ? "is the lightest"
+      : "is the quickest to 60"
     : measure.key === "topSpeedMph"
-      ? "goes faster"
-      : `makes more ${measure.label.toLowerCase()}`;
+      ? "goes the fastest"
+      : `makes the most ${measure.label.toLowerCase()}`;
 
   return {
-    id: `bigger:${measure.key}:${a.slug}:${b.slug}`,
+    id: `bigger:${measure.key}:${cars.map((c) => c.slug).sort().join("+")}`,
     kind: "bigger",
     prompt: `Which ${word}?`,
-    choices: shuffle(rand, [
-      { id: a.slug, label: carLabel(a), sub: a.years },
-      { id: b.slug, label: carLabel(b), sub: b.years },
-    ]),
-    answer: better.slug,
-    explain:
-      `${carLabel(a)}: ${fmt(measure.key, fa)} (${sourceWords(fa)}). ` +
-      `${carLabel(b)}: ${fmt(measure.key, fb)} (${sourceWords(fb)}).`,
-    link: { href: `/cars/${better.slug}`, label: `Read about the ${better.name}` },
+    choices: shuffle(
+      rand,
+      cars.map((c) => ({ id: c.slug, label: carLabel(c), sub: c.years })),
+    ),
+    answer: winner.slug,
+    explain: sorted
+      .map((c) => `${carLabel(c)}: ${fmt(measure.key, c[measure.key] as Figure)}`)
+      .join(". ") + ".",
+    link: { href: `/cars/${winner.slug}`, label: `Read about the ${winner.name}` },
   };
 }
 
@@ -329,6 +347,146 @@ export function whichIdeaQuestion(rand: () => number): Question | null {
   };
 }
 
+/**
+ * Three of these have something in common. Which one does not?
+ *
+ * A different task from picking the biggest: instead of reading one number
+ * off four cars, you have to work out what the set is before you can answer.
+ */
+export function oddOneOutQuestion(rand: () => number): Question | null {
+  const byBrand = rand() < 0.5;
+
+  if (byBrand) {
+    const brands = BRANDS.filter((b) => CARS.filter((c) => c.brand === b.slug).length >= 3);
+    if (brands.length === 0) return null;
+    const brand = pick(rand, brands);
+    const theirs = shuffle(rand, CARS.filter((c) => c.brand === brand.slug)).slice(0, 3);
+    const others = CARS.filter((c) => c.brand !== brand.slug);
+    if (others.length === 0) return null;
+    const odd = pick(rand, others);
+    const oddBrand = BRAND_BY_SLUG[odd.brand];
+
+    return {
+      id: `odd:brand:${[...theirs.map((c) => c.slug), odd.slug].sort().join("+")}`,
+      kind: "odd-one-out",
+      prompt: "Three of these were built by the same company. Which is the odd one out?",
+      choices: shuffle(
+        rand,
+        [...theirs, odd].map((c) => ({ id: c.slug, label: c.name, sub: c.years })),
+      ),
+      answer: odd.slug,
+      explain: `${theirs.map((c) => c.name).join(", ")} are all ${brand.name}. The ${odd.name} is ${oddBrand?.name ?? odd.brand}.`,
+      link: { href: `/brands/${brand.slug}`, label: `Everything by ${brand.name}` },
+    };
+  }
+
+  const cats = ["hypercar", "sports", "everyday", "prototype"] as const;
+  const cat = pick(rand, cats);
+  const inCat = CARS.filter((c) => c.category === cat);
+  const outCat = CARS.filter((c) => c.category !== cat);
+  if (inCat.length < 3 || outCat.length === 0) return null;
+  const theirs = shuffle(rand, inCat).slice(0, 3);
+  const odd = pick(rand, outCat);
+
+  return {
+    id: `odd:cat:${[...theirs.map((c) => c.slug), odd.slug].sort().join("+")}`,
+    kind: "odd-one-out",
+    prompt: `Three of these are in the same class. Which is the odd one out?`,
+    choices: shuffle(
+      rand,
+      [...theirs, odd].map((c) => ({ id: c.slug, label: carLabel(c), sub: c.years })),
+    ),
+    answer: odd.slug,
+    explain: `${theirs.map((c) => c.name).join(", ")} are all ${CATEGORY_LABELS[cat].toLowerCase()}. The ${odd.name} is ${CATEGORY_LABELS[odd.category].toLowerCase()}.`,
+    link: { href: `/cars?category=${cat}`, label: `See the ${CATEGORY_LABELS[cat].toLowerCase()}` },
+  };
+}
+
+/** When was it built? */
+export function whichEraQuestion(rand: () => number): Question | null {
+  const car = pick(rand, CARS);
+  const others = shuffle(rand, CARS.filter((c) => c.years !== car.years));
+  const distinct: string[] = [];
+  for (const o of others) {
+    if (distinct.length === 3) break;
+    if (!distinct.includes(o.years)) distinct.push(o.years);
+  }
+  if (distinct.length < 3) return null;
+
+  return {
+    id: `era:${car.slug}`,
+    kind: "which-era",
+    prompt: `When was the ${car.name} built?`,
+    context: carLabel(car),
+    choices: shuffle(rand, [car.years, ...distinct]).map((y) => ({ id: y, label: y })),
+    answer: car.years,
+    explain: `${carLabel(car)}, ${car.years}. ${car.blurb}`,
+    link: { href: `/cars/${car.slug}`, label: `Read about the ${car.name}` },
+  };
+}
+
+/** How many were made? Only where the catalogue actually knows. */
+export function howManyQuestion(rand: () => number): Question | null {
+  const known = CARS.filter((c) => c.produced !== null);
+  if (known.length < 4) return null;
+  const car = pick(rand, known);
+  const right = car.produced!.count;
+
+  // Distractors are other real production runs from the catalogue, so every
+  // option on screen is a number somebody actually built to.
+  const pool = known
+    .map((c) => c.produced!.count)
+    .filter((n) => n !== right);
+  const distinct: number[] = [];
+  for (const n of shuffle(rand, pool)) {
+    if (distinct.length === 3) break;
+    if (!distinct.includes(n)) distinct.push(n);
+  }
+  if (distinct.length < 3) return null;
+
+  return {
+    id: `made:${car.slug}`,
+    kind: "how-many",
+    prompt: `How many ${car.name} were built?`,
+    context: carLabel(car) + ", " + car.years,
+    choices: shuffle(rand, [right, ...distinct]).map((n) => ({
+      id: String(n),
+      label: n.toLocaleString("en-GB"),
+    })),
+    answer: String(right),
+    explain: `${right.toLocaleString("en-GB")}.${car.produced!.note ? ` ${car.produced!.note}.` : ""} Every other number offered is a real production run from somewhere else in the catalogue.`,
+    link: { href: `/cars/${car.slug}`, label: `Read about the ${car.name}` },
+  };
+}
+
+/** Which car has this engine? */
+export function whichEngineQuestion(rand: () => number): Question | null {
+  const car = pick(rand, CARS);
+  // Only ask where the engine description is unique, or the question has more
+  // than one right answer.
+  if (CARS.filter((c) => c.engine === car.engine).length > 1) return null;
+
+  const others = shuffle(rand, CARS.filter((c) => c.slug !== car.slug && c.name !== car.name)).slice(
+    0,
+    3,
+  );
+  if (others.length < 3) return null;
+
+  return {
+    id: `engine:${car.slug}`,
+    kind: "which-engine",
+    prompt: "Which car has this engine?",
+    context: car.engine,
+    choices: shuffle(
+      rand,
+      [car, ...others].map((c) => ({ id: c.slug, label: carLabel(c), sub: c.years })),
+    ),
+    answer: car.slug,
+    explain: `The ${car.name}: ${car.engine}. ${car.layout}.`,
+    link: { href: `/cars/${car.slug}`, label: `Read about the ${car.name}` },
+  };
+}
+
 /* -------------------------------------------------------------------- units */
 
 export type UnitId = "numbers" | "cars" | "ideas" | "mixed";
@@ -351,8 +509,16 @@ export const UNITS: {
   {
     id: "cars",
     title: "Knowing the cars",
-    blurb: "Who built what, and which of two cars is the heavier, quicker or more powerful.",
-    generators: [biggerQuestion, whichMakerQuestion],
+    blurb:
+      "Who built what, when it was made, how many exist, and which of four cars is the heaviest, quickest or most powerful.",
+    generators: [
+      biggerQuestion,
+      whichMakerQuestion,
+      oddOneOutQuestion,
+      whichEraQuestion,
+      howManyQuestion,
+      whichEngineQuestion,
+    ],
   },
   {
     id: "ideas",
@@ -372,6 +538,10 @@ export const UNITS: {
       readingABlankQuestion,
       whichMakerQuestion,
       whichIdeaQuestion,
+      oddOneOutQuestion,
+      whichEraQuestion,
+      howManyQuestion,
+      whichEngineQuestion,
     ],
   },
 ];
@@ -381,14 +551,27 @@ export const UNIT_BY_ID = Object.fromEntries(UNITS.map((u) => [u.id, u]));
 
 
 /**
- * Build one lesson.
+ * Build one lesson, or a pool to choose one from.
  *
- * Generators are allowed to decline a draw, so this keeps asking until it has
- * enough, with a hard attempt limit so a thin unit cannot spin forever. It
- * also refuses to repeat a question inside one lesson, which matters more
- * than it sounds: the same two cars coming round twice makes the whole thing
- * feel broken even when the second one is a different measure.
+ * Generators are allowed to decline a draw -- the data is not uniform, and
+ * forcing a question out of thin data is how you get "which of these two
+ * cars with a 1 hp difference is more powerful". But declining has a cost
+ * that is easy to miss.
+ *
+ * This loop used to advance the generator on every ATTEMPT, which quietly
+ * starved the harder ones. `biggerQuestion` needs three or four cars in one
+ * category that all published the same measure, so it declines well over half
+ * its draws; the easier generators filled the pool before it got going. The
+ * result was one comparison question in a pool of twenty-eight, never inside
+ * the first eight, so a new learner never saw one at all. Nothing failed. The
+ * lesson just quietly lost a whole kind of question.
+ *
+ * Now each slot belongs to a generator in rotation, and that generator gets
+ * several goes at filling it before the next one is asked, so the mix comes
+ * out roughly even whatever the individual success rates are.
  */
+const TRIES_PER_SLOT = 10;
+
 export function buildLesson(unitId: UnitId, seed: number, length = LESSON_LENGTH): Question[] {
   const unit = UNIT_BY_ID[unitId];
   if (!unit) return [];
@@ -396,12 +579,21 @@ export function buildLesson(unitId: UnitId, seed: number, length = LESSON_LENGTH
   const out: Question[] = [];
   const seen = new Set<string>();
 
-  for (let attempt = 0; attempt < length * 60 && out.length < length; attempt++) {
-    const gen = unit.generators[attempt % unit.generators.length];
-    const q = gen(rand);
-    if (!q || seen.has(q.id)) continue;
-    seen.add(q.id);
-    out.push(q);
+  for (let slot = 0; slot < length; slot++) {
+    let placed = false;
+    // Start at this slot's generator, then fall through the others, so a
+    // generator that genuinely cannot draw anything does not stall the lesson.
+    for (let k = 0; k < unit.generators.length && !placed; k++) {
+      const gen = unit.generators[(slot + k) % unit.generators.length];
+      for (let t = 0; t < TRIES_PER_SLOT && !placed; t++) {
+        const q = gen(rand);
+        if (!q || seen.has(q.id)) continue;
+        seen.add(q.id);
+        out.push(q);
+        placed = true;
+      }
+    }
+    if (!placed) break;
   }
   return out;
 }
